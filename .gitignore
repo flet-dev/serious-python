@@ -30,3 +30,8 @@ migrate_working_dir/
 build/
 dist/
 .cache
+
+# Python
+.venv/
+__pypackages__/
+*.zip
