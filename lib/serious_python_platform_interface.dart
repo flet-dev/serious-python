@@ -27,7 +27,7 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
-  Future<String?> runPython(String appPath,
+  Future<String?> run(String appPath,
       {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
     throw UnimplementedError('runPython() has not been implemented.');
   }

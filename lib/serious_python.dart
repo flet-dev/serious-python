@@ -5,9 +5,9 @@ class SeriousPython {
     return SeriousPythonPlatform.instance.getPlatformVersion();
   }
 
-  Future<String?> runPython(String appPath,
+  Future<String?> run(String appPath,
       {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
-    return SeriousPythonPlatform.instance.runPython(appPath,
+    return SeriousPythonPlatform.instance.run(appPath,
         modulePaths: modulePaths, environmentVariables: environmentVariables);
   }
 }

@@ -21,8 +21,8 @@ void startPythonProgram() async {
       data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
   await File(appPath).writeAsBytes(bytes);
 
-  var seriousPythonPlugin = SeriousPython();
-  seriousPythonPlugin.runPython(appPath,
+  var python = SeriousPython();
+  python.run(appPath,
       modulePaths: ["main"], environmentVariables: {"a": "1", "b": "2"});
 }
 

@@ -11,7 +11,7 @@ class MockSeriousPythonPlatform
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<String?> runPython(String appPath,
+  Future<String?> run(String appPath,
       {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
     // TODO: implement runPython
     throw UnimplementedError();

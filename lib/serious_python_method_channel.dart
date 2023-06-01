@@ -17,7 +17,7 @@ class MethodChannelSeriousPython extends SeriousPythonPlatform {
   }
 
   @override
-  Future<String?> runPython(String appPath,
+  Future<String?> run(String appPath,
       {List<String>? modulePaths,
       Map<String, String>? environmentVariables}) async {
     final Map<String, dynamic> arguments = {
