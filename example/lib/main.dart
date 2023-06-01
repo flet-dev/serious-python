@@ -1,9 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:serious_python/serious_python.dart';
 
 void main() {
@@ -14,15 +9,9 @@ void main() {
 void startPythonProgram() async {
   debugPrint("startPythonProgram()");
   WidgetsFlutterBinding.ensureInitialized();
-  Directory directory = await getApplicationDocumentsDirectory();
-  var appPath = p.join(directory.path, "main.py");
-  ByteData data = await rootBundle.load("app/main.py");
-  List<int> bytes =
-      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-  await File(appPath).writeAsBytes(bytes);
 
   var python = SeriousPython();
-  python.run(appPath,
+  python.run("app/main.py",
       modulePaths: ["main"], environmentVariables: {"a": "1", "b": "2"});
 }
 

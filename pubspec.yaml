@@ -16,6 +16,10 @@ dependencies:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
 
+  path_provider: ^2.0.15
+  archive: ^3.3.7
+  path: ^1.8.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

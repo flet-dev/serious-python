@@ -38,7 +38,8 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             let modulePaths = args["modulePaths"] as? [String] ?? []
             let envVars = args["environmentVariables"] as? [String:String] ?? [:]
             
-            print("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths))")
+            NSLog("\nHello, World!")
+            NSLog("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths))")
             
             let appDir = URL(fileURLWithPath: appPath).deletingLastPathComponent().path
             
