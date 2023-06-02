@@ -1,0 +1,34 @@
+image: macos-monterey
+
+stack:
+- python 3.10
+
+install:
+  # update build version
+  - ps: |
+      if ($env:APPVEYOR_REPO_TAG_NAME) {
+        $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+      } else {
+        $cv = [version](git describe --abbrev=0).substring(1)
+        $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
+      }
+      Update-AppveyorBuild -Version $v
+  - echo $APPVEYOR_BUILD_VERSION
+  - flutter upgrade --force
+
+  # install Kivy toolchain
+  - pip3 install kivy-ios
+  - brew install autoconf automake libtool pkg-config
+  - brew link libtool
+
+build_script:
+  # build Python 3
+  - toolchain build python3
+  - toolchain pip install flet
+  - ls dist
+  - sh: |
+      DIST_FILE_NAME=python-ios-dist.tar.gz
+      tar -czvf $DIST_FILE_NAME dist
+      appveyor PushArtifact $DIST_FILE_NAME
+
+test: off
