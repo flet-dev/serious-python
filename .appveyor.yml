@@ -43,11 +43,10 @@ install:
 build_script:
   # build Python 3
   - toolchain build python3
-  - toolchain pip install flet
   - ls dist
   - sh: |
       DIST_FILE_NAME=python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      tar -czvf $DIST_FILE_NAME dist
+      tar -czvf $DIST_FILE_NAME dist/lib dist/root
       appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
 test: off
