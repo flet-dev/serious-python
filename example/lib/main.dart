@@ -3,16 +3,12 @@ import 'package:http/http.dart' as http;
 import 'package:serious_python/serious_python.dart';
 
 void main() {
-  startPythonProgram();
+  startPython();
   runApp(const MyApp());
 }
 
-void startPythonProgram() async {
-  debugPrint("startPythonProgram()");
-  WidgetsFlutterBinding.ensureInitialized();
-
-  var python = SeriousPython();
-  python.run("app/Archive.zip",
+void startPython() async {
+  SeriousPython().run("app/Archive.zip",
       modulePaths: ["main"], environmentVariables: {"a": "1", "b": "2"});
 }
 
@@ -41,7 +37,7 @@ class _MyAppState extends State<MyApp> {
         });
         return;
       } catch (_) {
-        await Future.delayed(const Duration(seconds: 1));
+        await Future.delayed(const Duration(milliseconds: 200));
       }
     }
   }
@@ -56,28 +52,33 @@ class _MyAppState extends State<MyApp> {
     }
 
     return MaterialApp(
+      theme: ThemeData(useMaterial3: true),
       home: Scaffold(
           appBar: AppBar(
-            title: const Text('Plugin example app'),
+            title: const Text('Python REPL'),
           ),
-          body: Column(children: [
+          body: SafeArea(
+              child: Column(children: [
             Expanded(
               child: Center(
                 child: child,
               ),
             ),
-            Row(
-              children: [
-                Expanded(
-                    child: TextFormField(
-                  keyboardType: TextInputType.multiline,
-                  minLines: 1,
-                  maxLines: 10,
-                )),
-                ElevatedButton(onPressed: () {}, child: const Text("Run"))
-              ],
+            Container(
+              padding: const EdgeInsets.all(5),
+              child: Row(
+                children: [
+                  Expanded(
+                      child: TextFormField(
+                    keyboardType: TextInputType.multiline,
+                    minLines: 1,
+                    maxLines: 10,
+                  )),
+                  ElevatedButton(onPressed: () {}, child: const Text("Run"))
+                ],
+              ),
             )
-          ])),
+          ]))),
     );
   }
 }

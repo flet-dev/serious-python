@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python/utils.dart';
 
@@ -14,6 +15,7 @@ class SeriousPython {
       {String? appFileName,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables}) async {
+    WidgetsFlutterBinding.ensureInitialized();
     String appPath = "";
     if (p.extension(assetPath) == ".zip") {
       appPath = await extractAssetZip(assetPath);
