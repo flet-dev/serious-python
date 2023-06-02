@@ -1,5 +1,18 @@
 image: macos-monterey
 
+skip_branch_with_pr: true
+
+skip_commits:
+  files:
+    - docs/**/*
+    - media/**/*
+    - "*.md"
+
+environment:
+  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.0-stable.zip
+  GITHUB_TOKEN:
+    secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
+
 stack:
 - python 3.10
 
@@ -13,12 +26,20 @@ install:
         $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
       }
       Update-AppveyorBuild -Version $v
-  - echo $APPVEYOR_BUILD_VERSION
-  - flutter upgrade --force
+
+  # install Flutter
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+  - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
+  - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
+  - export PATH="$PATH:$HOME/flutter/bin"
+  - flutter channel stable
+  - flutter upgrade
+  - flutter config --enable-macos-desktop
+  - flutter doctor
 
   # install Kivy toolchain
   - pip3 install kivy-ios
-  - brew install autoconf automake libtool pkg-config
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
   - brew link libtool
 
 build_script:
@@ -27,8 +48,8 @@ build_script:
   - toolchain pip install flet
   - ls dist
   - sh: |
-      DIST_FILE_NAME=python-ios-dist.tar.gz
+      DIST_FILE_NAME=python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       tar -czvf $DIST_FILE_NAME dist
-      appveyor PushArtifact $DIST_FILE_NAME
+      appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
 test: off
