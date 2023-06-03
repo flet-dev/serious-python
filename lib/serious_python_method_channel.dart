@@ -19,11 +19,13 @@ class MethodChannelSeriousPython extends SeriousPythonPlatform {
   @override
   Future<String?> run(String appPath,
       {List<String>? modulePaths,
-      Map<String, String>? environmentVariables}) async {
+      Map<String, String>? environmentVariables,
+      bool? sync}) async {
     final Map<String, dynamic> arguments = {
       'appPath': appPath,
       'modulePaths': modulePaths,
-      'environmentVariables': environmentVariables
+      'environmentVariables': environmentVariables,
+      'sync': sync
     };
     return await methodChannel.invokeMethod<String>('runPython', arguments);
   }

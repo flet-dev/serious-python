@@ -12,7 +12,9 @@ class MockSeriousPythonPlatform
 
   @override
   Future<String?> run(String appPath,
-      {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
+      {List<String>? modulePaths,
+      Map<String, String>? environmentVariables,
+      bool? sync}) {
     // TODO: implement runPython
     throw UnimplementedError();
   }

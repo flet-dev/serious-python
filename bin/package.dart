@@ -17,9 +17,14 @@ void main(List<String> args) {
   var srcDir = argResults["src"];
   stdout.writeln("Source dir: $srcDir");
 
+  /*
+
+  Swift module TODO:
+  - run from .pyc
+
   // installing python modules
   // pip install --isolated --upgrade --target /path/to/__pypackages__ -r ___requirements.txt
-  /*
+
         "CC": "/bin/false",
         "CXX": "/bin/false",
         "PYTHONPATH": ctx.site_packages_dir,
@@ -29,5 +34,7 @@ void main(List<String> args) {
     - remove all *.so, *.a files
     - remove all __pycache__ dirs
     - remove "bin" directory
+    - optionally: compile python files and remove .py:
+        python -m compileall -b ./app
   */
 }

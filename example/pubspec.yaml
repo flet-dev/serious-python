@@ -50,5 +50,4 @@ flutter:
   uses-material-design: true
 
   assets:
-    - app/main.py
     - app/Archive.zip

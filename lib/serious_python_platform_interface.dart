@@ -28,7 +28,9 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
   }
 
   Future<String?> run(String appPath,
-      {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
+      {List<String>? modulePaths,
+      Map<String, String>? environmentVariables,
+      bool? sync}) {
     throw UnimplementedError('run() has not been implemented.');
   }
 }
