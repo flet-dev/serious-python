@@ -28,6 +28,17 @@ A new Flutter plugin project.
 
   python_framework = 'dist/frameworks/Python.xcframework'
   s.prepare_command = <<-CMD
+    if [ -d "dist" ]; then
+      rm -rf dist
+    fi
+    if [ -n "$SERIOUS_PYTHON_DIST" ]; then
+      ln -s "$SERIOUS_PYTHON_DIST" dist
+    else
+      PYTHON_DIST_FILE=python-ios-dist-v#{s.version}.tar.gz
+      curl -LO https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_DIST_FILE
+      tar -xzf $PYTHON_DIST_FILE
+      rm $PYTHON_DIST_FILE
+    fi
     rm -rf #{python_framework}
     mkdir -p #{python_framework}
     cp -R pod_templates/Python.xcframework/* #{python_framework}
