@@ -8,12 +8,12 @@ import 'package:toml/toml.dart';
 
 void main(List<String> arguments) async {
   final parser = ArgParser()
+    ..addFlag("help", abbr: "h", help: 'shows this help')
     ..addOption('dest', abbr: 'd', help: 'destination archive path and name');
-  //..addPositional('source', help: 'source directory path');
 
   final args = parser.parse(arguments);
 
-  if (args.rest.isEmpty) {
+  if (args.rest.isEmpty || args["help"]) {
     stdout.writeln("Usage:");
     stdout.writeln(
         "  flutter pub run serious_python:package [options] <source_dir>\n");
@@ -22,7 +22,7 @@ void main(List<String> arguments) async {
     exit(1);
   }
 
-  final sourceDir = Directory(args['source']);
+  final sourceDir = Directory(args.rest.first);
   final dest = File(args['dest']);
 
   if (!sourceDir.existsSync()) {
