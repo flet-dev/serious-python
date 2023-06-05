@@ -35,7 +35,7 @@ class PackageCommand extends Command {
     final sourceDir = Directory(argResults!.rest.first);
 
     if (!sourceDir.existsSync()) {
-      stdout.writeln('Source directory does not exist');
+      stdout.writeln('Source directory does not exist.');
       exit(2);
     }
 
@@ -43,6 +43,14 @@ class PackageCommand extends Command {
 
     try {
       final currentPath = Directory.current.path;
+
+      final pubspecFile = File(path.join(currentPath, "pubspec.yaml"));
+      if (!pubspecFile.existsSync()) {
+        stdout.writeln("Current directory must contain pubspec.yaml.");
+        exit(1);
+      }
+
+      // delete dest archive
       final dest = File(path.join(currentPath, argResults?['asset']));
       dest.parent.createSync(recursive: true);
 
