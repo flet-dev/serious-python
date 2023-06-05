@@ -45,11 +45,19 @@ build_script:
   - toolchain build python3
   - ls dist
   - sh: |
-      DIST_FILE_NAME=python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
+      DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       tar -czvf $DIST_FILE_NAME dist/lib dist/root
       appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
-deploy_script:
+deploy:
+  provider: GitHub
+  auth_token: $(GITHUB_TOKEN)
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  artifact: python-dist
+  on:
+    APPVEYOR_REPO_TAG: true
+
+after_deploy:
   # publish package
   - sh: |
       if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then

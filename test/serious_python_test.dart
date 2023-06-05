@@ -15,7 +15,6 @@ class MockSeriousPythonPlatform
       {List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) {
-    // TODO: implement runPython
     throw UnimplementedError();
   }
 }
@@ -28,10 +27,10 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    SeriousPython SeriousPythonPlugin = SeriousPython();
+    SeriousPython seriousPythonPlugin = SeriousPython();
     MockSeriousPythonPlatform fakePlatform = MockSeriousPythonPlatform();
     SeriousPythonPlatform.instance = fakePlatform;
 
-    expect(await SeriousPythonPlugin.getPlatformVersion(), '42');
+    expect(await seriousPythonPlugin.getPlatformVersion(), '42');
   });
 }
