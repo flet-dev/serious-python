@@ -49,15 +49,7 @@ build_script:
       tar -czvf $DIST_FILE_NAME dist/lib dist/root
       appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
-deploy:
-  provider: GitHub
-  auth_token: $(GITHUB_TOKEN)
-  release: $(APPVEYOR_REPO_TAG_NAME)
-  artifact: python-dist
-  on:
-    APPVEYOR_REPO_TAG: true
-
-after_deploy:
+before_deploy:
   # publish package
   - sh: |
       if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
@@ -67,5 +59,13 @@ after_deploy:
       elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
         dart pub publish --dry-run
       fi
+
+deploy:
+  provider: GitHub
+  auth_token: $(GITHUB_TOKEN)
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  artifact: python-dist
+  on:
+    APPVEYOR_REPO_TAG: true
 
 test: off
