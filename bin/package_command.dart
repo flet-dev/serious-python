@@ -32,17 +32,23 @@ class PackageCommand extends Command {
       exit(1);
     }
 
-    final sourceDir = Directory(argResults!.rest.first);
-
-    if (!sourceDir.existsSync()) {
-      stdout.writeln('Source directory does not exist.');
-      exit(2);
-    }
-
     Directory? tempDir;
 
     try {
       final currentPath = Directory.current.path;
+
+      var sourceDirPath = argResults!.rest.first;
+
+      if (path.isRelative(sourceDirPath)) {
+        sourceDirPath = path.join(currentPath, sourceDirPath);
+      }
+
+      final sourceDir = Directory(sourceDirPath);
+
+      if (!sourceDir.existsSync()) {
+        stdout.writeln('Source directory does not exist.');
+        exit(2);
+      }
 
       final pubspecFile = File(path.join(currentPath, "pubspec.yaml"));
       if (!pubspecFile.existsSync()) {
