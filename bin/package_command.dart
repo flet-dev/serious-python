@@ -17,8 +17,7 @@ class PackageCommand extends Command {
     argParser.addOption('asset',
         abbr: 'a',
         help:
-            "Asset path, relative to pubspec.yaml, to package Python program into.",
-        mandatory: true);
+            "Asset path, relative to pubspec.yaml, to package Python program into.");
   }
 
   // [run] may also return a Future.
@@ -37,6 +36,7 @@ class PackageCommand extends Command {
     try {
       final currentPath = Directory.current.path;
 
+      // source dir
       var sourceDirPath = argResults!.rest.first;
 
       if (path.isRelative(sourceDirPath)) {
@@ -56,8 +56,16 @@ class PackageCommand extends Command {
         exit(1);
       }
 
+      // asset path
+      var assetPath = argResults?['asset'];
+      if (assetPath == null) {
+        assetPath = "app/app.zip";
+      } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
+        assetPath = assetPath.substring(1);
+      }
+
       // delete dest archive
-      final dest = File(path.join(currentPath, argResults?['asset']));
+      final dest = File(path.join(currentPath, assetPath));
       dest.parent.createSync(recursive: true);
 
       // create temp dir
@@ -72,9 +80,17 @@ class PackageCommand extends Command {
       if (pyprojectFile.existsSync()) {
         final content = await pyprojectFile.readAsString();
         final document = TomlDocument.parse(content).toMap();
-        dependencies = List<String>.from(
-            document['tool']['poetry']['dependencies'].keys.map((key) =>
-                '$key${document['tool']['poetry']['dependencies'][key]}'));
+        var depSection = findTomlDependencies(document);
+        if (depSection != null) {
+          if (depSection is List) {
+            dependencies = depSection.map((e) => e.toString()).toList();
+          } else {
+            stdout.writeln(
+                "Warning: [dependencies] section of map type is not yet supported.");
+            // dependencies = List<String>.from(
+            //     depSection.keys.map((key) => '$key=${depSection[key]}'));
+          }
+        }
       } else {
         final requirementsFile =
             File(path.join(tempDir.path, 'requirements.txt'));
@@ -129,6 +145,23 @@ class PackageCommand extends Command {
         tempDir.deleteSync(recursive: true);
       }
     }
+  }
+
+  dynamic findTomlDependencies(Map<String, dynamic> section) {
+    if (section.containsKey('dependencies')) {
+      return section['dependencies'];
+    }
+
+    for (final value in section.values) {
+      if (value is Map<String, dynamic>) {
+        final dependencies = findTomlDependencies(value);
+        if (dependencies != null) {
+          return dependencies;
+        }
+      }
+    }
+
+    return null;
   }
 
   void copyDirectory(Directory source, Directory destination) {
