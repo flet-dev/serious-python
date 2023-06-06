@@ -1,24 +1,39 @@
-import os
+from contextlib import redirect_stdout
+from io import StringIO
 
 from flask import Flask, request
 
 print("Python program has started!")
 
-# for name, value in os.environ.items():
-#     print("{0}: {1}".format(name, value))
+
+class PythonRunner:
+    __globals = {}
+    __locals = {}
+
+    def run(self, code):
+        f = StringIO()
+        with redirect_stdout(f):
+            exec(code, self.__globals, self.__locals)
+        return f.getvalue()
+
+
+pr = PythonRunner()
+
 
 app = Flask(__name__)
 
 
 @app.route("/")
 def hello_world():
-    return "Hello from Flask, World!"
+    return 'Enter Python code and tap "Run".'
 
 
 @app.route("/python", methods=["POST"])
 def run_python():
-    print(request.json)
-    return "result!"
+    try:
+        return pr.run(request.json["command"])
+    except Exception as e:
+        return str(e)
 
 
 app.run(port=8000)

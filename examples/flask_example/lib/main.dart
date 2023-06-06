@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:serious_python/serious_python.dart';
@@ -8,8 +10,8 @@ void main() {
 }
 
 void startPython() async {
-  SeriousPython().run("app/Archive.zip",
-      modulePaths: ["main"], environmentVariables: {"a": "1", "b": "2"});
+  SeriousPython()
+      .run("app/app.zip", environmentVariables: {"a": "1", "b": "2"});
 }
 
 class MyApp extends StatefulWidget {
@@ -20,12 +22,20 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  late TextEditingController _controller;
   String? _result;
 
   @override
   void initState() {
     super.initState();
+    _controller = TextEditingController();
     getServiceResult();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future getServiceResult() async {
@@ -44,11 +54,11 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    Widget? child;
+    Widget? result;
     if (_result != null) {
-      child = Text(_result!);
+      result = Text(_result!);
     } else {
-      child = const CircularProgressIndicator();
+      result = const CircularProgressIndicator();
     }
 
     return MaterialApp(
@@ -61,7 +71,7 @@ class _MyAppState extends State<MyApp> {
               child: Column(children: [
             Expanded(
               child: Center(
-                child: child,
+                child: result,
               ),
             ),
             Container(
@@ -70,11 +80,42 @@ class _MyAppState extends State<MyApp> {
                 children: [
                   Expanded(
                       child: TextFormField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter Python code',
+                    ),
+                    smartQuotesType: SmartQuotesType.disabled,
+                    smartDashesType: SmartDashesType.disabled,
                     keyboardType: TextInputType.multiline,
                     minLines: 1,
                     maxLines: 10,
+                    enabled: _result != null,
                   )),
-                  ElevatedButton(onPressed: () {}, child: const Text("Run"))
+                  const SizedBox(
+                    width: 8,
+                  ),
+                  ElevatedButton(
+                      onPressed: _result != null
+                          ? () {
+                              setState(() {
+                                _result = null;
+                              });
+                              http
+                                  .post(
+                                      Uri.parse("http://localhost:8000/python"),
+                                      headers: {
+                                        'Content-Type': 'application/json'
+                                      },
+                                      body: json.encode(
+                                          {"command": _controller.text}))
+                                  .then((resp) => setState(() {
+                                        _controller.text = "";
+                                        _result = resp.body;
+                                      }));
+                            }
+                          : null,
+                      child: const Text("Run"))
                 ],
               ),
             )
