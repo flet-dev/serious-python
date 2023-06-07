@@ -101,6 +101,10 @@ class PackageCommand extends Command {
 
       // install dependencies
       if (dependencies != null) {
+        dependencies = dependencies
+            .map((d) => d.replaceAllMapped(RegExp(r'flet(\W{1,}|$)'),
+                (match) => 'flet-embed${match.group(1)}'))
+            .toList();
         final pipProcess = await Process.start(
             'python3',
             [
