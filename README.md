@@ -4,9 +4,9 @@ Embedded Python runtime for Flutter apps.
 
 ## Platform Support
 
-| iOS     |   Android   | MacOS | Windows | Linux | Web |
-| :-----: | :----------: | :---: | :-----: | :---: | :-----: |
-|   ✅    |  Coming soon |       |         |      |      |
+| iOS     |   Android   |
+| :-----: | :----------: |
+|   ✅    |  Coming soon |
 
 # Usage
 
@@ -86,5 +86,21 @@ If there is `requirements.txt` or `pyproject.toml` in the root of source directo
 Make sure generated asset is added to `pubspec.yaml`.
 
 ## Python app structure
+
+TBD
+
+# FAQ
+
+## Which Python version does plugin embed?
+
+iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
+
+## What Python packages are supported?
+
+All "pure" Python packages, i.e. packages that implemented in Python only, without native extensions written in C, Rust or other language.
+
+Packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) to build them for iOS.
+
+## Building custom Python distributive
 
 TBD
