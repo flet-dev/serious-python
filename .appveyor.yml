@@ -49,7 +49,6 @@ build_script:
       tar -czvf $DIST_FILE_NAME dist/lib dist/root
       appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
-before_deploy:
   # publish package
   - sh: |
       if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
