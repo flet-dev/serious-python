@@ -2,11 +2,7 @@
 
 A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
 
-Serious Python embeds Python runtime into a mobile or desktop Flutter app to run a Python program on a background, without blocking UI.
-
-Processing files, working with SQLite databases, calling REST APIs, image processing, ML, AI and other heavy lifting tasks can be conveniently done in Python and run directly on a mobile device.
-
-Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environmnent via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
+Serious Python embeds Python runtime into a mobile or desktop Flutter app to run a Python program on a background, without blocking UI. Processing files, working with SQLite databases, calling REST APIs, image processing, ML, AI and other heavy lifting tasks can be conveniently done in Python and run directly on a mobile device. Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environmnent via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
 
 Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build Flutter apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
 
