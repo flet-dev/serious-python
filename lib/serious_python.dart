@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
-import 'package:serious_python/utils.dart';
 
-import 'serious_python_platform_interface.dart';
+import 'src/serious_python_platform_interface.dart';
+import 'src/utils.dart';
 
 class SeriousPython {
   Future<String?> getPlatformVersion() {
@@ -22,8 +22,6 @@ class SeriousPython {
       appPath = await extractAssetZip(assetPath);
       if (appFileName != null) {
         appPath = p.join(appPath, appFileName);
-      } else if (await File(p.join(appPath, "main.pyc")).exists()) {
-        appPath = p.join(appPath, "main.pyc");
       } else if (await File(p.join(appPath, "main.py")).exists()) {
         appPath = p.join(appPath, "main.py");
       } else {
