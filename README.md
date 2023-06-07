@@ -8,7 +8,11 @@ Embedded Python runtime for Flutter apps.
 | :-----: | :----------: |
 |   ✅    |  Coming soon |
 
-# Usage
+### Python versions
+
+iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
+
+## Usage
 
 Import Serious Python package into your app:
 
@@ -16,7 +20,7 @@ Import Serious Python package into your app:
 
 The plugin is built against iOS 12.0, so you might need to update iOS version in `ios/Podfile`:
 
-```
+```bash
 # Uncomment this line to define a global platform for your project
 platform :ios, '12.0'
 ```
@@ -61,7 +65,7 @@ SeriousPython().run("app/app.zip",
     modulePaths: ["/absolute/path/to/my/site-packages"]);
 ```
 
-## Packaging Python app
+### Packaging Python app
 
 To simplify the packaging of your Python app Serious Python provides a CLI which can be run with the following command:
 
@@ -87,20 +91,22 @@ Make sure generated asset is added to `pubspec.yaml`.
 
 ## Python app structure
 
-TBD
+By default, embedded Python program is run in a separate thread, to avoid UI blocking. Your Flutter app is not supposed to directly call Python functions or modules, but instead it should communicate via some API provided by a Python app, such as: REST API, sockets, SQLite database, files, etc.
 
-# FAQ
+To constantly run on background a Python program must be blocking, for example a [Flask app](examples/flask_example) listening on `8000` port, or you can start your long-running computations in `threading.Thread` and use `threading.Event` to prevent program from exiting.
 
-## Which Python version does plugin embed?
+Synchronous execution of Python program is also supported with `sync: true` parameter to `SeriousPython().run()` method. For example, it could be a utility program doing some preperations, etc. Just make sure it's either very short or run in a Dart isolate to avoid blocking UI.
 
-iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
+## Supported Python packages
 
-## What Python packages are supported?
+All "pure" Python packages are supported. These are packages that implemented in Python only, without native extensions written in C, Rust or other low-level language.
 
-All "pure" Python packages, i.e. packages that implemented in Python only, without native extensions written in C, Rust or other language.
-
-Packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) to build them for iOS.
+For iOS: packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) are supported. To use these packages you need to build a custom Python distributive for iOS (see below).
 
 ## Building custom Python distributive
 
 TBD
+
+# Examples
+
+[Python REPL with Flask backend](examples/flask_example).
