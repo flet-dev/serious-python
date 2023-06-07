@@ -1,6 +1,16 @@
 # serious_python
 
-Embedded Python runtime for Flutter apps.
+A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
+
+Serious Python embeds Python runtime into a mobile or desktop Flutter app to run a Python program on a background, without blocking UI.
+
+Processing files, working with SQLite databases, calling REST APIs, image processing, ML, AI and other heavy lifting tasks can be conveniently done in Python and run directly on a mobile device.
+
+Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environmnent via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
+
+Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build Flutter apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
+
+Serious Python relies on [Kivy toolchain for iOS](https://github.com/kivy/kivy-ios) to build Python runtime and native packages.
 
 ## Platform Support
 
@@ -13,6 +23,14 @@ Embedded Python runtime for Flutter apps.
 iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
 
 ## Usage
+
+Zip your Python app into `app.zip`, copy to `app` (or any other) directory in the root of your Flutter app and add it as an asset to `pubspec.yaml`:
+
+```yaml
+flutter:
+  assets:
+    - app/app.zip
+```
 
 Import Serious Python package into your app:
 
@@ -29,16 +47,6 @@ Create an instance of `SeriousPython` class and call its `run()` method:
 
 ```dart
 SeriousPython().run("app/app.zip");
-```
-
-`app/app.zip` is a path to asset archive with your Python app.
-
-Add an asset path to `pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - app/app.zip
 ```
 
 When the app starts the archive is unpacked to a temporary directory and Serious Python plugin will try to run `main.py` in the root of the archive. Current directory is changed to a temporary directory.
@@ -105,8 +113,15 @@ For iOS: packages with native extensions having a [recipe](https://github.com/ki
 
 ## Building custom Python distributive
 
+### iOS
+
 TBD
 
-# Examples
+## Examples
 
 [Python REPL with Flask backend](examples/flask_example).
+
+## Future plans
+
+- Adding Android support.
+- Embeddable Python for desktop Flutter apps (in the order of priority): macOS, Windows, Linux.
