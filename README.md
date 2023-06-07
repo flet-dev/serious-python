@@ -99,7 +99,7 @@ Make sure generated asset is added to `pubspec.yaml`.
 
 By default, embedded Python program is run in a separate thread, to avoid UI blocking. Your Flutter app is not supposed to directly call Python functions or modules, but instead it should communicate via some API provided by a Python app, such as: REST API, sockets, SQLite database, files, etc.
 
-To constantly run on background a Python program must be blocking, for example a [Flask app](examples/flask_example) listening on `8000` port, or you can start your long-running computations in `threading.Thread` and use `threading.Event` to prevent program from exiting.
+To constantly run on background a Python program must be blocking, for example a [Flask app](example/flask_example) listening on `8000` port, or you can start your long-running computations in `threading.Thread` and use `threading.Event` to prevent program from exiting.
 
 Synchronous execution of Python program is also supported with `sync: true` parameter to `SeriousPython().run()` method. For example, it could be a utility program doing some preperations, etc. Just make sure it's either very short or run in a Dart isolate to avoid blocking UI.
 
@@ -117,7 +117,7 @@ TBD
 
 ## Examples
 
-[Python REPL with Flask backend](examples/flask_example).
+[Python REPL with Flask backend](example/flask_example).
 
 ## Future plans
 
