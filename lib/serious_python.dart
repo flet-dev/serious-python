@@ -16,6 +16,7 @@ class SeriousPython {
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
+    // unpack app
     WidgetsFlutterBinding.ensureInitialized();
     String appPath = "";
     if (p.extension(assetPath) == ".zip") {
@@ -31,6 +32,11 @@ class SeriousPython {
     } else {
       appPath = await extractAsset(assetPath);
     }
+
+    // set current directory to app path
+    Directory.current = p.dirname(appPath);
+
+    // run python program
     return SeriousPythonPlatform.instance.run(appPath,
         modulePaths: modulePaths,
         environmentVariables: environmentVariables,
