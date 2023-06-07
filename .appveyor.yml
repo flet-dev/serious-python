@@ -1,0 +1,70 @@
+image: macos-monterey
+
+skip_branch_with_pr: true
+
+skip_commits:
+  files:
+    - docs/**/*
+    - media/**/*
+    - "*.md"
+
+environment:
+  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.3-stable.zip
+  GITHUB_TOKEN:
+    secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
+
+stack:
+- python 3.10
+
+install:
+  # update build version
+  - ps: |
+      if ($env:APPVEYOR_REPO_TAG_NAME) {
+        $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+      } else {
+        $cv = [version](git describe --abbrev=0).substring(1)
+        $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
+      }
+      Update-AppveyorBuild -Version $v
+
+  # install Flutter
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+  - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
+  - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
+  - export PATH="$PATH:$HOME/flutter/bin"
+  - flutter config --enable-macos-desktop
+  - flutter doctor
+
+  # install Kivy toolchain
+  - pip3 install kivy-ios
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
+  - brew link libtool
+
+build_script:
+  # build Python 3
+  - toolchain build python3
+  - ls dist
+  - sh: |
+      DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
+      tar -czvf $DIST_FILE_NAME dist/lib dist/root
+      appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
+
+  # publish package
+  - sh: |
+      if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
+        mkdir -p $HOME/.config/dart
+        echo $PUB_DEV_TOKEN | base64 --decode > $HOME/.config/dart/pub-credentials.json
+        dart pub publish --force
+      elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
+        dart pub publish --dry-run
+      fi
+
+deploy:
+  provider: GitHub
+  auth_token: $(GITHUB_TOKEN)
+  release: $(APPVEYOR_REPO_TAG_NAME)
+  artifact: python-dist
+  on:
+    APPVEYOR_REPO_TAG: true
+
+test: off

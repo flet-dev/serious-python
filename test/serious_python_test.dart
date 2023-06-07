@@ -11,9 +11,10 @@ class MockSeriousPythonPlatform
   Future<String?> getPlatformVersion() => Future.value('42');
 
   @override
-  Future<String?> runPython(String appPath,
-      {List<String>? modulePaths, Map<String, String>? environmentVariables}) {
-    // TODO: implement runPython
+  Future<String?> run(String appPath,
+      {List<String>? modulePaths,
+      Map<String, String>? environmentVariables,
+      bool? sync}) {
     throw UnimplementedError();
   }
 }
@@ -26,10 +27,10 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    SeriousPython SeriousPythonPlugin = SeriousPython();
+    SeriousPython seriousPythonPlugin = SeriousPython();
     MockSeriousPythonPlatform fakePlatform = MockSeriousPythonPlatform();
     SeriousPythonPlatform.instance = fakePlatform;
 
-    expect(await SeriousPythonPlugin.getPlatformVersion(), '42');
+    expect(await seriousPythonPlugin.getPlatformVersion(), '42');
   });
 }

@@ -1,6 +1,6 @@
-# serious_python_example
+# flask_example
 
-Demonstrates how to use the serious_python plugin.
+A new Flutter project.
 
 ## Getting Started
 

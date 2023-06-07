@@ -1,7 +1,11 @@
 name: serious_python
 description: Python runtime for Flutter apps.
+homepage: https://flet.dev
+repository: https://github.com/flet-dev/serious-python
 version: 0.1.0
-homepage:
+
+platforms:
+  ios:
 
 environment:
   sdk: '>=3.0.1 <4.0.0'
@@ -11,6 +15,12 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.0.2
+
+  path_provider: ^2.0.15
+  archive: ^3.3.7
+  path: ^1.8.3
+  args: ^2.4.1
+  toml: ^0.14.0
 
 dev_dependencies:
   flutter_test:
