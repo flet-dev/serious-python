@@ -52,8 +52,8 @@ build_script:
   # publish package
   - sh: |
       if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
-        mkdir -p $HOME/.config/dart
-        echo $PUB_DEV_TOKEN | base64 --decode > $HOME/.config/dart/pub-credentials.json
+        mkdir -p $HOME/Library/Application\ Support/dart
+        echo $PUB_DEV_TOKEN | base64 --decode > $HOME/Library/Application\ Support/dart/pub-credentials.json
         dart pub publish --force
       elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
         dart pub publish --dry-run
