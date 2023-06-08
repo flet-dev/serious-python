@@ -10,7 +10,7 @@ void main() async {
   } else if (defaultTargetPlatform == TargetPlatform.android) {
     fletPlatform = "Android";
   }
-  SeriousPython().run("app/app.zip",
+  SeriousPython.run("app/app.zip",
       appFileName: "counter.py",
       environmentVariables: {
         "FLET_PLATFORM": fletPlatform,

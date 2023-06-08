@@ -27,10 +27,9 @@ void main() {
   });
 
   test('getPlatformVersion', () async {
-    SeriousPython seriousPythonPlugin = SeriousPython();
     MockSeriousPythonPlatform fakePlatform = MockSeriousPythonPlatform();
     SeriousPythonPlatform.instance = fakePlatform;
 
-    expect(await seriousPythonPlugin.getPlatformVersion(), '42');
+    expect(await SeriousPython.getPlatformVersion(), '42');
   });
 }
