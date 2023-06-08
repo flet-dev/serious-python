@@ -44,7 +44,7 @@ platform :ios, '12.0'
 Create an instance of `SeriousPython` class and call its `run()` method:
 
 ```dart
-SeriousPython().run("app/app.zip");
+SeriousPython.run("app/app.zip");
 ```
 
 When the app starts the archive is unpacked to a temporary directory and Serious Python plugin will try to run `main.py` in the root of the archive. Current directory is changed to a temporary directory.
@@ -52,13 +52,13 @@ When the app starts the archive is unpacked to a temporary directory and Serious
 If your Python app has a different entry point it could be specified with `appFileName` parameter:
 
 ```dart
-SeriousPython().run("app/app.zip", appFileName: "my_app.py");
+SeriousPython.run("app/app.zip", appFileName: "my_app.py");
 ```
 
 You can pass a map with environment variables that should be available in your Python program:
 
 ```dart
-SeriousPython().run("app/app.zip",
+SeriousPython.run("app/app.zip",
     appFileName: "my_app.py",
     environmentVariables: {"a": "1", "b": "2"});
 ```
@@ -66,7 +66,7 @@ SeriousPython().run("app/app.zip",
 By default, Serious Python expects Python dependencies installed into `__pypackages__` directory in the root of app directory. You can add additional paths to look for 3rd-party packages using `modulePaths` parameter:
 
 ```dart
-SeriousPython().run("app/app.zip",
+SeriousPython.run("app/app.zip",
     appFileName: "my_app.py",
     modulePaths: ["/absolute/path/to/my/site-packages"]);
 ```
@@ -99,9 +99,9 @@ Make sure generated asset is added to `pubspec.yaml`.
 
 By default, embedded Python program is run in a separate thread, to avoid UI blocking. Your Flutter app is not supposed to directly call Python functions or modules, but instead it should communicate via some API provided by a Python app, such as: REST API, sockets, SQLite database, files, etc.
 
-To constantly run on background a Python program must be blocking, for example a [Flask app](examples/flask_example) listening on `8000` port, or you can start your long-running computations in `threading.Thread` and use `threading.Event` to prevent program from exiting.
+To constantly run on background a Python program must be blocking, for example a [Flask app](example/flask_example) listening on `8000` port, or you can start your long-running computations in `threading.Thread` and use `threading.Event` to prevent program from exiting.
 
-Synchronous execution of Python program is also supported with `sync: true` parameter to `SeriousPython().run()` method. For example, it could be a utility program doing some preperations, etc. Just make sure it's either very short or run in a Dart isolate to avoid blocking UI.
+Synchronous execution of Python program is also supported with `sync: true` parameter to `SeriousPython.run()` method. For example, it could be a utility program doing some preperations, etc. Just make sure it's either very short or run in a Dart isolate to avoid blocking UI.
 
 ## Supported Python packages
 
@@ -117,7 +117,9 @@ TBD
 
 ## Examples
 
-[Python REPL with Flask backend](examples/flask_example).
+[Python REPL with Flask backend](example/flask_example).
+
+[Flet app](example/flet_example).
 
 ## Future plans
 

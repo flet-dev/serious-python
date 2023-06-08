@@ -10,8 +10,7 @@ void main() {
 }
 
 void startPython() async {
-  SeriousPython()
-      .run("app/app.zip", environmentVariables: {"a": "1", "b": "2"});
+  SeriousPython.run("app/app.zip", environmentVariables: {"a": "1", "b": "2"});
 }
 
 class MyApp extends StatefulWidget {

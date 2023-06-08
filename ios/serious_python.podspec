@@ -4,14 +4,14 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python'
-  s.version          = '0.1.0'
-  s.summary          = 'A new Flutter plugin project.'
+  s.version          = '0.1.1'
+  s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+  A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://flet.dev'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'Appveyor Systems Inc.' => 'hello@flet.dev' }
   s.source           = { :path => '.' }
   #s.static_framework = true
   s.source_files = ['Classes/**/*']
