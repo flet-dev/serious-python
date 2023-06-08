@@ -78,8 +78,12 @@ class PackageCommand extends Command {
 
       // discover dependencies
       List<String>? dependencies;
+      final requirementsFile =
+          File(path.join(tempDir.path, 'requirements.txt'));
       final pyprojectFile = File(path.join(tempDir.path, 'pyproject.toml'));
-      if (pyprojectFile.existsSync()) {
+      if (requirementsFile.existsSync()) {
+        dependencies = await requirementsFile.readAsLines();
+      } else if (pyprojectFile.existsSync()) {
         final content = await pyprojectFile.readAsString();
         final document = TomlDocument.parse(content).toMap();
         var depSection = findTomlDependencies(document);
@@ -92,12 +96,6 @@ class PackageCommand extends Command {
             // dependencies = List<String>.from(
             //     depSection.keys.map((key) => '$key=${depSection[key]}'));
           }
-        }
-      } else {
-        final requirementsFile =
-            File(path.join(tempDir.path, 'requirements.txt'));
-        if (requirementsFile.existsSync()) {
-          dependencies = await requirementsFile.readAsLines();
         }
       }
 
