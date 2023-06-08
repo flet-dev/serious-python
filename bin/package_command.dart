@@ -14,6 +14,8 @@ class PackageCommand extends Command {
   final description = "Packages Python app to Flutter assets.";
 
   PackageCommand() {
+    argParser.addFlag("pre",
+        help: "Install pre-release dependencies.", negatable: false);
     argParser.addOption('asset',
         abbr: 'a',
         help:
@@ -105,6 +107,12 @@ class PackageCommand extends Command {
             .map((d) => d.replaceAllMapped(RegExp(r'flet(\W{1,}|$)'),
                 (match) => 'flet-embed${match.group(1)}'))
             .toList();
+
+        List<String> extraArgs = [];
+        if (argResults?["pre"]) {
+          extraArgs.add("--pre");
+        }
+
         final pipProcess = await Process.start(
             'python3',
             [
@@ -113,6 +121,7 @@ class PackageCommand extends Command {
               'install',
               '--isolated',
               '--upgrade',
+              ...extraArgs,
               '--target',
               path.join(tempDir.path, '__pypackages__'),
               ...dependencies
