@@ -1,3 +1,7 @@
+## 0.1.2
+
+* Package dist `site-packages` to a zip, so publishing to App Store doesn't fail.
+
 ## 0.1.1
 
 * Fixed issue with setting current directory on Python start.
