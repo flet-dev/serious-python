@@ -32,7 +32,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
                 "\(appDir)/__pypackages__",
                 resourcePath,
                 "\(resourcePath)/lib/python3.10",
-                "\(resourcePath)/lib/python3.10/site-packages"
+                "\(resourcePath)/lib/site-packages.zip"
             ]
 
             setenv("PYTHONINSPECT", "1", 1)

@@ -49,6 +49,15 @@ Pod::Spec.new do |s|
 
     # fix import subprocess, asyncio
     cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.10/site-packages
+
+    # zip site-packages
+    pushd dist/root/python3/lib/python3.10/site-packages
+    zip -r ../../site-packages.zip .
+    popd
+    rm -rf dist/root/python3/lib/python3.10
+
+    # remove junk
+    rm -rf dist/root/python3/lib/python3.10/config-3.10-darwin
 CMD
 
   s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
