@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python'
-  s.version          = '0.1.1'
+  s.version          = '0.1.2'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -49,6 +49,15 @@ Pod::Spec.new do |s|
 
     # fix import subprocess, asyncio
     cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.10/site-packages
+
+    # zip site-packages
+    pushd dist/root/python3/lib/python3.10/site-packages
+    zip -r ../../site-packages.zip .
+    popd
+    rm -rf dist/root/python3/lib/python3.10
+
+    # remove junk
+    rm -rf dist/root/python3/lib/python3.10/config-3.10-darwin
 CMD
 
   s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
