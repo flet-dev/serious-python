@@ -1,3 +1,7 @@
+## 0.1.3
+
+* Add app's path to `PYTHONPATH`.
+
 ## 0.1.2
 
 * Package dist `site-packages` to a zip, so publishing to App Store doesn't fail.

@@ -29,10 +29,11 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             guard let resourcePath = Bundle(for: type(of: self)).resourcePath else { return }
             
             let pythonPaths: [String] = modulePaths + [
+                appDir,
                 "\(appDir)/__pypackages__",
                 resourcePath,
-                "\(resourcePath)/lib/python3.10",
-                "\(resourcePath)/lib/site-packages.zip"
+                "\(resourcePath)/lib/site-packages.zip",
+                "\(resourcePath)/lib/python3.10"
             ]
 
             setenv("PYTHONINSPECT", "1", 1)
