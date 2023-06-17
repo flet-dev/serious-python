@@ -3,7 +3,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - serious_python (0.1.0):
+  - serious_python (0.1.2):
     - Flutter
 
 DEPENDENCIES:
@@ -22,7 +22,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
-  serious_python: 954ab1502631a446dd28e0bacdb519e8a803a1fe
+  serious_python: 11f4ce79371037a06e96c78c8ed9b30cd7d0b6f7
 
 PODFILE CHECKSUM: 7be2f5f74864d463a8ad433546ed1de7e0f29aef
 

@@ -47,6 +47,8 @@ class SeriousPython {
       appPath = await extractAssetZip(assetPath);
       if (appFileName != null) {
         appPath = p.join(appPath, appFileName);
+      } else if (await File(p.join(appPath, "main.pyc")).exists()) {
+        appPath = p.join(appPath, "main.pyc");
       } else if (await File(p.join(appPath, "main.py")).exists()) {
         appPath = p.join(appPath, "main.py");
       } else {

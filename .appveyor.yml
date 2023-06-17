@@ -46,7 +46,7 @@ build_script:
   - ls dist
   - sh: |
       DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      tar -czvf $DIST_FILE_NAME dist/lib dist/root
+      tar -czvf $DIST_FILE_NAME dist/*
       appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
   # publish package

@@ -3,7 +3,7 @@ from io import StringIO
 
 from flask import Flask, request
 
-print("Python program has started!")
+print("Python program has just started!")
 
 
 class PythonRunner:

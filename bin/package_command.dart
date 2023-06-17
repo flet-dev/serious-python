@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
+
+const junkFileExtensions = [".so", ".py", ".c", ".typed"];
+const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
   @override
@@ -37,6 +41,17 @@ class PackageCommand extends Command {
 
     try {
       final currentPath = Directory.current.path;
+      final packagePath = (await Isolate.resolvePackageUri(
+              Uri.parse('package:serious_python/.')))
+          ?.path;
+
+      if (packagePath == null) {
+        stdout.writeln("Cannot resolve 'serious_python' package path.");
+        exit(1);
+      }
+
+      final iosDistPath =
+          path.join(Directory(packagePath).parent.absolute.path, "ios", "dist");
 
       // source dir
       var sourceDirPath = argResults!.rest.first;
@@ -111,36 +126,28 @@ class PackageCommand extends Command {
           extraArgs.add("--pre");
         }
 
-        final pipProcess = await Process.start(
-            'python3',
-            [
-              '-m',
-              'pip',
-              'install',
-              '--isolated',
-              '--upgrade',
-              ...extraArgs,
-              '--target',
-              path.join(tempDir.path, '__pypackages__'),
-              ...dependencies
-            ],
-            environment: {
-              "CC": "/bin/false",
-              "CXX": "/bin/false",
-              "PYTHONPATH": tempDir.path,
-              "PYTHONOPTIMIZE": "2",
-            },
-            runInShell: true,
-            includeParentEnvironment: false);
+        final pythonPath =
+            path.join(iosDistPath, "hostpython3", "bin", "python");
 
-        await for (final line in pipProcess.stdout.transform(utf8.decoder)) {
-          stdout.write(line);
-        }
+        await runExec(pythonPath, [
+          '-m',
+          'pip',
+          'install',
+          '--isolated',
+          '--upgrade',
+          ...extraArgs,
+          '--target',
+          path.join(tempDir.path, '__pypackages__'),
+          ...dependencies
+        ], environment: {
+          "CC": "/bin/false",
+          "CXX": "/bin/false",
+          "PYTHONPATH": tempDir.path,
+          "PYTHONOPTIMIZE": "2",
+        });
 
-        if (await pipProcess.exitCode != 0) {
-          stdout.write(await pipProcess.stderr.transform(utf8.decoder).join());
-          exit(1);
-        }
+        // compile all python code
+        await runExec(pythonPath, ['-m', 'compileall', '-b', tempDir.path]);
       }
 
       // remove unnecessary files
@@ -193,17 +200,38 @@ class PackageCommand extends Command {
     directory.listSync().forEach((entity) {
       if (entity is Directory) {
         cleanupPyPackages(entity);
-      } else if (entity is File && entity.path.endsWith('.so')) {
+      } else if (entity is File &&
+              junkFileExtensions.contains(path.extension(entity.path)) ||
+          junkFilesAndDirectories.contains(path.basename(entity.path))) {
+        stdout.writeln("Deleting ${entity.path}");
         entity.deleteSync();
       }
     });
 
     directory.listSync().forEach((entity) {
-      if (entity is Directory && entity.path.endsWith('__pycache__')) {
-        entity.deleteSync(recursive: true);
-      } else if (entity is Directory && entity.path.endsWith('bin')) {
+      if (entity is Directory &&
+          junkFilesAndDirectories.contains(path.basename(entity.path))) {
+        stdout.writeln("Deleting ${entity.path}");
         entity.deleteSync(recursive: true);
       }
     });
+  }
+
+  Future<int> runExec(String execPath, List<String> args,
+      {Map<String, String>? environment}) async {
+    final proc = await Process.start(execPath, args,
+        environment: environment,
+        runInShell: true,
+        includeParentEnvironment: false);
+
+    await for (final line in proc.stdout.transform(utf8.decoder)) {
+      stdout.write(line);
+    }
+
+    if (await proc.exitCode != 0) {
+      stdout.write(await proc.stderr.transform(utf8.decoder).join());
+      exit(1);
+    }
+    return proc.exitCode;
   }
 }
