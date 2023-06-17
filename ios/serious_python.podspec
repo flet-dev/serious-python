@@ -39,6 +39,7 @@ Pod::Spec.new do |s|
       tar -xzf $PYTHON_DIST_FILE
       rm $PYTHON_DIST_FILE
     fi
+    ROOT=`pwd`
     rm -rf #{python_framework}
     mkdir -p #{python_framework}
     cp -R pod_templates/Python.xcframework/* #{python_framework}
@@ -47,17 +48,29 @@ Pod::Spec.new do |s|
     cp -R dist/root/python3/include/python3.10/* #{python_framework}/ios-arm64/Headers
     cp -R dist/root/python3/include/python3.10/* #{python_framework}/ios-arm64_x86_64-simulator/Headers
 
+    # compile python310.zip
+    PYTHON310_ZIP=$ROOT/dist/root/python3/lib/python310.zip
+    unzip $PYTHON310_ZIP -d python310_temp
+    rm $PYTHON310_ZIP
+    pushd python310_temp
+    $ROOT/dist/hostpython3/bin/python -m compileall -b .
+    find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
+    zip -r $PYTHON310_ZIP .
+    popd
+    rm -rf python310_temp
+
     # fix import subprocess, asyncio
     cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.10/site-packages
 
     # zip site-packages
     pushd dist/root/python3/lib/python3.10/site-packages
-    zip -r ../../site-packages.zip .
+    $ROOT/dist/hostpython3/bin/python -m compileall -b .
+    find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
+    zip -r $ROOT/dist/root/python3/lib/site-packages.zip .
     popd
-    rm -rf dist/root/python3/lib/python3.10
-
+  
     # remove junk
-    rm -rf dist/root/python3/lib/python3.10/config-3.10-darwin
+    rm -rf dist/root/python3/lib/python3.10
 CMD
 
   s.libraries = 'z', 'bz2', 'c++', 'sqlite3'

@@ -1,7 +1,8 @@
 ## 0.1.3
 
 * Add app's path to `PYTHONPATH`.
-* Compile Python app to bytecode.
+* Compile Python app to a bytecode.
+* Compile Python system standard libraries to a bytecode.
 
 ## 0.1.2
 
