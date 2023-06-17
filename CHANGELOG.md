@@ -1,3 +1,7 @@
+## 0.1.4
+
+* Bump `.podspec` version.
+
 ## 0.1.3
 
 * Add app's path to `PYTHONPATH`.
