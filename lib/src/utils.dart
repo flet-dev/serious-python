@@ -4,10 +4,12 @@ import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 Future<String> extractAssetZip(String assetPath) async {
+  WidgetsFlutterBinding.ensureInitialized();
   final documentsDir = await getApplicationDocumentsDirectory();
   final destDir = Directory(p.join(documentsDir.path, p.dirname(assetPath)));
 
@@ -41,6 +43,7 @@ Future<String> extractAssetZip(String assetPath) async {
 }
 
 Future<String> extractAsset(String assetPath) async {
+  WidgetsFlutterBinding.ensureInitialized();
   Directory documentsDir = await getApplicationDocumentsDirectory();
 
   // (re-)create destination directory
