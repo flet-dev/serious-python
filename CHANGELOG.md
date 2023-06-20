@@ -1,3 +1,7 @@
+## 0.1.5
+
+* SeriousPython.run() should be split into two methods to return temp dir with unpacked python app ([#6](https://github.com/flet-dev/serious-python/issues/6)).
+
 ## 0.1.4
 
 * Bump `.podspec` version.
