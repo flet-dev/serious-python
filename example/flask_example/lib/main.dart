@@ -1,12 +1,27 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:serious_python/serious_python.dart';
 
 void main() {
-  startPython();
+  //startPython();
+  experiments();
   runApp(const MyApp());
+}
+
+void experiments() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  const methodChannel = MethodChannel('android_plugin');
+  final libDir =
+      await methodChannel.invokeMethod<String>('getNativeLibraryDir');
+  debugPrint(libDir);
+  var files = Directory(libDir!).listSync();
+  for (var f in files) {
+    debugPrint(f.path);
+  }
 }
 
 void startPython() async {
