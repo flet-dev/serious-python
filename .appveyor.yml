@@ -9,62 +9,117 @@ skip_commits:
     - "*.md"
 
 environment:
-  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.3-stable.zip
+  PYTHON_STACK: python 3.10
+  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.5-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
+  matrix:
+    - job_name: Build Python for iOS
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    - job_name: Build Python for Android
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+
+    - job_name: Publish serious_python package to pub.dev
+      job_group: publish_package
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+
 stack:
-- python 3.10
+- $PYTHON_STACK
 
-install:
-  # update build version
-  - ps: |
-      if ($env:APPVEYOR_REPO_TAG_NAME) {
-        $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
-      } else {
-        $cv = [version](git describe --abbrev=0).substring(1)
-        $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
-      }
-      Update-AppveyorBuild -Version $v
+for:
+  # ======================================
+  #      Build Python for iOS
+  # ======================================
 
-  # install Flutter
-  - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
-  - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
-  - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
-  - export PATH="$PATH:$HOME/flutter/bin"
-  - flutter config --enable-macos-desktop
-  - flutter doctor
+  - matrix:
+      only:
+        - job_name: Build Python for iOS
 
-  # install Kivy toolchain
-  - pip3 install kivy-ios
-  - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
-  - brew link libtool
+    init:
+      # update build version
+      - ps: |
+          if ($env:APPVEYOR_REPO_TAG_NAME) {
+            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+          } else {
+            $cv = [version](git describe --abbrev=0).substring(1)
+            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
+          }
+          Update-AppveyorBuild -Version $v
 
-build_script:
-  # build Python 3
-  - toolchain build python3
-  - ls dist
-  - sh: |
-      DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      tar -czvf $DIST_FILE_NAME dist/*
-      appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
+    install:
+      # install Kivy toolchain
+      - pip3 install kivy-ios
+      - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
+      - brew link libtool
 
-  # publish package
-  - sh: |
-      if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
-        mkdir -p $HOME/Library/Application\ Support/dart
-        echo $PUB_DEV_TOKEN | base64 --decode > $HOME/Library/Application\ Support/dart/pub-credentials.json
-        dart pub publish --force
-      elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
-        dart pub publish --dry-run
-      fi
+    build_script:
+      # build Python 3
+      - toolchain build python3
+      - ls dist
+      - sh: |
+          DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
+          tar -czvf $DIST_FILE_NAME dist/*
+          appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
-deploy:
-  provider: GitHub
-  auth_token: $(GITHUB_TOKEN)
-  release: $(APPVEYOR_REPO_TAG_NAME)
-  artifact: python-dist
-  on:
-    APPVEYOR_REPO_TAG: true
+    deploy:
+      provider: GitHub
+      auth_token: $(GITHUB_TOKEN)
+      release: $(APPVEYOR_REPO_TAG_NAME)
+      artifact: python-dist
+      on:
+        APPVEYOR_REPO_TAG: true
 
-test: off
+    test: off
+
+  # ======================================
+  #      Build Python for Android
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Build Python for Android
+
+    init:
+      # update build version
+      - ps: |
+          if ($env:APPVEYOR_REPO_TAG_NAME) {
+            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+          } else {
+            $cv = [version](git describe --abbrev=0).substring(1)
+            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
+          }
+          Update-AppveyorBuild -Version $v
+
+    install:
+      # install Kivy for Android
+      - pip3 install python-for-android
+      - p4a --help
+
+  # =========================================
+  # Publish serious_python package to pub.dev
+  # =========================================
+
+  - matrix:
+      only:
+        - job_name: Publish serious_python package to pub.dev
+
+    install:
+      - flutter upgrade --force
+
+    build_script:
+      # publish package
+      - sh: |
+          if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
+            mkdir -p $HOME/Library/Application\ Support/dart
+            echo $PUB_DEV_TOKEN | base64 --decode > $HOME/Library/Application\ Support/dart/pub-credentials.json
+            dart pub publish --force
+          elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
+            dart pub publish --dry-run
+          fi
+
+    test: off
