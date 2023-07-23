@@ -8,10 +8,12 @@ import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-Future<String> extractAssetZip(String assetPath) async {
+Future<String> extractAssetOrFile(String path,
+    {bool isAsset = true, String? targetPath}) async {
   WidgetsFlutterBinding.ensureInitialized();
   final documentsDir = await getApplicationDocumentsDirectory();
-  final destDir = Directory(p.join(documentsDir.path, p.dirname(assetPath)));
+  final destDir =
+      Directory(p.join(documentsDir.path, targetPath ?? p.dirname(path)));
 
   // re-create dir
   if (await destDir.exists()) {
@@ -25,10 +27,17 @@ Future<String> extractAssetZip(String assetPath) async {
   }
   await destDir.create();
 
-  // unpack from asset
+  // unpack from asset or file
   debugPrint("Start unpacking app archive");
-  final bytes = await rootBundle.load(assetPath);
-  final archive = ZipDecoder().decodeBytes(bytes.buffer.asUint8List());
+  List<int> data;
+  if (isAsset) {
+    final bytes = await rootBundle.load(path);
+    data = bytes.buffer.asUint8List();
+  } else {
+    data = await File(path).readAsBytes();
+  }
+
+  Archive archive = ZipDecoder().decodeBytes(data);
   for (final file in archive) {
     final filename = p.join(destDir.path, file.name);
     if (file.isFile) {
@@ -38,8 +47,17 @@ Future<String> extractAssetZip(String assetPath) async {
       await Directory(filename).create(recursive: true);
     }
   }
+
   debugPrint("Finished unpacking application archive.");
   return destDir.path;
+}
+
+Future<String> extractAssetZip(String assetPath, {String? targetPath}) async {
+  return extractAssetOrFile(assetPath, targetPath: targetPath);
+}
+
+Future<String> extractFileZip(String filePath, {String? targetPath}) async {
+  return extractAssetOrFile(filePath, isAsset: false, targetPath: targetPath);
 }
 
 Future<String> extractAsset(String assetPath) async {

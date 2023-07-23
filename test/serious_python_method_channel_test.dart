@@ -1,11 +1,11 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:serious_python/src/serious_python_method_channel.dart';
+import 'package:serious_python/src/ios/serious_python_ios.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  MethodChannelSeriousPython platform = MethodChannelSeriousPython();
+  SeriousPythonIOS platform = SeriousPythonIOS();
   const MethodChannel channel = MethodChannel('serious_python');
 
   setUp(() {

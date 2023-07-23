@@ -4,11 +4,74 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 
+import '../serious_python_platform_interface.dart';
 import '../utils.dart';
 import 'cpython.dart';
+
+/// An implementation of [SeriousPythonPlatform] that uses method channels.
+class SeriousPythonAndroid extends SeriousPythonPlatform {
+  /// The method channel used to interact with the native platform.
+  @visibleForTesting
+  final methodChannel = const MethodChannel('android_plugin');
+
+  @override
+  Future<String?> getPlatformVersion() async {
+    final version =
+        await methodChannel.invokeMethod<String>('getPlatformVersion');
+    return version;
+  }
+
+  @override
+  Future<String?> run(String appPath,
+      {List<String>? modulePaths,
+      Map<String, String>? environmentVariables,
+      bool? sync}) async {
+    // set environment variables
+    if (environmentVariables != null) {
+      for (var v in environmentVariables.entries) {
+        await methodChannel.invokeMethod<String>(
+            'setEnvironmentVariable', {'name': v.key, 'value': v.value});
+      }
+    }
+
+    // unpack python bundle
+    final nativeLibraryDir =
+        await methodChannel.invokeMethod<String>('getNativeLibraryDir');
+    debugPrint("getNativeLibraryDir: $nativeLibraryDir");
+
+    var pythonLibPath = await extractFileZip(
+        "$nativeLibraryDir/libpythonbundle.so",
+        targetPath: "python_bundle");
+
+    debugPrint("pythonLibPath: $pythonLibPath");
+
+    final receivePort = ReceivePort();
+    if ((sync ?? false) == false) {
+      // async run
+      final isolate = await Isolate.spawn(runPythonProgram,
+          [receivePort.sendPort, pythonLibPath, appPath, modulePaths ?? []]);
+      receivePort.listen((message) {
+        debugPrint(message);
+        receivePort.close();
+        isolate.kill();
+
+        var r2 = File("$pythonLibPath/out.txt").readAsStringSync();
+        debugPrint("Result out.txt: $r2");
+      });
+    } else {
+      // sync run
+      runPythonProgram(
+          [receivePort.sendPort, pythonLibPath, appPath, modulePaths ?? []]);
+    }
+
+    return null;
+  }
+}
 
 /*
 
@@ -49,87 +112,11 @@ const pyConfigPythonpathEnvOffset = 248;
 const pyConfigHomeOffset = 256;
 const pyConfigModuleSearchPathsOffset = 280;
 
-void runPyProgram(List<Object> arguments) async {
-  SendPort sendPort = arguments[0] as SendPort;
-  String pythonLibPath = arguments[1] as String;
-  var pythonCode = """
-import threading
-import time
-import sys
-import os
-
-#os.environ["PYTHONINSPECT"] = "1"
-
-def th1():
-    for i in range(10):
-        print("Thread 1:", i)
-        with open("t1.txt", "w") as f:
-            f.write(f"b-{i}")
-        time.sleep(1)
-
-
-def th2():
-    for i in range(10):
-        print("Thread 2:", i)
-        with open("t2.txt", "w") as f:
-            f.write(f"{i}")
-        time.sleep(0.5)
-
-#sys.exit(1)
-
-t1 = threading.Thread(target=th1, daemon=True)
-t1.start()
-
-t2 = threading.Thread(target=th2, daemon=True)
-t2.start()
-
-print("Program started")
-time.sleep(5)
-
-with open("out.txt", "w") as f:
-    f.write(str(sys.path))
-    #f.write(str(sys.home))
-    for name, value in os.environ.items():
-        f.write("{0}: {1}\\n".format(name, value))
-
-""";
-
-  var pythonHomePtr = cpython.Py_DecodeLocale(
-      pythonLibPath.toNativeUtf8().cast<Char>(), nullptr);
-
-  var pythonPathEnvPtr = cpython.Py_DecodeLocale(
-      "$pythonLibPath/modules:$pythonLibPath/site-packages:$pythonLibPath/stdlib.zip"
-          .toNativeUtf8()
-          .cast<Char>(),
-      nullptr);
-
-  DynamicLibrary.open("libffi.so");
-
-  cpython.Py_SetPythonHome(pythonHomePtr);
-  cpython.Py_SetPath(pythonPathEnvPtr);
-
-  cpython.Py_Initialize();
-
-  malloc.free(pythonHomePtr);
-  malloc.free(pythonPathEnvPtr);
-
-  Directory.current = pythonLibPath;
-
-  // run user program
-  final pythonCodePtr = pythonCode.toNativeUtf8();
-  int r = cpython.PyRun_SimpleString(pythonCodePtr.cast<Char>());
-  debugPrint("PyRun_SimpleString: $r");
-  malloc.free(pythonCodePtr);
-
-  cpython.Py_Finalize();
-  debugPrint("after run");
-  sendPort.send("Python program exited");
-}
-
-void runPyProgramExp(List<Object> arguments) async {
-  SendPort sendPort = arguments[0] as SendPort;
-  String pythonLibPath = arguments[1] as String;
-  String pythonProgramPath = arguments[2] as String;
+void runPythonProgram(List<Object> arguments) async {
+  final sendPort = arguments[0] as SendPort;
+  final pythonLibPath = arguments[1] as String;
+  final pythonProgramPath = arguments[2] as String;
+  final modulePaths = arguments[3] as List<String>;
 
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
@@ -145,6 +132,7 @@ void runPyProgramExp(List<Object> arguments) async {
   var moduleSearchPaths = [
     programDirPath,
     "$programDirPath/__pypackages__",
+    ...modulePaths,
     "$pythonLibPath/modules",
     "$pythonLibPath/site-packages",
     "$pythonLibPath/stdlib.zip"
@@ -229,24 +217,4 @@ void runPyProgramExp(List<Object> arguments) async {
   cpython.Py_Finalize();
   debugPrint("after Py_Finalize");
   sendPort.send("Python program exited");
-}
-
-Future runPy() async {
-  var pythonLibPath = await extractAssetZip(
-      "packages/serious_python_android/assets/python-lib-arm64-v8a.zip");
-  var programDirPath = await extractAssetZip("assets/main.py.zip");
-  var programPath = "$programDirPath/main.py";
-
-  final receivePort = ReceivePort();
-  final isolate = await Isolate.spawn(
-      runPyProgramExp, [receivePort.sendPort, pythonLibPath, programPath]);
-
-  receivePort.listen((message) {
-    debugPrint(message);
-    receivePort.close();
-    isolate.kill();
-
-    var r2 = File("$pythonLibPath/out.txt").readAsStringSync();
-    debugPrint("Result out.txt: $r2");
-  });
 }

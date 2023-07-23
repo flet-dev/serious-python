@@ -3,6 +3,7 @@ package com.flet.serious_python;
 import android.content.Context;
 import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
+import android.system.Os;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.plugin.common.MethodCall;
@@ -37,6 +38,15 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler {
       ContextWrapper contextWrapper = new ContextWrapper(context);
       String nativeLibraryDir = contextWrapper.getApplicationInfo().nativeLibraryDir;
       result.success(nativeLibraryDir);
+    } else if (call.method.equals("setEnvironmentVariable")) {
+      String name = call.argument("name");
+      String value = call.argument("value");
+      try {
+        Os.setenv(name, value, true);
+        result.success(null);
+      } catch (Exception e) {
+        result.error("Error", e.getMessage(), null);
+      }
     } else {
       result.notImplemented();
     }

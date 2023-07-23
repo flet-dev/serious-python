@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-import 'serious_python_method_channel.dart';
+import 'android/serious_python_android.dart';
+import 'ios/serious_python_ios.dart';
 
 abstract class SeriousPythonPlatform extends PlatformInterface {
   /// Constructs a SeriousPythonPlatform.
@@ -8,12 +10,24 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static SeriousPythonPlatform _instance = MethodChannelSeriousPython();
+  static SeriousPythonPlatform? _instance;
 
   /// The default instance of [SeriousPythonPlatform] to use.
   ///
-  /// Defaults to [MethodChannelSeriousPython].
-  static SeriousPythonPlatform get instance => _instance;
+  /// Defaults to [SeriousPythonIOS].
+  static SeriousPythonPlatform get instance {
+    if (_instance == null) {
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        _instance = SeriousPythonIOS();
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        _instance = SeriousPythonAndroid();
+      } else {
+        throw UnimplementedError(
+            '$defaultTargetPlatform platform is not supported yet.');
+      }
+    }
+    return _instance!;
+  }
 
   /// Platform-specific implementations should set this with their own
   /// platform-specific class that extends [SeriousPythonPlatform] when
