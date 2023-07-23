@@ -95,14 +95,16 @@ for:
           Update-AppveyorBuild -Version $v
 
       # install NDK
+      - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
       - export NDK_VERSION=25.2.9519653
+      - export SDK_VERSION=android-31
       - echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3 > /dev/null
+      - echo "y" | sdkmanager --install "platforms;$SDK_VERSION" > /dev/null
 
       # install Kivy for Android
       - pip3 install python-for-android
       - pip3 install --upgrade cython
       - p4a --help
-      - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
       - p4a create --requirements python3,numpy --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
 
   # =========================================
