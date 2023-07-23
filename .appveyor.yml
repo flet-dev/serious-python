@@ -97,7 +97,7 @@ for:
       # install NDK
       - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
       - export NDK_VERSION=25.2.9519653
-      - export SDK_VERSION=android-31
+      - export SDK_VERSION=android-33
       - echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3 > /dev/null
       - echo "y" | sdkmanager --install "platforms;$SDK_VERSION" > /dev/null
 
