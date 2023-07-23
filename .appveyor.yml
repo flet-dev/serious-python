@@ -111,33 +111,33 @@ for:
       - BUNDLE_NAME=libpythonbundle.so
 
       # arm64-v8a
-      - pushd ~/.python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
+      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/arm64-v8a
       - popd
 
       # armeabi-v7a
-      - pushd ~/.python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
+      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/armeabi-v7a
       - popd
 
       # armeabi-v7a
-      - pushd ~/.python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
+      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/x86_64
       - popd
 
       # package all .so files
       - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd ~/.python-for-android/dists/serious_python/libs
+      - pushd ~/.local/share/python-for-android/dists/serious_python/libs
       - zip -r $DIST_FILE_NAME .
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
       - popd
 
       # package hostpython
       - HOSTPYTHON_FILE_NAME=hostpython-linux-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd ~/.python-for-android/build/other_builds/hostpython3/desktop/hostpython3/native-build
+      - pushd ~/.local/share/python-for-android/build/other_builds/hostpython3/desktop/hostpython3/native-build
       - zip -r $HOSTPYTHON_FILE_NAME .
       - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-linux
       - popd
