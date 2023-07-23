@@ -15,18 +15,18 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    - job_name: Build Python for iOS
-      job_group: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Build Python for iOS
+    #   job_group: build_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Build Python for Android
       job_group: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    - job_name: Publish serious_python package to pub.dev
-      job_group: publish_package
-      job_depends_on: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    # - job_name: Publish serious_python package to pub.dev
+    #   job_group: publish_package
+    #   job_depends_on: build_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
 - $PYTHON_STACK
@@ -94,9 +94,16 @@ for:
           }
           Update-AppveyorBuild -Version $v
 
+      # install NDK
+      - export NDK_VERSION=25.2.9519653
+      - echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3 > /dev/null
+
       # install Kivy for Android
       - pip3 install python-for-android
+      - pip3 install --upgrade cython
       - p4a --help
+      - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
+      - p4a create --requirements python3,numpy --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
 
   # =========================================
   # Publish serious_python package to pub.dev
