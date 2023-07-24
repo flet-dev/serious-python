@@ -57,16 +57,18 @@ for:
       - brew link libtool
 
     build_script:
+      # package hostpython
+      - HOSTPYTHON_FILE_NAME=hostpython-macos-v$APPVEYOR_BUILD_VERSION.zip
+      - pushd ~/venv3.10
+      - zip -r $HOSTPYTHON_FILE_NAME .
+      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-macos
+      - popd
+
       # build Python 3
       - toolchain build python3
       - ls dist
 
-      # package hostpython
-      - HOSTPYTHON_FILE_NAME=hostpython-macos-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd dist/hostpython3
-      - zip -r $HOSTPYTHON_FILE_NAME .
-      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-macos
-      - popd
+      # remove hostpython
       - rm -rf dist/hostpython3
 
       # package the rest of dist
@@ -102,6 +104,13 @@ for:
             $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
           }
           Update-AppveyorBuild -Version $v
+
+      # package hostpython
+      - HOSTPYTHON_FILE_NAME=hostpython-linux-v$APPVEYOR_BUILD_VERSION.zip
+      - pushd ~/venv3.10
+      - zip -r $HOSTPYTHON_FILE_NAME .
+      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-linux
+      - popd
 
       # install NDK
       - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
@@ -142,13 +151,6 @@ for:
       - pushd ~/.local/share/python-for-android/dists/serious_python/libs
       - zip -r $DIST_FILE_NAME .
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
-      - popd
-
-      # package hostpython
-      - HOSTPYTHON_FILE_NAME=hostpython-linux-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd ~/.local/share/python-for-android/build/other_builds/hostpython3/desktop/hostpython3/native-build
-      - zip -r $HOSTPYTHON_FILE_NAME .
-      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-linux
       - popd
 
     deploy:
