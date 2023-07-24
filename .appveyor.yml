@@ -63,11 +63,11 @@ for:
 
       # package hostpython
       - HOSTPYTHON_FILE_NAME=hostpython-macos-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd hostpython3
+      - pushd dist/hostpython3
       - zip -r $HOSTPYTHON_FILE_NAME .
       - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-macos
       - popd
-      - rm -rf hostpython3
+      - rm -rf dist/hostpython3
 
       # package the rest of dist
       - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
