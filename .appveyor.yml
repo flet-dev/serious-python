@@ -60,16 +60,25 @@ for:
       # build Python 3
       - toolchain build python3
       - ls dist
-      - sh: |
-          DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-          tar -czvf $DIST_FILE_NAME dist/*
-          appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
+
+      # package hostpython
+      - HOSTPYTHON_FILE_NAME=hostpython-macos-v$APPVEYOR_BUILD_VERSION.zip
+      - pushd hostpython3
+      - zip -r $HOSTPYTHON_FILE_NAME .
+      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-macos
+      - popd
+      - rm -rf hostpython3
+
+      # package the rest of dist
+      - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
+      - tar -czvf $DIST_FILE_NAME dist/*
+      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
 
     deploy:
       provider: GitHub
       auth_token: $(GITHUB_TOKEN)
       release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist
+      artifact: python-dist, hostpython-macos
       on:
         APPVEYOR_REPO_TAG: true
 
@@ -105,7 +114,7 @@ for:
       - pip3 install python-for-android
       - pip3 install --upgrade cython
       - p4a --help
-      - p4a create --requirements python3,numpy --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
+      - p4a create --requirements python3 --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
 
       # package
       - BUNDLE_NAME=libpythonbundle.so
