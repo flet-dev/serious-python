@@ -1,7 +1,5 @@
-// The Android Gradle Plugin builds the native code with the Android NDK.
-
 group 'com.flet.serious_python'
-version '1.0'
+version '0.1.5'
 
 buildscript {
     repositories {
@@ -12,6 +10,7 @@ buildscript {
     dependencies {
         // The Android Gradle Plugin knows how to build native code with the NDK.
         classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'de.undercouch:gradle-download-task:4.1.2'
     }
 }
 
@@ -23,6 +22,7 @@ rootProject.allprojects {
 }
 
 apply plugin: 'com.android.library'
+apply plugin: 'de.undercouch.download'
 
 android {
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
@@ -57,3 +57,17 @@ android {
         minSdkVersion 16
     }
 }
+
+import de.undercouch.gradle.tasks.download.Download
+
+task downloadZipFile(type: Download) {
+    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.zip"
+    dest new File(buildDir, "python-android-dist-v${version}.zip")
+}
+
+task unzipFile(dependsOn: downloadZipFile, type: Copy) {
+    from zipTree(downloadZipFile.dest)
+    into 'src/main/jniLibs'
+}
+
+preBuild.dependsOn unzipFile
