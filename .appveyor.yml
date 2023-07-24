@@ -57,13 +57,6 @@ for:
       - brew link libtool
 
     build_script:
-      # package hostpython
-      - HOSTPYTHON_FILE_NAME=hostpython-macos-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd ~/venv3.10
-      - zip -r $HOSTPYTHON_FILE_NAME .
-      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-macos
-      - popd
-
       # build Python 3
       - toolchain build python3
       - ls dist
@@ -74,13 +67,13 @@ for:
       # package the rest of dist
       - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       - tar -czvf $DIST_FILE_NAME dist/*
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
+      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-macos
 
     deploy:
       provider: GitHub
       auth_token: $(GITHUB_TOKEN)
       release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist, hostpython-macos
+      artifact: python-dist-macos
       on:
         APPVEYOR_REPO_TAG: true
 
@@ -104,13 +97,6 @@ for:
             $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
           }
           Update-AppveyorBuild -Version $v
-
-      # package hostpython
-      - HOSTPYTHON_FILE_NAME=hostpython-linux-v$APPVEYOR_BUILD_VERSION.zip
-      - pushd ~/venv3.10
-      - zip -r $HOSTPYTHON_FILE_NAME .
-      - appveyor PushArtifact $HOSTPYTHON_FILE_NAME -DeploymentName hostpython-linux
-      - popd
 
       # install NDK
       - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
@@ -150,14 +136,14 @@ for:
       - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.zip
       - pushd ~/.local/share/python-for-android/dists/serious_python/libs
       - zip -r $DIST_FILE_NAME .
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist
+      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
       - popd
 
     deploy:
       provider: GitHub
       auth_token: $(GITHUB_TOKEN)
       release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist, hostpython-linux
+      artifact: python-dist-android
       on:
         APPVEYOR_REPO_TAG: true
 
