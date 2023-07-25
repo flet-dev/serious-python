@@ -8,17 +8,17 @@ Build app backend service in Python and host it inside a Flutter app. Flutter ap
 
 Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build Flutter apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
 
-Serious Python relies on [Kivy toolchain for iOS](https://github.com/kivy/kivy-ios) to build Python runtime and native packages.
-
 ## Platform Support
 
-| iOS     |   Android   |
+| iOS     |   Android    |
 | :-----: | :----------: |
-|   ✅    |  Coming soon |
+|   ✅    |       ✅      |
 
 ### Python versions
 
 iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
+
+Android version of plugin is based on [Kivy python-for-android](https://github.com/kivy/python-for-android) and currently uses Python 3.10.10.
 
 ## Usage
 
