@@ -2,10 +2,11 @@ name: serious_python
 description: A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.1.5
+version: 0.2.0
 
 platforms:
   ios:
+  android:
 
 environment:
   sdk: '>=3.0.1 <4.0.0'
@@ -21,11 +22,16 @@ dependencies:
   path: ^1.8.3
   args: ^2.4.1
   toml: ^0.14.0
+  ffi: ^2.0.2
+  http: ^0.13.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+
+  ffigen: ^9.0.0
+  
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -46,6 +52,10 @@ flutter:
     platforms:
       ios:
         pluginClass: SeriousPythonPlugin
+        ffiPlugin: true
+      android:
+        package: com.flet.serious_python
+        pluginClass: AndroidPlugin
         ffiPlugin: true
 
   # To add assets to your plugin package, add an assets section, like this:

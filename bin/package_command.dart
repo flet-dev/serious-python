@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
@@ -41,17 +41,6 @@ class PackageCommand extends Command {
 
     try {
       final currentPath = Directory.current.path;
-      final packagePath = (await Isolate.resolvePackageUri(
-              Uri.parse('package:serious_python/.')))
-          ?.path;
-
-      if (packagePath == null) {
-        stdout.writeln("Cannot resolve 'serious_python' package path.");
-        exit(1);
-      }
-
-      final iosDistPath =
-          path.join(Directory(packagePath).parent.absolute.path, "ios", "dist");
 
       // source dir
       var sourceDirPath = argResults!.rest.first;
@@ -126,10 +115,7 @@ class PackageCommand extends Command {
           extraArgs.add("--pre");
         }
 
-        final pythonPath =
-            path.join(iosDistPath, "hostpython3", "bin", "python");
-
-        await runExec(pythonPath, [
+        await runPython([
           '-m',
           'pip',
           'install',
@@ -147,7 +133,7 @@ class PackageCommand extends Command {
         });
 
         // compile all python code
-        await runExec(pythonPath, ['-m', 'compileall', '-b', tempDir.path]);
+        await runPython(['-m', 'compileall', '-b', tempDir.path]);
       }
 
       // remove unnecessary files
@@ -233,5 +219,48 @@ class PackageCommand extends Command {
       exit(1);
     }
     return proc.exitCode;
+  }
+
+  Future runPython(List<String> args,
+      {Map<String, String>? environment}) async {
+    var pythonDir =
+        Directory(path.join(Directory.systemTemp.path, "hostpython3.10"));
+
+    if (!await pythonDir.exists()) {
+      stdout
+          .writeln("Downloading and extracting Python into ${pythonDir.path}");
+
+      var isArm64 = Platform.version.contains("arm64");
+
+      String arch = "";
+      if (Platform.isMacOS && !isArm64) {
+        arch = 'x86_64-apple-darwin';
+      } else if (Platform.isMacOS && isArm64) {
+        arch = 'aarch64-apple-darwin';
+      } else if (Platform.isLinux) {
+        arch = 'x86_64-unknown-linux-gnu';
+      } else if (Platform.isWindows) {
+        arch = 'x86_64-pc-windows-msvc-static';
+      }
+
+      final url =
+          "https://github.com/indygreg/python-build-standalone/releases/download/20230507/cpython-3.10.11+20230507-$arch-install_only.tar.gz";
+
+      await pythonDir.create(recursive: true);
+
+      // Download the release asset
+      var response = await http.get(Uri.parse(url));
+      var archivePath = path.join(pythonDir.path, 'python.tar.gz');
+      await File(archivePath).writeAsBytes(response.bodyBytes);
+
+      // Extract the archive
+      await Process.run('tar', ['-xzf', archivePath, '-C', pythonDir.path]);
+    } else {
+      stdout.writeln("Python has already downloaded to ${pythonDir.path}");
+    }
+
+    // Run the python executable
+    var pythonPath = path.join(pythonDir.path, 'python', 'bin', 'python3');
+    return await runExec(pythonPath, args, environment: environment);
   }
 }

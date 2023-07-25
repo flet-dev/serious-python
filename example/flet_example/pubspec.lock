@@ -189,10 +189,10 @@ packages:
     dependency: "direct main"
     description:
       name: flet
-      sha256: bb0a33e09abf2acb143658960efa71e11eb24e299c88c339bd8b2ad2a5a7581d
+      sha256: "3d1f7b15061edf0f99bf40a19766396f343bb811971020d7316d7d6ff49066e3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.4"
+    version: "0.8.2"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -486,7 +486,7 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.1.5"
+    version: "0.2.0"
   shake:
     dependency: transitive
     description:

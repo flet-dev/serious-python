@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:serious_python/serious_python.dart';
-import 'package:serious_python/src/serious_python_method_channel.dart';
+import 'package:serious_python/src/ios/serious_python_ios.dart';
 import 'package:serious_python/src/serious_python_platform_interface.dart';
 
 class MockSeriousPythonPlatform
@@ -22,8 +22,8 @@ class MockSeriousPythonPlatform
 void main() {
   final SeriousPythonPlatform initialPlatform = SeriousPythonPlatform.instance;
 
-  test('$MethodChannelSeriousPython is the default instance', () {
-    expect(initialPlatform, isInstanceOf<MethodChannelSeriousPython>());
+  test('$SeriousPythonIOS is the default instance', () {
+    expect(initialPlatform, isInstanceOf<SeriousPythonIOS>());
   });
 
   test('getPlatformVersion', () async {
