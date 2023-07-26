@@ -240,7 +240,7 @@ class PackageCommand extends Command {
       } else if (Platform.isLinux) {
         arch = 'x86_64-unknown-linux-gnu';
       } else if (Platform.isWindows) {
-        arch = 'x86_64-pc-windows-msvc-static';
+        arch = 'x86_64-pc-windows-msvc-shared';
       }
 
       final url =
