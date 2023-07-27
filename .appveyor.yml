@@ -61,10 +61,7 @@ for:
       - toolchain build python3
       - ls dist
 
-      # remove hostpython
-      - rm -rf dist/hostpython3
-
-      # package the rest of dist
+      # package dist
       - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       - tar -czvf $DIST_FILE_NAME dist/*
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-macos
