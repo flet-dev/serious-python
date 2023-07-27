@@ -1,3 +1,7 @@
+## 0.2.1
+
+Fix iOS pod.
+
 ## 0.2.0
 
 Android support.
