@@ -1,10 +1,15 @@
+## 0.2.2
+
+* Exclude `x86` from supported ABIs.
+* Fixed: Packaging python app using the packaging command raising an error on windows ([#8](https://github.com/flet-dev/serious-python/issues/8)).
+
 ## 0.2.1
 
-Fix iOS pod.
+* Fix iOS pod.
 
 ## 0.2.0
 
-Android support.
+* Android support.
 
 ## 0.1.5
 
