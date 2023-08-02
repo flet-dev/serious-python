@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
@@ -260,7 +261,9 @@ class PackageCommand extends Command {
     }
 
     // Run the python executable
-    var pythonPath = path.join(pythonDir.path, 'python', 'bin', 'python3');
+    var pythonPath = defaultTargetPlatform == TargetPlatform.windows
+        ? path.join(pythonDir.path, 'python', 'python.exe')
+        : path.join(pythonDir.path, 'python', 'bin', 'python3');
     return await runExec(pythonPath, args, environment: environment);
   }
 }
