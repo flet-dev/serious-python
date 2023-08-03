@@ -218,6 +218,17 @@ void runPythonProgram(List<Object> arguments) async {
   var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
   if (modulePtr == nullptr) {
     cpython.PyErr_Print();
+    final pType =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    final pValue =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    final pTrace =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    cpython.PyErr_Fetch(pType, pValue, pTrace);
+    cpython.PyErr_NormalizeException(pType, pValue, pTrace);
+    var pValueStr = cpython.PyObject_Str(pValue.value);
+    var pyErr = cpython.PyBytes_AsString(pValueStr).cast<Utf8>().toDartString();
+    debugPrint("PyImport_ImportModule error: $pyErr");
   }
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
