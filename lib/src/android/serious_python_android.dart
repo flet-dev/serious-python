@@ -124,7 +124,16 @@ void runPythonProgram(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  var loadLynamicLibraries = [
+  var programDirPathFiles = await getDirFiles(programDirPath);
+  var pythonLibPathFiles = await getDirFiles(pythonLibPath);
+
+  debugPrint("programDirPath: $programDirPath");
+  debugPrint("programModuleName: $programModuleName");
+  debugPrint("pythonLibPath: $pythonLibPath");
+  debugPrint("programDirPathFiles: $programDirPathFiles");
+  debugPrint("pythonLibPathFiles: $pythonLibPathFiles");
+
+  var loadDynamicLibraries = [
     "libffi.so",
     "libcrypto1.1.so",
     "libsqlite3.so",
@@ -142,7 +151,7 @@ void runPythonProgram(List<Object> arguments) async {
   ];
 
   // load dynamic libraries
-  for (var loadDynamicLibrary in loadLynamicLibraries) {
+  for (var loadDynamicLibrary in loadDynamicLibraries) {
     DynamicLibrary.open(loadDynamicLibrary);
   }
 
@@ -218,4 +227,14 @@ void runPythonProgram(List<Object> arguments) async {
   cpython.Py_Finalize();
   debugPrint("after Py_Finalize");
   sendPort.send("Python program exited");
+}
+
+Future<String> getDirFiles(String path) async {
+  final dir = Directory(path);
+  if (!await dir.exists()) {
+    return "<not found>";
+  }
+  final List<FileSystemEntity> entities = await dir.list().toList();
+  final Iterable<File> files = entities.whereType<File>();
+  return files.map((file) => file.path).join(', ');
 }
