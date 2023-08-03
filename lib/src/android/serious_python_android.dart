@@ -60,8 +60,11 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         receivePort.close();
         isolate.kill();
 
-        var r2 = File("$pythonLibPath/out.txt").readAsStringSync();
-        debugPrint("Result out.txt: $r2");
+        var out = File("out.txt");
+        if (out.existsSync()) {
+          var r = out.readAsStringSync();
+          debugPrint("Result from out.txt: $r");
+        }
       });
     } else {
       // sync run
@@ -138,11 +141,6 @@ void runPythonProgram(List<Object> arguments) async {
     "$pythonLibPath/stdlib.zip"
   ];
 
-  var currentDir = pythonLibPath;
-
-  // set current dir
-  Directory.current = currentDir;
-
   // load dynamic libraries
   for (var loadDynamicLibrary in loadLynamicLibraries) {
     DynamicLibrary.open(loadDynamicLibrary);
@@ -208,7 +206,10 @@ void runPythonProgram(List<Object> arguments) async {
 
   // run user program
   final moduleNamePtr = programModuleName.toNativeUtf8();
-  cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+  var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+  if (modulePtr == nullptr) {
+    cpython.PyErr_Print();
+  }
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
   // debugPrint("PyRun_SimpleString result: $r");
