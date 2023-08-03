@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:math';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
@@ -43,6 +44,17 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     final nativeLibraryDir =
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
     debugPrint("getNativeLibraryDir: $nativeLibraryDir");
+
+    final appIdAsBytes = File('/proc/self/cmdline').readAsBytesSync();
+
+    // app id ends with the first \0 character in here.
+    final endOfAppId = max(appIdAsBytes.indexOf(0), 0);
+    final appId = String.fromCharCodes(appIdAsBytes.sublist(0, endOfAppId));
+
+    var appLibPath = "/data/data/$appId/lib";
+
+    var appLibPathFiles = await getDirFiles(appLibPath);
+    throw Exception("appLibPath ($appLibPath): [$appLibPathFiles]");
 
     // var nativeLibraryDirFiles = await getDirFiles(nativeLibraryDir!);
     // throw Exception(
