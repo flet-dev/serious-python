@@ -51,7 +51,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     final endOfAppId = max(appIdAsBytes.indexOf(0), 0);
     final appId = String.fromCharCodes(appIdAsBytes.sublist(0, endOfAppId));
 
-    var appLibPath = "/data/data/$appId/lib";
+    var appLibPath = "/data/data/$appId";
 
     var appLibPathFiles = await getDirFiles(appLibPath);
     throw Exception("appLibPath ($appLibPath): [$appLibPathFiles]");
