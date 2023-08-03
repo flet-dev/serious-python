@@ -45,7 +45,8 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     debugPrint("getNativeLibraryDir: $nativeLibraryDir");
 
     var nativeLibraryDirFiles = await getDirFiles(nativeLibraryDir!);
-    throw Exception("nativeLibraryDirFiles: $nativeLibraryDirFiles");
+    throw Exception(
+        "nativeLibraryDirFiles ($nativeLibraryDir): [$nativeLibraryDirFiles]");
 
     var pythonLibPath = await extractFileZip(
         "$nativeLibraryDir/libpythonbundle.so",
