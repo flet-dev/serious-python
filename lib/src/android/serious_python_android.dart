@@ -53,7 +53,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
 
     var appLibPath = "/data/data/$appId";
 
-    var appLibPathFiles = await getDirFiles(appLibPath);
+    var appLibPathFiles = await getDirFiles(appLibPath, recursive: true);
     throw Exception("appLibPath ($appLibPath): [$appLibPathFiles]");
 
     // var nativeLibraryDirFiles = await getDirFiles(nativeLibraryDir!);
@@ -259,10 +259,12 @@ void runPythonProgram(List<Object> arguments) async {
   sendPort.send("Python program exited");
 }
 
-Future<String> getDirFiles(String path) async {
+Future<String> getDirFiles(String path, {bool recursive = false}) async {
   final dir = Directory(path);
   if (!await dir.exists()) {
     return "<not found>";
   }
-  return (await dir.list().toList()).map((file) => file.path).join(', ');
+  return (await dir.list(recursive: recursive).toList())
+      .map((file) => file.path)
+      .join('\n');
 }
