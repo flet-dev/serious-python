@@ -226,9 +226,10 @@ void runPythonProgram(List<Object> arguments) async {
         calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
     cpython.PyErr_Fetch(pType, pValue, pTrace);
     cpython.PyErr_NormalizeException(pType, pValue, pTrace);
-    var pValueStr = cpython.PyObject_Str(pValue.value);
-    var pyErr = cpython.PyBytes_AsString(pValueStr).cast<Utf8>().toDartString();
-    debugPrint("PyImport_ImportModule error: $pyErr");
+    cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
+    // var pValueStr = cpython.PyObject_Str(pValue.value);
+    // var pyErr = cpython.PyBytes_AsString(pValueStr).cast<Utf8>().toDartString();
+    // debugPrint("PyImport_ImportModule error: $pyErr");
   }
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
@@ -245,7 +246,5 @@ Future<String> getDirFiles(String path) async {
   if (!await dir.exists()) {
     return "<not found>";
   }
-  final List<FileSystemEntity> entities = await dir.list().toList();
-  final Iterable<File> files = entities.whereType<File>();
-  return files.map((file) => file.path).join(', ');
+  return (await dir.list().toList()).map((file) => file.path).join(', ');
 }
