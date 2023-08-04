@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
-import 'dart:math';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
@@ -45,29 +44,14 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
     debugPrint("getNativeLibraryDir: $nativeLibraryDir");
 
-    final appIdAsBytes = File('/proc/self/cmdline').readAsBytesSync();
+    var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
 
-    // app id ends with the first \0 character in here.
-    final endOfAppId = max(appIdAsBytes.indexOf(0), 0);
-    final appId = String.fromCharCodes(appIdAsBytes.sublist(0, endOfAppId));
+    if (!await File(bundlePath).exists()) {
+      throw Exception("Python bundle not found: $bundlePath");
+    }
 
-    var appLibPath = "/data/data/$appId";
-
-    var appLibPathFiles = await getDirFiles(appLibPath, recursive: true);
-    var nativeLibraryDirFiles =
-        await getDirFiles(nativeLibraryDir!, recursive: true);
-    throw Exception(
-        "appLibPath ($appLibPath): [$appLibPathFiles]\nnativeLibraryDirFiles ($nativeLibraryDir): [$nativeLibraryDirFiles]");
-
-    // var nativeLibraryDirFiles = await getDirFiles(nativeLibraryDir!);
-    // throw Exception(
-    //     "nativeLibraryDirFiles ($nativeLibraryDir): [$nativeLibraryDirFiles]");
-
-    await Future.delayed(const Duration(seconds: 5));
-
-    var pythonLibPath = await extractFileZip(
-        "$nativeLibraryDir/libpythonbundle.so",
-        targetPath: "python_bundle");
+    var pythonLibPath =
+        await extractFileZip(bundlePath, targetPath: "python_bundle");
 
     debugPrint("pythonLibPath: $pythonLibPath");
 
@@ -248,9 +232,6 @@ void runPythonProgram(List<Object> arguments) async {
     cpython.PyErr_Fetch(pType, pValue, pTrace);
     cpython.PyErr_NormalizeException(pType, pValue, pTrace);
     cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
-    // var pValueStr = cpython.PyObject_Str(pValue.value);
-    // var pyErr = cpython.PyBytes_AsString(pValueStr).cast<Utf8>().toDartString();
-    // debugPrint("PyImport_ImportModule error: $pyErr");
   }
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
