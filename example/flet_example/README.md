@@ -1,16 +1,14 @@
 # flet_example
 
-A new Flutter project.
+Important: to make `serious_python` work in your own Android app:
 
-## Getting Started
+If you build an App Bundle Edit `android/gradle.properties` and add the flag:
 
-This project is a starting point for a Flutter application.
+```
+android.bundle.enableUncompressedNativeLibs=false
+```
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+If you build an APK Make sure `android/app/src/AndroidManifest.xml` has `android:extractNativeLibs="true"` in the `<application>` tag.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For more information, see the [public issue](https://issuetracker.google.com/issues/147096055).

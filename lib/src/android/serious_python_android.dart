@@ -44,9 +44,14 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
     debugPrint("getNativeLibraryDir: $nativeLibraryDir");
 
-    var pythonLibPath = await extractFileZip(
-        "$nativeLibraryDir/libpythonbundle.so",
-        targetPath: "python_bundle");
+    var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
+
+    if (!await File(bundlePath).exists()) {
+      throw Exception("Python bundle not found: $bundlePath");
+    }
+
+    var pythonLibPath =
+        await extractFileZip(bundlePath, targetPath: "python_bundle");
 
     debugPrint("pythonLibPath: $pythonLibPath");
 
@@ -60,8 +65,11 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         receivePort.close();
         isolate.kill();
 
-        var r2 = File("$pythonLibPath/out.txt").readAsStringSync();
-        debugPrint("Result out.txt: $r2");
+        var out = File("out.txt");
+        if (out.existsSync()) {
+          var r = out.readAsStringSync();
+          debugPrint("Result from out.txt: $r");
+        }
       });
     } else {
       // sync run
@@ -121,7 +129,16 @@ void runPythonProgram(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  var loadLynamicLibraries = [
+  var programDirPathFiles = await getDirFiles(programDirPath);
+  var pythonLibPathFiles = await getDirFiles(pythonLibPath);
+
+  debugPrint("programDirPath: $programDirPath");
+  debugPrint("programModuleName: $programModuleName");
+  debugPrint("pythonLibPath: $pythonLibPath");
+  debugPrint("programDirPathFiles: $programDirPathFiles");
+  debugPrint("pythonLibPathFiles: $pythonLibPathFiles");
+
+  var loadDynamicLibraries = [
     "libffi.so",
     "libcrypto1.1.so",
     "libsqlite3.so",
@@ -138,13 +155,8 @@ void runPythonProgram(List<Object> arguments) async {
     "$pythonLibPath/stdlib.zip"
   ];
 
-  var currentDir = pythonLibPath;
-
-  // set current dir
-  Directory.current = currentDir;
-
   // load dynamic libraries
-  for (var loadDynamicLibrary in loadLynamicLibraries) {
+  for (var loadDynamicLibrary in loadDynamicLibraries) {
     DynamicLibrary.open(loadDynamicLibrary);
   }
 
@@ -208,7 +220,18 @@ void runPythonProgram(List<Object> arguments) async {
 
   // run user program
   final moduleNamePtr = programModuleName.toNativeUtf8();
-  cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+  var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+  if (modulePtr == nullptr) {
+    final pType =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    final pValue =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    final pTrace =
+        calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+    cpython.PyErr_Fetch(pType, pValue, pTrace);
+    cpython.PyErr_NormalizeException(pType, pValue, pTrace);
+    cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
+  }
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
   // debugPrint("PyRun_SimpleString result: $r");
@@ -217,4 +240,14 @@ void runPythonProgram(List<Object> arguments) async {
   cpython.Py_Finalize();
   debugPrint("after Py_Finalize");
   sendPort.send("Python program exited");
+}
+
+Future<String> getDirFiles(String path, {bool recursive = false}) async {
+  final dir = Directory(path);
+  if (!await dir.exists()) {
+    return "<not found>";
+  }
+  return (await dir.list(recursive: recursive).toList())
+      .map((file) => file.path)
+      .join('\n');
 }

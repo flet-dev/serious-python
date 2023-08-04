@@ -30,11 +30,17 @@ Future<String> extractAssetOrFile(String path,
   // unpack from asset or file
   debugPrint("Start unpacking app archive");
   List<int> data;
-  if (isAsset) {
-    final bytes = await rootBundle.load(path);
-    data = bytes.buffer.asUint8List();
-  } else {
-    data = await File(path).readAsBytes();
+
+  try {
+    if (isAsset) {
+      final bytes = await rootBundle.load(path);
+      data = bytes.buffer.asUint8List();
+    } else {
+      data = await File(path).readAsBytes();
+    }
+  } catch (_) {
+    await destDir.delete(recursive: true);
+    rethrow;
   }
 
   Archive archive = ZipDecoder().decodeBytes(data);
