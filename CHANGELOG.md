@@ -1,3 +1,7 @@
+## 0.2.3
+
+* Android fixes to make it work on some devices when installed via Play Store.
+
 ## 0.2.2
 
 * Exclude `x86` from supported ABIs.
