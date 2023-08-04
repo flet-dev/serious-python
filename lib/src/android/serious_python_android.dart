@@ -222,7 +222,6 @@ void runPythonProgram(List<Object> arguments) async {
   final moduleNamePtr = programModuleName.toNativeUtf8();
   var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
   if (modulePtr == nullptr) {
-    cpython.PyErr_Print();
     final pType =
         calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
     final pValue =

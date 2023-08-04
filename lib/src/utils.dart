@@ -38,7 +38,7 @@ Future<String> extractAssetOrFile(String path,
     } else {
       data = await File(path).readAsBytes();
     }
-  } catch (e) {
+  } catch (_) {
     await destDir.delete(recursive: true);
     rethrow;
   }
