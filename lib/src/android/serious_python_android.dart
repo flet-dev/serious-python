@@ -54,7 +54,10 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     var appLibPath = "/data/data/$appId";
 
     var appLibPathFiles = await getDirFiles(appLibPath, recursive: true);
-    throw Exception("appLibPath ($appLibPath): [$appLibPathFiles]");
+    var nativeLibraryDirFiles =
+        await getDirFiles(nativeLibraryDir!, recursive: true);
+    throw Exception(
+        "appLibPath ($appLibPath): [$appLibPathFiles]\nnativeLibraryDirFiles ($nativeLibraryDir): [$nativeLibraryDirFiles]");
 
     // var nativeLibraryDirFiles = await getDirFiles(nativeLibraryDir!);
     // throw Exception(
