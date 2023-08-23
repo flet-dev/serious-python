@@ -31,9 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
 
-  serious_python:
-    path: ../../
-
+  serious_python: ^0.2.3
   flet: ^0.8.4
   
   path: ^1.8.3
