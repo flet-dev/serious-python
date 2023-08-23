@@ -1,14 +1,27 @@
 # flet_example
 
-Important: to make `serious_python` work in your own Android app:
+## install flutter and all it's dependencies
 
-If you build an App Bundle Edit `android/gradle.properties` and add the flag:
+## add your py files in app dir
 
+## compile and zip your py files using
+
+```bash
+dart run serious_python:main package --asset app/app.zip  python/
 ```
-android.bundle.enableUncompressedNativeLibs=false
+
+or using
+> make compile
+
+## build your apk
+
+```bash
+flutter build apk --split-per-abi 
 ```
 
+or using
+> make bundle
 
-If you build an APK Make sure `android/app/src/AndroidManifest.xml` has `android:extractNativeLibs="true"` in the `<application>` tag.
+you will find your apks in build/app/outpus/apk/release dir
 
-For more information, see the [public issue](https://issuetracker.google.com/issues/147096055).
+or maybe just test it in your mobile or even in emulator using flutter run or debug as you like
