@@ -44,7 +44,7 @@ PODS:
   - SDWebImage/Core (5.15.8)
   - sensors_plus (0.0.1):
     - Flutter
-  - serious_python (0.1.4):
+  - serious_python (0.2.3):
     - Flutter
   - shared_preferences_foundation (0.0.1):
     - Flutter
@@ -97,7 +97,7 @@ SPEC CHECKSUMS:
   path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
   SDWebImage: cb032eba469c54e0000e78bcb0a13cdde0a52798
   sensors_plus: 5717760720f7e6acd96fdbd75b7428f5ad755ec2
-  serious_python: 22931497cfcc8ea8531a1f65c8d317787b5786c8
+  serious_python: 638e9ee129c14d4ac1cb2ac5640807b4dd398ff8
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   SwiftyGif: 93a1cc87bf3a51916001cf8f3d63835fb64c819f
   url_launcher_ios: 08a3dfac5fb39e8759aeb0abbd5d9480f30fc8b4

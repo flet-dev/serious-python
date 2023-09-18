@@ -138,14 +138,6 @@ void runPythonProgram(List<Object> arguments) async {
   debugPrint("programDirPathFiles: $programDirPathFiles");
   debugPrint("pythonLibPathFiles: $pythonLibPathFiles");
 
-  var loadDynamicLibraries = [
-    "libffi.so",
-    "libcrypto1.1.so",
-    "libsqlite3.so",
-    "libssl1.1.so",
-    "libpython3.10.so"
-  ];
-
   var moduleSearchPaths = [
     programDirPath,
     "$programDirPath/__pypackages__",
@@ -154,11 +146,6 @@ void runPythonProgram(List<Object> arguments) async {
     "$pythonLibPath/site-packages",
     "$pythonLibPath/stdlib.zip"
   ];
-
-  // load dynamic libraries
-  for (var loadDynamicLibrary in loadDynamicLibraries) {
-    DynamicLibrary.open(loadDynamicLibrary);
-  }
 
   // pre config
   final pyPreConfig = calloc.allocate<PyPreConfig>(sizeOf<PyPreConfig>());
