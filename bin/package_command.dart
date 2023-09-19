@@ -223,9 +223,18 @@ class PackageCommand extends Command {
     var pythonDir =
         Directory(path.join(Directory.systemTemp.path, "hostpython3.10"));
 
-    if (!await pythonDir.exists()) {
+    var pythonExePath = Platform.isWindows
+        ? path.join(pythonDir.path, 'python', 'python.exe')
+        : path.join(pythonDir.path, 'python', 'bin', 'python3');
+
+    if (!await File(pythonExePath).exists()) {
       stdout
           .writeln("Downloading and extracting Python into ${pythonDir.path}");
+
+      if (await pythonDir.exists()) {
+        await pythonDir.delete(recursive: true);
+      }
+      await pythonDir.create(recursive: true);
 
       var isArm64 = Platform.version.contains("arm64");
 
@@ -243,8 +252,6 @@ class PackageCommand extends Command {
       final url =
           "https://github.com/indygreg/python-build-standalone/releases/download/20230507/cpython-3.10.11+20230507-$arch-install_only.tar.gz";
 
-      await pythonDir.create(recursive: true);
-
       // Download the release asset
       var response = await http.get(Uri.parse(url));
       var archivePath = path.join(pythonDir.path, 'python.tar.gz');
@@ -253,13 +260,10 @@ class PackageCommand extends Command {
       // Extract the archive
       await Process.run('tar', ['-xzf', archivePath, '-C', pythonDir.path]);
     } else {
-      stdout.writeln("Python has already downloaded to ${pythonDir.path}");
+      stdout.writeln("Python executable found at $pythonExePath");
     }
 
     // Run the python executable
-    var pythonPath = Platform.isWindows
-        ? path.join(pythonDir.path, 'python', 'python.exe')
-        : path.join(pythonDir.path, 'python', 'bin', 'python3');
-    return await runExec(pythonPath, args, environment: environment);
+    return await runExec(pythonExePath, args, environment: environment);
   }
 }
