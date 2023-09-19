@@ -205,10 +205,7 @@ class PackageCommand extends Command {
 
   Future<int> runExec(String execPath, List<String> args,
       {Map<String, String>? environment}) async {
-    final proc = await Process.start(execPath, args,
-        environment: environment,
-        runInShell: true,
-        includeParentEnvironment: false);
+    final proc = await Process.start(execPath, args, environment: environment);
 
     await for (final line in proc.stdout.transform(utf8.decoder)) {
       stdout.write(line);
