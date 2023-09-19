@@ -1,5 +1,5 @@
 group 'com.flet.serious_python'
-version '0.2.3'
+version '0.2.4'
 
 buildscript {
     repositories {
