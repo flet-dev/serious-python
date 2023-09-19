@@ -1,3 +1,8 @@
+## 0.2.4
+
+* Fix _Py_HashRandomization_Init error on Windows.
+* Reliably re-download Python executable.
+
 ## 0.2.3
 
 * Android fixes to make it work on some devices when installed via Play Store.
