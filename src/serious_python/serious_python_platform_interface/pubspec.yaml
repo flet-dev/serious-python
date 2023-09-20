@@ -1,0 +1,23 @@
+name: serious_python_platform_interface
+description: A common platform interface for the serious_python plugin.
+homepage: https://flet.dev
+repository: https://github.com/flet-dev/serious-python
+version: 0.3.0
+
+environment:
+  sdk: '>=3.0.1 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.6
+  path_provider: ^2.0.15
+  archive: ^3.3.7
+  path: ^1.8.3
+  ffi: ^2.0.2
+  
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+  ffigen: ^9.0.0

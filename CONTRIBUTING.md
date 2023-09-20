@@ -5,8 +5,8 @@
 Bump version in:
 
 * `pubspec.yaml`
-* `android/build.gradle`
-* `ios/serious_python.podspec`
+* `src/serious_python/serious_python_android/build.gradle`
+* `src/serious_python/serious_python_ios/serious_python_ios.podspec`
 
 Bump `serious_python` dependency version with `flutter pub get` in example lock files:
 
