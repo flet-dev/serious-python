@@ -170,7 +170,7 @@ for:
       #- python3 patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
       #- python3 patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
 
-      cat src/serious_python_android/pubspec.yaml
+      - cat src/serious_python_android/pubspec.yaml
 
       # publish package
       - sh: |
