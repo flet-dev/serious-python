@@ -168,13 +168,13 @@ for:
             echo $PUB_DEV_TOKEN | base64 --decode > $HOME/.config/dart/pub-credentials.json
 
             # patch pubspecs
-            python3 patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
-            python3 patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
-            python3 patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
-            python3 patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
-            #python3 patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
-            #python3 patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
-            #python3 patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
 
             pushd src/serious_python_platform_interface
             dart pub publish --force
@@ -193,6 +193,7 @@ for:
             popd
 
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
+
             pushd src/serious_python_platform_interface
             dart pub publish --dry-run
             popd

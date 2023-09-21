@@ -1,6 +1,6 @@
 ## 0.3.0
 
-* Added support for Windows, Linux and macOS.
+* `serious_python` all-in-one package refactored to a federated plug-in with multiple endorsed packages.
 
 ## 0.2.4
 
