@@ -32,6 +32,6 @@ with open(pubspec_path, "r") as f:
     for dep in data["dependencies"]:
         if dep in dependencies:
             data["dependencies"][dep] = ver
-        print(dep)
+    # print(dep)
 with open(pubspec_path, "w") as file:
     yaml.dump(data, file, sort_keys=False)

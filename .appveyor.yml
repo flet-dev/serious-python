@@ -161,22 +161,20 @@ for:
       - flutter upgrade --force
 
     build_script:
-      # patch pubspecs
-      - python3 patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
-      - python3 patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
-      - python3 patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
-      - python3 patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
-      #- python3 patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
-      #- python3 patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
-      #- python3 patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
-
-      - cat src/serious_python_android/pubspec.yaml
-
       # publish package
       - sh: |
           if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
             mkdir -p $HOME/.config/dart
             echo $PUB_DEV_TOKEN | base64 --decode > $HOME/.config/dart/pub-credentials.json
+
+            # patch pubspecs
+            python3 patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
+            python3 patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
+            python3 patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
+            python3 patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
+            #python3 patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
+            #python3 patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
+            #python3 patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
 
             pushd src/serious_python_platform_interface
             dart pub publish --force
