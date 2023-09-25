@@ -195,19 +195,19 @@ for:
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
 
             pushd src/serious_python_platform_interface
-            dart pub publish --dry-run || exit 1
+            dart pub publish --dry-run
             popd
 
             pushd src/serious_python_android
-            dart pub publish --dry-run || exit 1
+            dart pub publish --dry-run
             popd
 
             pushd src/serious_python_ios
-            dart pub publish --dry-run || exit 1
+            dart pub publish --dry-run
             popd
 
             pushd src/serious_python
-            dart pub publish --dry-run || exit 1
+            dart pub publish --dry-run
             popd
           fi
 
