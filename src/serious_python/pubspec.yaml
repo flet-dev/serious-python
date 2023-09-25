@@ -1,0 +1,55 @@
+name: serious_python
+description: A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
+homepage: https://flet.dev
+repository: https://github.com/flet-dev/serious-python
+version: 0.3.0
+
+platforms:
+  ios:
+  android:
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        default_package: serious_python_android
+      ios:
+        default_package: serious_python_ios
+      # macos:
+      #   default_package: serious_python_macos
+      # linux:
+      #   default_package: serious_python_linux
+      # windows:
+      #   default_package: serious_python_windows
+
+dependencies:
+  flutter:
+    sdk: flutter
+  serious_python_platform_interface:
+    path: ../serious_python_platform_interface
+  serious_python_android:
+    path: ../serious_python_android
+  serious_python_ios:
+    path: ../serious_python_ios
+  # serious_python_linux:
+  #   path: ../serious_python_linux
+  # serious_python_macos:
+  #   path: ../serious_python_macos
+  # serious_python_windows:
+  #   path: ../serious_python_windows
+
+  path_provider: ^2.0.15
+  archive: ^3.3.7
+  path: ^1.8.3
+  args: ^2.4.1
+  toml: ^0.14.0
+  http: ^0.13.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  plugin_platform_interface: ^2.1.6
+  flutter_lints: ^2.0.0

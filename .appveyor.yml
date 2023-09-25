@@ -147,6 +147,17 @@ for:
         - job_name: Publish serious_python package to pub.dev
 
     install:
+      # update build version
+      - ps: |
+          if ($env:APPVEYOR_REPO_TAG_NAME) {
+            $env:PKG_VER = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+          } else {
+            $cv = [version](git describe --abbrev=0).substring(1)
+            $env:PKG_VER = "$($cv.major).$($cv.minor).$($env:APPVEYOR_BUILD_NUMBER)"
+          }
+          Write-Host "Package version: $($env:PKG_VER)"
+
+      - pip3 install pyyaml
       - flutter upgrade --force
 
     build_script:
@@ -155,9 +166,49 @@ for:
           if [[ "$APPVEYOR_REPO_TAG_NAME" != "" ]]; then
             mkdir -p $HOME/.config/dart
             echo $PUB_DEV_TOKEN | base64 --decode > $HOME/.config/dart/pub-credentials.json
+
+            # patch pubspecs
+            python3 ci/patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
+            #python3 ci/patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
+
+            pushd src/serious_python_platform_interface
             dart pub publish --force
+            popd
+
+            pushd src/serious_python_android
+            dart pub publish --force
+            popd
+
+            pushd src/serious_python_ios
+            dart pub publish --force
+            popd
+
+            pushd src/serious_python
+            dart pub publish --force
+            popd
+
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
+
+            pushd src/serious_python_platform_interface
             dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_android
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_ios
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python
+            dart pub publish --dry-run
+            popd
           fi
 
     test: off
