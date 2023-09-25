@@ -281,7 +281,7 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.3.0"
+    version: "0.3.1"
   serious_python_android:
     dependency: transitive
     description:
@@ -406,4 +406,4 @@ packages:
     version: "1.0.0"
 sdks:
   dart: ">=3.1.0-185.0.dev <4.0.0"
-  flutter: ">=3.3.0"
+  flutter: ">=3.7.0"

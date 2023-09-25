@@ -177,37 +177,37 @@ for:
             #python3 ci/patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
 
             pushd src/serious_python_platform_interface
-            dart pub publish --force
+            dart pub publish --force || exit 1
             popd
 
             pushd src/serious_python_android
-            dart pub publish --force
+            dart pub publish --force || exit 1
             popd
 
             pushd src/serious_python_ios
-            dart pub publish --force
+            dart pub publish --force || exit 1
             popd
 
             pushd src/serious_python
-            dart pub publish --force
+            dart pub publish --force || exit 1
             popd
 
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
 
             pushd src/serious_python_platform_interface
-            dart pub publish --dry-run
+            dart pub publish --dry-run || exit 1
             popd
 
             pushd src/serious_python_android
-            dart pub publish --dry-run
+            dart pub publish --dry-run || exit 1
             popd
 
             pushd src/serious_python_ios
-            dart pub publish --dry-run
+            dart pub publish --dry-run || exit 1
             popd
 
             pushd src/serious_python
-            dart pub publish --dry-run
+            dart pub publish --dry-run || exit 1
             popd
           fi
 

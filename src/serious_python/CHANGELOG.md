@@ -1,3 +1,7 @@
+## 0.3.1
+
+* Set Flutter SDK requirements to remove publishing warnings.
+
 ## 0.3.0
 
 * `serious_python` all-in-one package refactored to a federated plug-in with multiple endorsed packages.

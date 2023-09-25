@@ -31,7 +31,7 @@ with open(pubspec_path, "r") as f:
     # patch dependencies
     for dep in data["dependencies"]:
         if dep in dependencies:
-            data["dependencies"][dep] = ver
+            data["dependencies"][dep] = f"^{ver}"
     # print(dep)
 with open(pubspec_path, "w") as file:
     yaml.dump(data, file, sort_keys=False)
