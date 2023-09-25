@@ -9,13 +9,13 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    # - job_name: Build Python for iOS
-    #   job_group: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Build Python for iOS
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    # - job_name: Build Python for Android
-    #   job_group: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    - job_name: Build Python for Android
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
     - job_name: Publish serious_python package to pub.dev
       job_group: publish_package
