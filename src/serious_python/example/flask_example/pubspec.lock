@@ -255,10 +255,10 @@ packages:
     dependency: transitive
     description:
       name: plugin_platform_interface
-      sha256: "6a2128648c854906c53fa8e33986fc0247a1116122f9534dd20e3ab9e16a32bc"
+      sha256: da3fdfeccc4d4ff2da8f8c556704c08f912542c5fb3cf2233ed75372384a034d
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.4"
+    version: "2.1.6"
   pointycastle:
     dependency: transitive
     description:
@@ -281,7 +281,28 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.2.4"
+    version: "0.3.0"
+  serious_python_android:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_android"
+      relative: true
+    source: path
+    version: "0.3.0"
+  serious_python_ios:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_ios"
+      relative: true
+    source: path
+    version: "0.3.0"
+  serious_python_platform_interface:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_platform_interface"
+      relative: true
+    source: path
+    version: "0.3.0"
   sky_engine:
     dependency: transitive
     description: flutter

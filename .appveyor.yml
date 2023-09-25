@@ -180,15 +180,15 @@ for:
             dart pub publish --force
             popd
 
-            pushd src/serious_python
-            dart pub publish --force
-            popd
-
             pushd src/serious_python_android
             dart pub publish --force
             popd
 
             pushd src/serious_python_ios
+            dart pub publish --force
+            popd
+
+            pushd src/serious_python
             dart pub publish --force
             popd
 
@@ -198,15 +198,15 @@ for:
             dart pub publish --dry-run
             popd
 
-            pushd src/serious_python
-            dart pub publish --dry-run
-            popd
-
             pushd src/serious_python_android
             dart pub publish --dry-run
             popd
 
             pushd src/serious_python_ios
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python
             dart pub publish --dry-run
             popd
           fi
