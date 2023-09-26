@@ -225,7 +225,7 @@ packages:
       path: "../serious_python_platform_interface"
       relative: true
     source: path
-    version: "0.3.0"
+    version: "0.3.1"
   sky_engine:
     dependency: transitive
     description: flutter
