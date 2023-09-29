@@ -10,7 +10,7 @@ import 'package:serious_python_platform_interface/serious_python_platform_interf
 class SeriousPythonMacOS extends SeriousPythonPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
-  final methodChannel = const MethodChannel('macos_plugin');
+  final methodChannel = const MethodChannel('serious_python_macos');
 
   /// Registers this class as the default instance of [SeriousPythonPlatform]
   static void registerWith() {
@@ -30,12 +30,12 @@ class SeriousPythonMacOS extends SeriousPythonPlatform {
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     // set environment variables
-    if (environmentVariables != null) {
-      for (var v in environmentVariables.entries) {
-        await methodChannel.invokeMethod<String>(
-            'setEnvironmentVariable', {'name': v.key, 'value': v.value});
-      }
-    }
+    // if (environmentVariables != null) {
+    //   for (var v in environmentVariables.entries) {
+    //     await methodChannel.invokeMethod<String>(
+    //         'setEnvironmentVariable', {'name': v.key, 'value': v.value});
+    //   }
+    // }
 
     // unpack python bundle
     final nativeLibraryDir =

@@ -26,7 +26,6 @@ flutter:
     implements: serious_python
     platforms:
       macos:
-        # package: com.flet.serious_python_android
-        # pluginClass: AndroidPlugin
+        pluginClass: SeriousPythonMacosPlugin
         dartPluginClass: SeriousPythonMacOS
         ffiPlugin: true
