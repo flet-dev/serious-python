@@ -30,36 +30,32 @@ class SeriousPythonMacOS extends SeriousPythonPlatform {
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     // set environment variables
-    // if (environmentVariables != null) {
-    //   for (var v in environmentVariables.entries) {
-    //     await methodChannel.invokeMethod<String>(
-    //         'setEnvironmentVariable', {'name': v.key, 'value': v.value});
-    //   }
-    // }
-
-    // unpack python bundle
-    final nativeLibraryDir =
-        await methodChannel.invokeMethod<String>('getNativeLibraryDir');
-    debugPrint("getNativeLibraryDir: $nativeLibraryDir");
-
-    var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
-
-    if (!await File(bundlePath).exists()) {
-      throw Exception("Python bundle not found: $bundlePath");
+    if (environmentVariables != null) {
+      for (var v in environmentVariables.entries) {
+        debugPrint(await methodChannel.invokeMethod<String>(
+            'setEnvironmentVariable', {'name': v.key, 'value': v.value}));
+      }
     }
 
-    var pythonLibPath =
-        await extractFileZip(bundlePath, targetPath: "python_bundle");
+    // unpack python bundle
+    var pythonLibPath = await extractAssetZip(
+        "packages/serious_python_macos/assets/python310.zip",
+        targetPath: "python_bundle");
 
     debugPrint("pythonLibPath: $pythonLibPath");
 
     runPythonProgramFFI(
-        sync ?? false, "libpython3.10.so", pythonLibPath, appPath, [
-      ...?modulePaths,
-      "$pythonLibPath/modules",
-      "$pythonLibPath/site-packages",
-      "$pythonLibPath/stdlib.zip"
-    ]);
+        sync ?? false,
+        Platform.version.contains("arm64")
+            ? "$pythonLibPath/lib/arm64/libpython3.10.dylib"
+            : "$pythonLibPath/lib/x64/libpython3.10.dylib",
+        pythonLibPath,
+        appPath,
+        [
+          ...?modulePaths,
+          "$pythonLibPath/lib/python3.10",
+          "$pythonLibPath/lib/python3.10/site-packages"
+        ]);
 
     return null;
   }

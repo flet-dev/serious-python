@@ -12,6 +12,12 @@ public class SeriousPythonMacosPlugin: NSObject, FlutterPlugin {
     switch call.method {
     case "getPlatformVersion":
       result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
+    case "setEnvironmentVariable":
+      let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
+      let name = args["name"] as! String
+      let value = args["value"] as! String
+      setenv(name, value, 1)
+      result("setenv(name: \(name), value: \(value))")
     default:
       result(FlutterMethodNotImplemented)
     }

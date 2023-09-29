@@ -35,7 +35,7 @@ dependencies:
   serious_python:
     path: ../../
 
-  flet: ^0.10.1
+  flet: ^0.10.3
   
   path: ^1.8.3
 

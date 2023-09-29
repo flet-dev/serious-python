@@ -296,6 +296,13 @@ packages:
       relative: true
     source: path
     version: "0.3.1"
+  serious_python_macos:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_macos"
+      relative: true
+    source: path
+    version: "0.3.1"
   serious_python_platform_interface:
     dependency: transitive
     description:
