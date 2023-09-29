@@ -2,21 +2,13 @@
 # See https://dart.dev/tools/pub/glossary#lockfile
 packages:
   archive:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: archive
       sha256: e0902a06f0e00414e4e3438a084580161279f137aeb862274710f29ec10cf01e
       url: "https://pub.dev"
     source: hosted
     version: "3.3.9"
-  args:
-    dependency: "direct main"
-    description:
-      name: args
-      sha256: eef6c46b622e0494a36c5a12d10d77fb4e855501a91c1b9ef9339326e58f0596
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.4.2"
   async:
     dependency: transitive
     description:
@@ -107,22 +99,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  http:
-    dependency: "direct main"
-    description:
-      name: http
-      sha256: "5895291c13fa8a3bd82e76d5627f69e0d85ca6a30dcac95c4ea19a5d555879c2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.13.6"
-  http_parser:
-    dependency: transitive
-    description:
-      name: http_parser
-      sha256: "2aa08ce0341cc9b354a498388e30986515406668dbcc4f7c950c3e715496693b"
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.0.2"
   js:
     dependency: transitive
     description:
@@ -172,7 +148,7 @@ packages:
     source: hosted
     version: "1.8.3"
   path_provider:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: path_provider
       sha256: a1aa8aaa2542a6bc57e381f132af822420216c80d4781f7aa085ca3229208aaa
@@ -219,14 +195,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.1"
-  petitparser:
-    dependency: transitive
-    description:
-      name: petitparser
-      sha256: cb3798bef7fc021ac45b308f4b51208a152792445cce0448c9a4ba5879dd8750
-      url: "https://pub.dev"
-    source: hosted
-    version: "5.4.0"
   platform:
     dependency: transitive
     description:
@@ -236,7 +204,7 @@ packages:
     source: hosted
     version: "3.1.2"
   plugin_platform_interface:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: plugin_platform_interface
       sha256: da3fdfeccc4d4ff2da8f8c556704c08f912542c5fb3cf2233ed75372384a034d
@@ -251,27 +219,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.7.3"
-  serious_python_android:
-    dependency: "direct main"
-    description:
-      path: "../serious_python_android"
-      relative: true
-    source: path
-    version: "0.3.1"
-  serious_python_ios:
-    dependency: "direct main"
-    description:
-      path: "../serious_python_ios"
-      relative: true
-    source: path
-    version: "0.3.1"
-  serious_python_macos:
-    dependency: "direct main"
-    description:
-      path: "../serious_python_macos"
-      relative: true
-    source: path
-    version: "0.3.1"
   serious_python_platform_interface:
     dependency: "direct main"
     description:
@@ -332,14 +279,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.6.0"
-  toml:
-    dependency: "direct main"
-    description:
-      name: toml
-      sha256: "157c5dca5160fced243f3ce984117f729c788bb5e475504f3dbcda881accee44"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.14.0"
   typed_data:
     dependency: transitive
     description:
