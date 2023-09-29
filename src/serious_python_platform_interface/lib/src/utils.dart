@@ -85,3 +85,13 @@ Future<String> extractAsset(String assetPath) async {
   await File(destPath).writeAsBytes(bytes);
   return destPath;
 }
+
+Future<String> getDirFiles(String path, {bool recursive = false}) async {
+  final dir = Directory(path);
+  if (!await dir.exists()) {
+    return "<not found>";
+  }
+  return (await dir.list(recursive: recursive).toList())
+      .map((file) => file.path)
+      .join('\n');
+}
