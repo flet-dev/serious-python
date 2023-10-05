@@ -188,10 +188,11 @@ packages:
   flet:
     dependency: "direct main"
     description:
-      name: flet
-      sha256: c23201cf4b25b603a4c85ccc657c70c97778b5724125ca1eab691c6929962eaa
-      url: "https://pub.dev"
-    source: hosted
+      path: package
+      ref: "002692e"
+      resolved-ref: "002692ed9f912ec4622268ad54453c8ba5feb0da"
+      url: "https://github.com/flet-dev/flet.git"
+    source: git
     version: "0.10.3"
   flutter:
     dependency: "direct main"
@@ -486,17 +487,10 @@ packages:
       relative: true
     source: path
     version: "0.3.1"
-  serious_python_ios:
+  serious_python_darwin:
     dependency: transitive
     description:
-      path: "../../../serious_python_ios"
-      relative: true
-    source: path
-    version: "0.3.1"
-  serious_python_macos:
-    dependency: transitive
-    description:
-      path: "../../../serious_python_macos"
+      path: "../../../serious_python_darwin"
       relative: true
     source: path
     version: "0.3.1"

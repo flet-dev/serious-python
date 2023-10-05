@@ -56,8 +56,12 @@ const pyConfigPythonpathEnvOffset = 248;
 const pyConfigHomeOffset = 256;
 const pyConfigModuleSearchPathsOffset = 280;
 
-void runPythonProgramFFI(bool sync, String dynamicLibPath, String pythonLibPath,
-    String pythonProgramPath, List<String> modulePaths) async {
+Future<Isolate?> runPythonProgramFFI(
+    bool sync,
+    String dynamicLibPath,
+    String pythonLibPath,
+    String pythonProgramPath,
+    List<String> modulePaths) async {
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
@@ -68,6 +72,7 @@ void runPythonProgramFFI(bool sync, String dynamicLibPath, String pythonLibPath,
       pythonProgramPath,
       modulePaths
     ]);
+    return null;
   } else {
     // async run
     final isolate = await Isolate.spawn(runPythonProgramInIsolate, [
@@ -88,6 +93,7 @@ void runPythonProgramFFI(bool sync, String dynamicLibPath, String pythonLibPath,
         debugPrint("Result from out.txt: $r");
       }
     });
+    return isolate;
   }
 }
 
@@ -191,6 +197,7 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
     cpython.PyErr_NormalizeException(pType, pValue, pTrace);
     cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
   }
+
   // final pythonCodePtr = pythonCode.toNativeUtf8();
   // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
   // debugPrint("PyRun_SimpleString result: $r");

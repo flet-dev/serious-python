@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
   Future getServiceResult() async {
     while (true) {
       try {
-        var response = await http.get(Uri.parse("http://localhost:8000"));
+        var response = await http.get(Uri.parse("http://127.0.0.1:8080"));
         setState(() {
           _result = response.body;
         });
@@ -102,7 +102,7 @@ class _MyAppState extends State<MyApp> {
                               });
                               http
                                   .post(
-                                      Uri.parse("http://localhost:8000/python"),
+                                      Uri.parse("http://127.0.0.1:8080/python"),
                                       headers: {
                                         'Content-Type': 'application/json'
                                       },

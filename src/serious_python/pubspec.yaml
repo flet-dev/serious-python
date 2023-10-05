@@ -19,9 +19,9 @@ flutter:
       android:
         default_package: serious_python_android
       ios:
-        default_package: serious_python_ios
+        default_package: serious_python_darwin
       macos:
-        default_package: serious_python_macos
+        default_package: serious_python_darwin
       # linux:
       #   default_package: serious_python_linux
       # windows:
@@ -34,10 +34,8 @@ dependencies:
     path: ../serious_python_platform_interface
   serious_python_android:
     path: ../serious_python_android
-  serious_python_ios:
-    path: ../serious_python_ios
-  serious_python_macos:
-    path: ../serious_python_macos
+  serious_python_darwin:
+    path: ../serious_python_darwin
   # serious_python_linux:
   #   path: ../serious_python_linux
   # serious_python_windows:

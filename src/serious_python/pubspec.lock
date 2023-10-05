@@ -258,17 +258,10 @@ packages:
       relative: true
     source: path
     version: "0.3.1"
-  serious_python_ios:
+  serious_python_darwin:
     dependency: "direct main"
     description:
-      path: "../serious_python_ios"
-      relative: true
-    source: path
-    version: "0.3.1"
-  serious_python_macos:
-    dependency: "direct main"
-    description:
-      path: "../serious_python_macos"
+      path: "../serious_python_darwin"
       relative: true
     source: path
     version: "0.3.1"

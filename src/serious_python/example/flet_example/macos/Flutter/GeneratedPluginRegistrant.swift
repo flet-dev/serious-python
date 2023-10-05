@@ -8,7 +8,7 @@ import Foundation
 import audioplayers_darwin
 import path_provider_foundation
 import screen_retriever
-import serious_python_macos
+import serious_python_darwin
 import shared_preferences_foundation
 import url_launcher_macos
 import window_manager
@@ -18,7 +18,7 @@ func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
   ScreenRetrieverPlugin.register(with: registry.registrar(forPlugin: "ScreenRetrieverPlugin"))
-  SeriousPythonMacosPlugin.register(with: registry.registrar(forPlugin: "SeriousPythonMacosPlugin"))
+  SeriousPythonPlugin.register(with: registry.registrar(forPlugin: "SeriousPythonPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
   WindowManagerPlugin.register(with: registry.registrar(forPlugin: "WindowManagerPlugin"))

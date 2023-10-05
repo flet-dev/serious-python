@@ -7,7 +7,8 @@ PODS:
     - FlutterMacOS
   - screen_retriever (0.0.1):
     - FlutterMacOS
-  - serious_python_macos (0.4.0):
+  - serious_python_darwin (0.3.1):
+    - Flutter
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
     - Flutter
@@ -24,7 +25,7 @@ DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
   - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
   - screen_retriever (from `Flutter/ephemeral/.symlinks/plugins/screen_retriever/macos`)
-  - serious_python_macos (from `Flutter/ephemeral/.symlinks/plugins/serious_python_macos/macos`)
+  - serious_python_darwin (from `Flutter/ephemeral/.symlinks/plugins/serious_python_darwin/darwin`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
   - window_manager (from `Flutter/ephemeral/.symlinks/plugins/window_manager/macos`)
@@ -39,8 +40,8 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
   screen_retriever:
     :path: Flutter/ephemeral/.symlinks/plugins/screen_retriever/macos
-  serious_python_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/serious_python_macos/macos
+  serious_python_darwin:
+    :path: Flutter/ephemeral/.symlinks/plugins/serious_python_darwin/darwin
   shared_preferences_foundation:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
   url_launcher_macos:
@@ -55,7 +56,7 @@ SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
   screen_retriever: 59634572a57080243dd1bf715e55b6c54f241a38
-  serious_python_macos: c6fc981328f493b11af613176bffd6737e971feb
+  serious_python_darwin: 3b3e9802e671014eb062d16976ef5394dea763ce
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   url_launcher_macos: 5335912b679c073563f29d89d33d10d459f95451
   window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8

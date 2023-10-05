@@ -6,9 +6,9 @@ import FlutterMacOS
 import Foundation
 
 import path_provider_foundation
-import serious_python_macos
+import serious_python_darwin
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   PathProviderPlugin.register(with: registry.registrar(forPlugin: "PathProviderPlugin"))
-  SeriousPythonMacosPlugin.register(with: registry.registrar(forPlugin: "SeriousPythonMacosPlugin"))
+  SeriousPythonPlugin.register(with: registry.registrar(forPlugin: "SeriousPythonPlugin"))
 }

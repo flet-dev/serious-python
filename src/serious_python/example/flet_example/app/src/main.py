@@ -1,4 +1,8 @@
+import logging
+
 import flet as ft
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def main(page: ft.Page):
