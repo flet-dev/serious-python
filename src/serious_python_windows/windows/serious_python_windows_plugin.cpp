@@ -13,47 +13,64 @@
 #include <memory>
 #include <sstream>
 
-namespace serious_python_windows {
+#include <Python.h>
 
-// static
-void SeriousPythonWindowsPlugin::RegisterWithRegistrar(
-    flutter::PluginRegistrarWindows *registrar) {
-  auto channel =
-      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
-          registrar->messenger(), "serious_python_windows",
-          &flutter::StandardMethodCodec::GetInstance());
+namespace serious_python_windows
+{
 
-  auto plugin = std::make_unique<SeriousPythonWindowsPlugin>();
+  // static
+  void SeriousPythonWindowsPlugin::RegisterWithRegistrar(
+      flutter::PluginRegistrarWindows *registrar)
+  {
+    auto channel =
+        std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+            registrar->messenger(), "serious_python_windows",
+            &flutter::StandardMethodCodec::GetInstance());
 
-  channel->SetMethodCallHandler(
-      [plugin_pointer = plugin.get()](const auto &call, auto result) {
-        plugin_pointer->HandleMethodCall(call, std::move(result));
-      });
+    auto plugin = std::make_unique<SeriousPythonWindowsPlugin>();
 
-  registrar->AddPlugin(std::move(plugin));
-}
+    channel->SetMethodCallHandler(
+        [plugin_pointer = plugin.get()](const auto &call, auto result)
+        {
+          plugin_pointer->HandleMethodCall(call, std::move(result));
+        });
 
-SeriousPythonWindowsPlugin::SeriousPythonWindowsPlugin() {}
-
-SeriousPythonWindowsPlugin::~SeriousPythonWindowsPlugin() {}
-
-void SeriousPythonWindowsPlugin::HandleMethodCall(
-    const flutter::MethodCall<flutter::EncodableValue> &method_call,
-    std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (method_call.method_name().compare("getPlatformVersion") == 0) {
-    std::ostringstream version_stream;
-    version_stream << "Windows ";
-    if (IsWindows10OrGreater()) {
-      version_stream << "10+";
-    } else if (IsWindows8OrGreater()) {
-      version_stream << "8";
-    } else if (IsWindows7OrGreater()) {
-      version_stream << "7";
-    }
-    result->Success(flutter::EncodableValue(version_stream.str()));
-  } else {
-    result->NotImplemented();
+    registrar->AddPlugin(std::move(plugin));
   }
-}
 
-}  // namespace serious_python_windows
+  SeriousPythonWindowsPlugin::SeriousPythonWindowsPlugin() {}
+
+  SeriousPythonWindowsPlugin::~SeriousPythonWindowsPlugin() {}
+
+  void SeriousPythonWindowsPlugin::HandleMethodCall(
+      const flutter::MethodCall<flutter::EncodableValue> &method_call,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
+  {
+    if (method_call.method_name().compare("getPlatformVersion") == 0)
+    {
+      std::ostringstream version_stream;
+      version_stream << "Windows ";
+      if (IsWindows10OrGreater())
+      {
+        version_stream << "10+";
+      }
+      else if (IsWindows8OrGreater())
+      {
+        version_stream << "8";
+      }
+      else if (IsWindows7OrGreater())
+      {
+        version_stream << "7";
+      }
+
+      Py_Initialize();
+
+      result->Success(flutter::EncodableValue(version_stream.str()));
+    }
+    else
+    {
+      result->NotImplemented();
+    }
+  }
+
+} // namespace serious_python_windows

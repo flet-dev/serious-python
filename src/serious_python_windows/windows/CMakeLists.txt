@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_windows")
+set(PYTHON_VERSION "3.10.11")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
@@ -16,10 +17,36 @@ cmake_policy(VERSION 3.14...3.25)
 # not be changed
 set(PLUGIN_NAME "serious_python_windows_plugin")
 
+FetchContent_Declare(nuget
+  URL "https://dist.nuget.org/win-x86-commandline/v6.5.0/nuget.exe"
+  URL_HASH SHA256=d5fce5185de92b7356ea9264b997a620e35c6f6c3c061e471e0dc3a84b3d74fd
+  DOWNLOAD_NO_EXTRACT true
+)
+
+find_program(NUGET nuget)
+if (NOT NUGET)
+    message(STATUS "Nuget.exe not found, trying to download or use cached version.")
+    FetchContent_MakeAvailable(nuget)
+    set(NUGET ${nuget_SOURCE_DIR}/nuget.exe)
+endif()
+
+execute_process(COMMAND
+    ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    RESULT_VARIABLE ret)
+if (NOT ret EQUAL 0)
+    message(FATAL_ERROR "Failed to install nuget package python.${PYTHON_VERSION}")
+endif()
+
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
   "serious_python_windows_plugin.cpp"
   "serious_python_windows_plugin.h"
+)
+
+set_target_properties(
+  ${PROJECT_NAME} PROPERTIES
+  VS_PROJECT_IMPORT ${CMAKE_BINARY_DIR}/packages/python/build/native/python.props
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
