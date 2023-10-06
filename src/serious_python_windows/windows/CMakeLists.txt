@@ -23,20 +23,37 @@ FetchContent_Declare(nuget
   DOWNLOAD_NO_EXTRACT true
 )
 
-find_program(NUGET nuget)
-if (NOT NUGET)
-    message(STATUS "Nuget.exe not found, trying to download or use cached version.")
-    FetchContent_MakeAvailable(nuget)
-    set(NUGET ${nuget_SOURCE_DIR}/nuget.exe)
+set(NUGET_URL https://dist.nuget.org/win-x86-commandline/latest/nuget.exe)
+set(NUGET ${CMAKE_BINARY_DIR}/nuget.exe)
+if (NOT EXISTS ${NUGET})
+  file(DOWNLOAD ${NUGET_URL} ${NUGET})
 endif()
 
-execute_process(COMMAND
-    ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-    RESULT_VARIABLE ret)
-if (NOT ret EQUAL 0)
-    message(FATAL_ERROR "Failed to install nuget package python.${PYTHON_VERSION}")
+set(PACKAGES ${CMAKE_BINARY_DIR}/packages)
+set(PYTHON_PACKAGE ${PACKAGES}/python)
+if (NOT EXISTS ${CPP_WINRT})
+  add_custom_target(PYTHON_PACKAGE_DOWNLOAD ALL)
+  add_custom_command(
+    TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
+    COMMAND ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${PACKAGES}
+    DEPENDS ${NUGET}
+  )
 endif()
+
+# find_program(NUGET nuget)
+# if (NOT NUGET)
+#     message(STATUS "Nuget.exe not found, trying to download or use cached version.")
+#     FetchContent_MakeAvailable(nuget)
+#     set(NUGET ${nuget_SOURCE_DIR}/nuget.exe)
+# endif()
+
+# execute_process(COMMAND
+#     ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
+#     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#     RESULT_VARIABLE ret)
+# if (NOT ret EQUAL 0)
+#     message(FATAL_ERROR "Failed to install nuget package python.${PYTHON_VERSION}")
+# endif()
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
@@ -46,7 +63,7 @@ list(APPEND PLUGIN_SOURCES
 
 set_target_properties(
   ${PROJECT_NAME} PROPERTIES
-  VS_PROJECT_IMPORT ${CMAKE_BINARY_DIR}/packages/python/build/native/python.props
+  VS_PROJECT_IMPORT ${PYTHON_PACKAGE}/build/native/python.props
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
