@@ -17,12 +17,6 @@ cmake_policy(VERSION 3.14...3.25)
 # not be changed
 set(PLUGIN_NAME "serious_python_windows_plugin")
 
-FetchContent_Declare(nuget
-  URL "https://dist.nuget.org/win-x86-commandline/v6.5.0/nuget.exe"
-  URL_HASH SHA256=d5fce5185de92b7356ea9264b997a620e35c6f6c3c061e471e0dc3a84b3d74fd
-  DOWNLOAD_NO_EXTRACT true
-)
-
 set(NUGET_URL https://dist.nuget.org/win-x86-commandline/latest/nuget.exe)
 set(NUGET ${CMAKE_BINARY_DIR}/nuget.exe)
 if (NOT EXISTS ${NUGET})
@@ -40,30 +34,10 @@ if (NOT EXISTS ${CPP_WINRT})
   )
 endif()
 
-# find_program(NUGET nuget)
-# if (NOT NUGET)
-#     message(STATUS "Nuget.exe not found, trying to download or use cached version.")
-#     FetchContent_MakeAvailable(nuget)
-#     set(NUGET ${nuget_SOURCE_DIR}/nuget.exe)
-# endif()
-
-# execute_process(COMMAND
-#     ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${CMAKE_BINARY_DIR}/packages
-#     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#     RESULT_VARIABLE ret)
-# if (NOT ret EQUAL 0)
-#     message(FATAL_ERROR "Failed to install nuget package python.${PYTHON_VERSION}")
-# endif()
-
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
   "serious_python_windows_plugin.cpp"
   "serious_python_windows_plugin.h"
-)
-
-set_target_properties(
-  ${PROJECT_NAME} PROPERTIES
-  VS_PROJECT_IMPORT ${PYTHON_PACKAGE}/build/native/python.props
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -72,6 +46,11 @@ add_library(${PLUGIN_NAME} SHARED
   "include/serious_python_windows/serious_python_windows_plugin_c_api.h"
   "serious_python_windows_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
+)
+
+set_target_properties(
+  ${PLUGIN_NAME} PROPERTIES
+  VS_PROJECT_IMPORT ${PYTHON_PACKAGE}/build/native/python.props
 )
 
 # Apply a standard set of build settings that are configured in the
@@ -99,46 +78,3 @@ set(serious_python_windows_bundled_libraries
   ""
   PARENT_SCOPE
 )
-
-# === Tests ===
-# These unit tests can be run from a terminal after building the example, or
-# from Visual Studio after opening the generated solution file.
-
-# Only enable test builds when building the example (which sets this variable)
-# so that plugin clients aren't building the tests.
-if (${include_${PROJECT_NAME}_tests})
-set(TEST_RUNNER "${PROJECT_NAME}_test")
-enable_testing()
-
-# Add the Google Test dependency.
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/release-1.11.0.zip
-)
-# Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-# Disable install commands for gtest so it doesn't end up in the bundle.
-set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
-FetchContent_MakeAvailable(googletest)
-
-# The plugin's C API is not very useful for unit testing, so build the sources
-# directly into the test binary rather than using the DLL.
-add_executable(${TEST_RUNNER}
-  test/serious_python_windows_plugin_test.cpp
-  ${PLUGIN_SOURCES}
-)
-apply_standard_settings(${TEST_RUNNER})
-target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
-target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
-# flutter_wrapper_plugin has link dependencies on the Flutter DLL.
-add_custom_command(TARGET ${TEST_RUNNER} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different
-  "${FLUTTER_LIBRARY}" $<TARGET_FILE_DIR:${TEST_RUNNER}>
-)
-
-# Enable automatic test discovery.
-include(GoogleTest)
-gtest_discover_tests(${TEST_RUNNER})
-endif()
