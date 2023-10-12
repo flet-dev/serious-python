@@ -28,7 +28,7 @@ endif()
 
 set(PACKAGES ${CMAKE_BINARY_DIR}/packages)
 set(PYTHON_PACKAGE ${PACKAGES}/python)
-if (NOT EXISTS ${CPP_WINRT})
+if (NOT EXISTS ${PYTHON_PACKAGE})
   add_custom_target(PYTHON_PACKAGE_DOWNLOAD ALL)
   add_custom_command(
     TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
@@ -78,6 +78,23 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(serious_python_windows_bundled_libraries
-  ""
+  "${PYTHON_PACKAGE}/tools/python310.dll"
+  "${PYTHON_PACKAGE}/tools/python3.dll"
+  "$ENV{WINDIR}/system32/msvcp140.dll"
+  "$ENV{WINDIR}/system32/vcruntime140.dll"
+  "$ENV{WINDIR}/system32/vcruntime140_1.dll"
   PARENT_SCOPE
+)
+
+# Copy Python libraries
+add_custom_target(CopyPythonDLLs ALL DEPENDS PYTHON_PACKAGE_DOWNLOAD)
+add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    "${PYTHON_PACKAGE}/tools/Lib"
+    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/Lib"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory 
+    "${PYTHON_PACKAGE}/tools/DLLs"
+    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
 )
