@@ -25,6 +25,6 @@ flutter:
     implements: serious_python
     platforms:
       windows:
-        pluginClass: SeriousPythonWindowsPlugin
+        pluginClass: SeriousPythonWindowsPluginCApi
         dartPluginClass: SeriousPythonWindows
         ffiPlugin: true
