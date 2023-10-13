@@ -128,6 +128,7 @@ namespace serious_python_windows
       }
 
       std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
+      std::string app_dir = std::filesystem::path(app_path).parent_path().string();
 
       printf("exePath: %s\n", exe_path.c_str());
       printf("exeDir: %s\n", exe_dir.c_str());
@@ -146,6 +147,8 @@ namespace serious_python_windows
       }
 
       // add system paths
+      python_paths.push_back(app_dir);
+      python_paths.push_back(app_dir + "\\__pypackages__");
       python_paths.push_back(exe_dir + "\\DLLs");
       python_paths.push_back(exe_dir + "\\Lib");
       python_paths.push_back(exe_dir + "\\Lib\\site-packages");

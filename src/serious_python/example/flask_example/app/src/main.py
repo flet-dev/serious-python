@@ -3,7 +3,9 @@ from io import StringIO
 
 from flask import Flask, request
 
-print("Python program has just started!")
+port = 55001
+
+print("Trying to run a socket server on:", port)
 
 
 class PythonRunner:
@@ -35,5 +37,4 @@ def run_python():
     except Exception as e:
         return str(e)
 
-
-app.run(port=8080)
+app.run(port=port)
