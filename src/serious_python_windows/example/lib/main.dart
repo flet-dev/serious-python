@@ -31,8 +31,11 @@ class _MyAppState extends State<MyApp> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      platformVersion =
-          await _seriousPythonWindowsPlugin.getPlatformVersion() ?? 'Unknown platform version';
+      platformVersion = await _seriousPythonWindowsPlugin.run("app1.py",
+              modulePaths: ["module1", "module2"],
+              environmentVariables: {"A": "1", "B": "2"},
+              sync: true) ??
+          'Unknown platform version';
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }

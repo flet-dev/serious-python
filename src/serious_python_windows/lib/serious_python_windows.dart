@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
@@ -16,7 +18,7 @@ class SeriousPythonWindows extends SeriousPythonPlatform {
   Future<String?> getPlatformVersion() async {
     final version =
         await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
+    return "$version ${Platform.resolvedExecutable}";
   }
 
   @override

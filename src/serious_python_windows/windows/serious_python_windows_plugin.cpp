@@ -15,8 +15,16 @@
 
 #include <Python.h>
 
+#include <codecvt>
+#include <locale>
+#include <map>
+
 namespace serious_python_windows
 {
+
+  using flutter::EncodableList;
+  using flutter::EncodableMap;
+  using flutter::EncodableValue;
 
   // static
   void SeriousPythonWindowsPlugin::RegisterWithRegistrar(
@@ -46,6 +54,8 @@ namespace serious_python_windows
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result)
   {
+    const auto *arguments = std::get_if<EncodableMap>(method_call.arguments());
+
     if (method_call.method_name().compare("getPlatformVersion") == 0)
     {
       std::ostringstream version_stream;
@@ -63,10 +73,57 @@ namespace serious_python_windows
         version_stream << "7";
       }
 
-      Py_Initialize();
-
       result->Success(flutter::EncodableValue(version_stream.str()));
     }
+    else if (method_call.method_name().compare("runPython") == 0) {
+    std::string app_path;
+    flutter::EncodableList module_paths;
+    flutter::EncodableMap env_vars;
+    bool sync = false;
+
+    if (arguments) {
+      auto app_path_it = arguments->find(EncodableValue("appPath"));
+      if (app_path_it != arguments->end()) {
+        app_path = std::get<std::string>(app_path_it->second);
+      }
+
+      auto module_paths_it = arguments->find(EncodableValue("modulePaths"));
+      if (module_paths_it != arguments->end()) {
+        module_paths = std::get<flutter::EncodableList>(module_paths_it->second);
+      }
+
+      auto env_vars_it = arguments->find(EncodableValue("environmentVariables"));
+      if (env_vars_it != arguments->end()) {
+        env_vars = std::get<flutter::EncodableMap>(env_vars_it->second);
+      }
+
+      auto sync_it = arguments->find(EncodableValue("sync"));
+      if (sync_it != arguments->end()) {
+        sync = std::get<bool>(sync_it->second);
+      }
+    } else {
+      result->Error("ARGUMENT_ERROR", "appPath argument is missing.");
+      return;
+    }
+
+    printf("appPath: %s\n", app_path.c_str());
+    for (const auto& item : module_paths) {
+        if (auto str_value = std::get_if<std::string>(&item)) {
+            // Use *int_value here
+            printf("module_path: %s\n", str_value->c_str());
+        }
+    }
+    printf("sync: %s\n", sync ? "true" : "false");
+
+    //Py_Initialize();
+    // FILE* file = _Py_fopen(script_path.c_str(), "r");
+    // if (file != NULL) {
+    //   PyRun_SimpleFileEx(file, script_path.c_str(), 1);
+    // }
+    //Py_Finalize();
+
+    result->Success(flutter::EncodableValue(app_path));
+  }
     else
     {
       result->NotImplemented();
