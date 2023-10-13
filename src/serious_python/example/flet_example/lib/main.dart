@@ -18,6 +18,8 @@ void main() async {
     fletPlatform = "Android";
   } else if (defaultTargetPlatform == TargetPlatform.macOS) {
     fletPlatform = "Android";
+  } else if (defaultTargetPlatform == TargetPlatform.windows) {
+    fletPlatform = "Android";
   }
 
   // extract app from asset
