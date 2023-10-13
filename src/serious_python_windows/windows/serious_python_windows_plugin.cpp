@@ -18,6 +18,12 @@
 #include <codecvt>
 #include <locale>
 #include <map>
+#include <stdlib.h>
+#include <filesystem>
+#include <format>
+#include <vector>
+#include <string>
+#include <thread>
 
 namespace serious_python_windows
 {
@@ -110,28 +116,61 @@ namespace serious_python_windows
         }
 
         auto sync_it = arguments->find(EncodableValue("sync"));
-        if (sync_it != arguments->end())
+        if (sync_it != arguments->end() && !sync_it->second.IsNull())
         {
           sync = std::get<bool>(sync_it->second);
         }
       }
       else
       {
-        result->Error("ARGUMENT_ERROR", "appPath argument is missing.");
+        result->Error("ARGUMENT_ERROR", "arguments is missing.");
         return;
       }
 
+      std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
+
       printf("exePath: %s\n", exe_path.c_str());
+      printf("exeDir: %s\n", exe_dir.c_str());
       printf("appPath: %s\n", app_path.c_str());
+
+      std::vector<std::string> python_paths;
+
+      // add user module paths to the top
       for (const auto &item : module_paths)
       {
         if (auto str_value = std::get_if<std::string>(&item))
         {
-          // Use *int_value here
           printf("module_path: %s\n", str_value->c_str());
+          python_paths.push_back(*str_value);
         }
       }
 
+      // add system paths
+      python_paths.push_back(exe_dir + "\\DLLs");
+      python_paths.push_back(exe_dir + "\\Lib");
+      python_paths.push_back(exe_dir + "\\Lib\\site-packages");
+
+      std::string python_path;
+      for(int i = 0; i < python_paths.size(); i++) {
+          python_path += python_paths[i];
+          if(i < python_paths.size() - 1) { // Don't add separator after the last element
+              python_path += ";";
+          }
+      }
+
+      printf("PYTHONPATH: %s\n", python_path.c_str());
+
+      // set python-related env vars
+      _putenv_s("PYTHONINSPECT", "1");
+      _putenv_s("PYTHONOPTIMIZE", "2");
+      _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
+      _putenv_s("PYTHONNOUSERSITE", "1");
+      _putenv_s("PYTHONUNBUFFERED", "1");
+      _putenv_s("LC_CTYPE", "UTF-8");
+      _putenv_s("PYTHONHOME", exe_dir.c_str());
+      _putenv_s("PYTHONPATH", python_path.c_str());
+
+      // set user environment variables
       for (const auto &kv : env_vars)
       {
         auto key = kv.first;
@@ -139,19 +178,21 @@ namespace serious_python_windows
         if (auto str_key = std::get_if<std::string>(&key);
             auto str_value = std::get_if<std::string>(&value))
         {
-          // Use *str_value here
           printf("env_var: %s=%s\n", str_key->c_str(), str_value->c_str());
+          _putenv_s(str_key->c_str(), str_value->c_str());
         }
       }
 
       printf("sync: %s\n", sync ? "true" : "false");
 
-      Py_Initialize();
-      // FILE* file = _Py_fopen(script_path.c_str(), "r");
-      // if (file != NULL) {
-      //   PyRun_SimpleFileEx(file, script_path.c_str(), 1);
-      // }
-      Py_Finalize();
+      // run program
+      if (sync) {
+        printf("Running Python program synchronously...");
+        RunPythonScript(app_path);
+      } else {
+        printf("Running Python program asynchronously...");
+        RunPythonScriptAsync(app_path);
+      }
 
       result->Success(flutter::EncodableValue(app_path));
     }
@@ -159,6 +200,27 @@ namespace serious_python_windows
     {
       result->NotImplemented();
     }
+  }
+
+  void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string appPath) {
+      // Create a new thread that runs the script
+      std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonScript, this, appPath);
+
+      // Detach the thread so it runs independently
+      pyThread.detach();
+  }
+
+  void SeriousPythonWindowsPlugin::RunPythonScript(std::string appPath) {
+      Py_Initialize();
+
+      FILE* file;
+      errno_t err = fopen_s(&file, appPath.c_str(), "r");
+      if (err == 0 && file != NULL) {
+          PyRun_SimpleFileEx(file, appPath.c_str(), 1);
+          fclose(file);
+      }
+
+      Py_Finalize();
   }
 
 } // namespace serious_python_windows
