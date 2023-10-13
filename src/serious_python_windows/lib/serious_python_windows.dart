@@ -27,6 +27,7 @@ class SeriousPythonWindows extends SeriousPythonPlatform {
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     final Map<String, dynamic> arguments = {
+      'exePath': Platform.resolvedExecutable,
       'appPath': appPath,
       'modulePaths': modulePaths,
       'environmentVariables': environmentVariables,
