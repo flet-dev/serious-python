@@ -4,14 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
-class SeriousPythonWindows extends SeriousPythonPlatform {
+class SeriousPythonLinux extends SeriousPythonPlatform {
   /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('serious_python_windows');
 
   /// Registers this class as the default instance of [SeriousPythonPlatform]
   static void registerWith() {
-    SeriousPythonPlatform.instance = SeriousPythonWindows();
+    SeriousPythonPlatform.instance = SeriousPythonLinux();
   }
 
   @override
