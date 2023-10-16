@@ -162,15 +162,16 @@ for:
 
     build_script:
       - cd src/serious_python_linux/example
-      - flutter build linux -v
+      - flutter build linux
+      - ls -alR build/linux/x64/release/bundle
 
   # ======================================
-  #    Build Flet View for Linux ARM64
+  #    Test on Linux ARM64
   # ======================================
 
   - matrix:
       only:
-        - job_name: Build Flet for Linux ARM64
+        - job_name: Test on Linux ARM64
 
     install:
       # Flutter SDK
@@ -190,7 +191,8 @@ for:
 
     build_script:
       - cd src/serious_python_linux/example
-      - flutter build linux -v
+      - flutter build linux
+      - ls -alR build/linux/arm64/release/bundle
 
   # =========================================
   # Publish serious_python package to pub.dev
