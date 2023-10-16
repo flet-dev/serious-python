@@ -27,10 +27,64 @@ static void serious_python_linux_plugin_handle_method_call(
   g_autoptr(FlMethodResponse) response = nullptr;
 
   const gchar* method = fl_method_call_get_name(method_call);
+  FlValue* args = fl_method_call_get_args(method_call);
 
   if (strcmp(method, "getPlatformVersion") == 0) {
     response = get_platform_version();
   } else if (strcmp(method, "runPython") == 0) {
+    if (fl_value_get_type(args) != FL_VALUE_TYPE_MAP) {
+      return;
+    }
+
+    // exePath
+    FlValue* exe_path = fl_value_lookup_string(args, "exePath");
+    if (exe_path == nullptr) {
+      return;
+    }
+
+    // appPath
+    FlValue* app_path = fl_value_lookup_string(args, "appPath");
+    if (app_path == nullptr) {
+      return;
+    }
+
+    // sync
+    bool sync = false;
+    g_autoptr(FlValue) sync_key = fl_value_new_string("sync");
+    FlValue* sync_value = fl_value_lookup(args, sync_key);
+    if (sync_value != nullptr && fl_value_get_type(sync_value) == FL_VALUE_TYPE_BOOL) {
+      sync = fl_value_get_bool(sync_value);
+    }
+
+    // modulePaths
+    g_autoptr(FlValue) module_paths_key = fl_value_new_string("modulePaths");
+    FlValue* module_paths = fl_value_lookup(args, module_paths_key);
+    if (module_paths != nullptr && fl_value_get_type(module_paths) == FL_VALUE_TYPE_LIST) {
+      size_t size = fl_value_get_length(module_paths);
+      printf("modulePaths is a LIST: %zu\n", size);
+      for (size_t i = 0; i < size; i++) {
+        FlValue* v = fl_value_get_list_value(module_paths, i);
+        printf("modulePath: %s\n", fl_value_to_string(v));
+      }
+    }
+
+    // environmentVariables
+    g_autoptr(FlValue) env_vars_key = fl_value_new_string("environmentVariables");
+    FlValue* env_vars_map = fl_value_lookup(args, env_vars_key);
+    if (env_vars_map != nullptr && fl_value_get_type(env_vars_map) == FL_VALUE_TYPE_MAP) {
+      size_t size = fl_value_get_length(env_vars_map);
+      printf("environmentVariables is a MAP: %zu\n", size);
+      for (size_t i = 0; i < size; i++) {
+        FlValue* key = fl_value_get_map_key(env_vars_map, i);
+        FlValue* val = fl_value_lookup(env_vars_map, key);
+        printf("env var %s=%s\n", fl_value_to_string(key), fl_value_to_string(val));
+      }
+    }
+
+    printf("exePath: %s\n", fl_value_to_string(exe_path));
+    printf("appPath: %s\n", fl_value_to_string(app_path));
+    printf("sync: %s\n", sync ? "true" : "false");
+
     Py_Initialize();
     response = get_platform_version();
   } else {

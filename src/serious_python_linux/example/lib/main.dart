@@ -17,7 +17,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
-  final _seriousPythonWindowsPlugin = SeriousPythonLinux();
+  final _seriousPythonPlugin = SeriousPythonLinux();
 
   @override
   void initState() {
@@ -31,12 +31,13 @@ class _MyAppState extends State<MyApp> {
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
     try {
-      platformVersion =
-          await _seriousPythonWindowsPlugin.run("C:\\Projects\\2\\test.py",
-                  //modulePaths: ["module1", "module2"],
-                  environmentVariables: {"A": "1", "B": "2"},
-                  sync: false) ??
-              'Unknown platform version';
+      platformVersion = await _seriousPythonPlugin.run(
+            "/home/parallels/projects/samples/python/main.py",
+            modulePaths: ["module1", "module2"],
+            environmentVariables: {"A": "1", "B": "2", "C": "3"},
+            //sync: true
+          ) ??
+          'Unknown platform version';
     } on PlatformException {
       platformVersion = 'Failed to get platform version.';
     }
