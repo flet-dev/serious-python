@@ -4,12 +4,13 @@
 cmake_minimum_required(VERSION 3.10)
 
 # sudo apt install libstdc++-12-dev
+# https://askubuntu.com/questions/829310/how-to-upgrade-cmake-in-ubuntu
 
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_linux")
 set(GITHUB_RELEASE_DATE "20231002")
 set(PYTHON_VERSION "3.10.13")
-set(PYTHON_ARCH "aarch64")
+set(PYTHON_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # This value is used when generating builds using this plugin, so it must
@@ -24,24 +25,6 @@ if (NOT EXISTS ${PYTHON_FILE})
   file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR})
 endif()
 
-# set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
-# if (NOT EXISTS ${PYTHON_PACKAGE})
-#   add_custom_target(PYTHON_PACKAGE_DOWNLOAD ALL)
-#   add_custom_command(
-#     TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E tar xzf ${PYTHON_FILE}
-#     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#     DEPENDS ${PYTHON_FILE}
-#   )
-# endif()
-
-# add_custom_command(
-#   OUTPUT ${PYTHON_PACKAGE}
-#   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PYTHON_FILE}
-#   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-#   DEPENDS ${PYTHON_FILE}
-# )
-
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
   "serious_python_linux_plugin.cc"
@@ -52,9 +35,6 @@ list(APPEND PLUGIN_SOURCES
 add_library(${PLUGIN_NAME} SHARED
   ${PLUGIN_SOURCES}
 )
-
-#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc")
-#set(CMAKE_MODULE_LINKER_FLAGS "-lutil")
 
 # Apply a standard set of build settings that are configured in the
 # application-level CMakeLists.txt. This can be removed for plugins that want
@@ -73,38 +53,21 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+include_directories(
+  "${PYTHON_PACKAGE}/include/python3.10"
+)
+
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   "${PYTHON_PACKAGE}/lib/libpython3.so"
 )
 
-include_directories(
-  "${PYTHON_PACKAGE}/include/python3.10"
-)
-
-# link_directories(
-#   "${PYTHON_PACKAGE}/lib"
-# )
-
-#target_link_libraries(${PLUGIN_NAME} PRIVATE libpython3)
-
-#set_property(TARGET ${PLUGIN_NAME} PROPERTY IMPORTED_LOCATION "${PYTHON_PACKAGE}/lib/libpython3.so")
-
-#install(IMPORTED_RUNTIME_ARTIFACTS ${PLUGIN_NAME})
-
-# target_link_libraries(${PLUGIN_NAME} PRIVATE
-#   "${PYTHON_PACKAGE}/lib/libpython3.so"
-# )
-
-# add_library(pythonlib SHARED IMPORTED)
-# set_target_properties(pythonlib PROPERTIES IMPORTED_LOCATION ${PYTHON_PACKAGE}/lib/libpython3.so)
-# target_link_libraries(${PLUGIN_NAME} PRIVATE pythonlib)
-
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(serious_python_linux_bundled_libraries
   "${PYTHON_PACKAGE}/lib/libpython3.so"
+  "${PYTHON_PACKAGE}/lib/libpython3.10.so.1.0"
   PARENT_SCOPE
 )
