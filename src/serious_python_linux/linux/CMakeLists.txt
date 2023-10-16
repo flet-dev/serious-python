@@ -71,3 +71,6 @@ set(serious_python_linux_bundled_libraries
   "${PYTHON_PACKAGE}/lib/libpython3.10.so.1.0"
   PARENT_SCOPE
 )
+
+install(DIRECTORY "${PYTHON_PACKAGE}/lib/python3.10"
+  DESTINATION "${CMAKE_BINARY_DIR}/bundle")
