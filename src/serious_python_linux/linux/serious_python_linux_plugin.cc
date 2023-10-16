@@ -8,6 +8,8 @@
 
 #include "serious_python_linux_plugin_private.h"
 
+#include <Python.h>
+
 #define SERIOUS_PYTHON_LINUX_PLUGIN(obj) \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), serious_python_linux_plugin_get_type(), \
                               SeriousPythonLinuxPlugin))
@@ -27,6 +29,9 @@ static void serious_python_linux_plugin_handle_method_call(
   const gchar* method = fl_method_call_get_name(method_call);
 
   if (strcmp(method, "getPlatformVersion") == 0) {
+    response = get_platform_version();
+  } else if (strcmp(method, "runPython") == 0) {
+    Py_Initialize();
     response = get_platform_version();
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());

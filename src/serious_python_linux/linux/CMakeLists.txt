@@ -3,13 +3,44 @@
 # the plugin to fail to compile for some customers of the plugin.
 cmake_minimum_required(VERSION 3.10)
 
+# sudo apt install libstdc++-12-dev
+
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_linux")
+set(GITHUB_RELEASE_DATE "20231002")
+set(PYTHON_VERSION "3.10.13")
+set(PYTHON_ARCH "aarch64")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # This value is used when generating builds using this plugin, so it must
 # not be changed.
 set(PLUGIN_NAME "serious_python_linux_plugin")
+
+set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
+set(PYTHON_URL https://github.com/indygreg/python-build-standalone/releases/download/${GITHUB_RELEASE_DATE}/cpython-${PYTHON_VERSION}+${GITHUB_RELEASE_DATE}-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz)
+set(PYTHON_FILE ${CMAKE_BINARY_DIR}/cpython-${PYTHON_VERSION}+${GITHUB_RELEASE_DATE}-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz)
+if (NOT EXISTS ${PYTHON_FILE})
+  file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
+  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR})
+endif()
+
+# set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
+# if (NOT EXISTS ${PYTHON_PACKAGE})
+#   add_custom_target(PYTHON_PACKAGE_DOWNLOAD ALL)
+#   add_custom_command(
+#     TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E tar xzf ${PYTHON_FILE}
+#     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#     DEPENDS ${PYTHON_FILE}
+#   )
+# endif()
+
+# add_custom_command(
+#   OUTPUT ${PYTHON_PACKAGE}
+#   COMMAND ${CMAKE_COMMAND} -E tar xzf ${PYTHON_FILE}
+#   WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+#   DEPENDS ${PYTHON_FILE}
+# )
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
@@ -21,6 +52,9 @@ list(APPEND PLUGIN_SOURCES
 add_library(${PLUGIN_NAME} SHARED
   ${PLUGIN_SOURCES}
 )
+
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++ -lm -lgcc_s -lgcc -lc -lgcc_s -lgcc")
+#set(CMAKE_MODULE_LINKER_FLAGS "-lutil")
 
 # Apply a standard set of build settings that are configured in the
 # application-level CMakeLists.txt. This can be removed for plugins that want
@@ -37,58 +71,40 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE
-  "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
+target_link_libraries(${PLUGIN_NAME} PRIVATE
+  "${PYTHON_PACKAGE}/lib/libpython3.so"
+)
+
+include_directories(
+  "${PYTHON_PACKAGE}/include/python3.10"
+)
+
+# link_directories(
+#   "${PYTHON_PACKAGE}/lib"
+# )
+
+#target_link_libraries(${PLUGIN_NAME} PRIVATE libpython3)
+
+#set_property(TARGET ${PLUGIN_NAME} PROPERTY IMPORTED_LOCATION "${PYTHON_PACKAGE}/lib/libpython3.so")
+
+#install(IMPORTED_RUNTIME_ARTIFACTS ${PLUGIN_NAME})
+
+# target_link_libraries(${PLUGIN_NAME} PRIVATE
+#   "${PYTHON_PACKAGE}/lib/libpython3.so"
+# )
+
+# add_library(pythonlib SHARED IMPORTED)
+# set_target_properties(pythonlib PROPERTIES IMPORTED_LOCATION ${PYTHON_PACKAGE}/lib/libpython3.so)
+# target_link_libraries(${PLUGIN_NAME} PRIVATE pythonlib)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(serious_python_linux_bundled_libraries
-  ""
+  "${PYTHON_PACKAGE}/lib/libpython3.so"
   PARENT_SCOPE
 )
-
-# === Tests ===
-# These unit tests can be run from a terminal after building the example.
-
-# Only enable test builds when building the example (which sets this variable)
-# so that plugin clients aren't building the tests.
-if (${include_${PROJECT_NAME}_tests})
-if(${CMAKE_VERSION} VERSION_LESS "3.11.0")
-message("Unit tests require CMake 3.11.0 or later")
-else()
-set(TEST_RUNNER "${PROJECT_NAME}_test")
-enable_testing()
-
-# Add the Google Test dependency.
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  URL https://github.com/google/googletest/archive/release-1.11.0.zip
-)
-# Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-# Disable install commands for gtest so it doesn't end up in the bundle.
-set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
-
-FetchContent_MakeAvailable(googletest)
-
-# The plugin's exported API is not very useful for unit testing, so build the
-# sources directly into the test binary rather than using the shared library.
-add_executable(${TEST_RUNNER}
-  test/serious_python_linux_plugin_test.cc
-  ${PLUGIN_SOURCES}
-)
-apply_standard_settings(${TEST_RUNNER})
-target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
-target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
-target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
-
-# Enable automatic test discovery.
-include(GoogleTest)
-gtest_discover_tests(${TEST_RUNNER})
-
-endif()  # CMake version check
-endif()  # include_${PROJECT_NAME}_tests
