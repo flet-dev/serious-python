@@ -5,6 +5,7 @@
 #include <sys/utsname.h>
 
 #include <cstring>
+#include <string>
 
 #include "serious_python_linux_plugin_private.h"
 
@@ -42,11 +43,15 @@ static void serious_python_linux_plugin_handle_method_call(
       return;
     }
 
+    gchar* exe_dir = g_path_get_dirname(fl_value_to_string(exe_path));
+
     // appPath
     FlValue* app_path = fl_value_lookup_string(args, "appPath");
     if (app_path == nullptr) {
       return;
     }
+
+    gchar* app_dir = g_path_get_dirname(fl_value_to_string(app_path));
 
     // sync
     bool sync = false;
@@ -57,18 +62,47 @@ static void serious_python_linux_plugin_handle_method_call(
     }
 
     // modulePaths
+    size_t module_paths_size = 0;
+
     g_autoptr(FlValue) module_paths_key = fl_value_new_string("modulePaths");
     FlValue* module_paths = fl_value_lookup(args, module_paths_key);
     if (module_paths != nullptr && fl_value_get_type(module_paths) == FL_VALUE_TYPE_LIST) {
-      size_t size = fl_value_get_length(module_paths);
-      printf("modulePaths is a LIST: %zu\n", size);
-      for (size_t i = 0; i < size; i++) {
+      module_paths_size = fl_value_get_length(module_paths);
+      printf("modulePaths is a LIST: %zu\n", module_paths_size);
+    }
+
+    gchar **module_paths_str_array = g_new(gchar*, module_paths_size + 4 /* standard modules */ + 1 /* for the NULL at the end */);
+
+    // user module paths
+    size_t i = 0;
+    if (module_paths_size > 0) {
+      for (; i < module_paths_size; i++) {
         FlValue* v = fl_value_get_list_value(module_paths, i);
         printf("modulePath: %s\n", fl_value_to_string(v));
+        module_paths_str_array[i] = g_strdup(fl_value_to_string(v));
       }
     }
 
+    // system module paths
+    module_paths_str_array[i++] = g_strdup_printf("%s", app_dir);
+    module_paths_str_array[i++] = g_strdup_printf("%s/__pypackages__", app_dir);
+    module_paths_str_array[i++] = g_strdup_printf("%s/python3.10", exe_dir);
+    module_paths_str_array[i++] = g_strdup_printf("%s/python3.10/site-packages", exe_dir);
+    module_paths_str_array[i++] = NULL;
+
+    gchar *module_paths_str = g_strjoinv(":", module_paths_str_array); // join with comma and space as separators
+    printf("modulePaths joined string: %s\n", module_paths_str);
+
     // environmentVariables
+    g_setenv("PYTHONINSPECT", "1", TRUE);
+    g_setenv("PYTHONOPTIMIZE", "2", TRUE);
+    g_setenv("PYTHONDONTWRITEBYTECODE", "1", TRUE);
+    g_setenv("PYTHONNOUSERSITE", "1", TRUE);
+    g_setenv("PYTHONUNBUFFERED", "1", TRUE);
+    g_setenv("LC_CTYPE", "UTF-8", TRUE);
+    g_setenv("PYTHONHOME", exe_dir, TRUE);
+    g_setenv("PYTHONPATH", module_paths_str, TRUE);
+
     g_autoptr(FlValue) env_vars_key = fl_value_new_string("environmentVariables");
     FlValue* env_vars_map = fl_value_lookup(args, env_vars_key);
     if (env_vars_map != nullptr && fl_value_get_type(env_vars_map) == FL_VALUE_TYPE_MAP) {
@@ -78,20 +112,38 @@ static void serious_python_linux_plugin_handle_method_call(
         FlValue* key = fl_value_get_map_key(env_vars_map, i);
         FlValue* val = fl_value_lookup(env_vars_map, key);
         printf("env var %s=%s\n", fl_value_to_string(key), fl_value_to_string(val));
+        g_setenv(fl_value_to_string(key), fl_value_to_string(val), TRUE);
       }
     }
 
-    printf("exePath: %s\n", fl_value_to_string(exe_path));
-    printf("appPath: %s\n", fl_value_to_string(app_path));
+    printf("exe_dir: %s\n", exe_dir);
+    printf("app_dir: %s\n", app_dir);
     printf("sync: %s\n", sync ? "true" : "false");
 
-    Py_Initialize();
-    response = get_platform_version();
+    g_strfreev(module_paths_str_array); // free the array and its elements
+    g_free(module_paths_str); // free the joined string
+
+    run_python_script(fl_value_to_string(app_path));
+
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("")));
   } else {
     response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
   }
 
   fl_method_call_respond(method_call, response, nullptr);
+}
+
+void run_python_script(gchar* appPath) {
+    Py_Initialize();
+
+    FILE* file = fopen(appPath, "r");
+    if (file != NULL) {
+        PyRun_SimpleFileEx(file, appPath, 1);
+    } else {
+        printf("Failed to open Python app file: %s\n", appPath);
+    }
+
+    Py_Finalize();
 }
 
 FlMethodResponse* get_platform_version() {

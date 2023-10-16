@@ -8,3 +8,5 @@
 
 // Handles the getPlatformVersion method call.
 FlMethodResponse *get_platform_version();
+
+void run_python_script(gchar* appPath);
