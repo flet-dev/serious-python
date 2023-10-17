@@ -13,7 +13,13 @@
 #include <memory>
 #include <sstream>
 
+#ifdef _DEBUG
+#undef _DEBUG
 #include <Python.h>
+#define _DEBUG
+#else
+#include <Python.h>
+#endif
 
 #include <codecvt>
 #include <locale>
@@ -154,11 +160,13 @@ namespace serious_python_windows
       python_paths.push_back(exe_dir + "\\Lib\\site-packages");
 
       std::string python_path;
-      for(int i = 0; i < python_paths.size(); i++) {
-          python_path += python_paths[i];
-          if(i < python_paths.size() - 1) { // Don't add separator after the last element
-              python_path += ";";
-          }
+      for (int i = 0; i < python_paths.size(); i++)
+      {
+        python_path += python_paths[i];
+        if (i < python_paths.size() - 1)
+        { // Don't add separator after the last element
+          python_path += ";";
+        }
       }
 
       printf("PYTHONPATH: %s\n", python_path.c_str());
@@ -189,10 +197,13 @@ namespace serious_python_windows
       printf("sync: %s\n", sync ? "true" : "false");
 
       // run program
-      if (sync) {
+      if (sync)
+      {
         printf("Running Python program synchronously...");
         RunPythonScript(app_path);
-      } else {
+      }
+      else
+      {
         printf("Running Python program asynchronously...");
         RunPythonScriptAsync(app_path);
       }
@@ -205,25 +216,28 @@ namespace serious_python_windows
     }
   }
 
-  void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string appPath) {
-      // Create a new thread that runs the script
-      std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonScript, this, appPath);
+  void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string appPath)
+  {
+    // Create a new thread that runs the script
+    std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonScript, this, appPath);
 
-      // Detach the thread so it runs independently
-      pyThread.detach();
+    // Detach the thread so it runs independently
+    pyThread.detach();
   }
 
-  void SeriousPythonWindowsPlugin::RunPythonScript(std::string appPath) {
-      Py_Initialize();
+  void SeriousPythonWindowsPlugin::RunPythonScript(std::string appPath)
+  {
+    Py_Initialize();
 
-      FILE* file;
-      errno_t err = fopen_s(&file, appPath.c_str(), "r");
-      if (err == 0 && file != NULL) {
-          PyRun_SimpleFileEx(file, appPath.c_str(), 1);
-          fclose(file);
-      }
+    FILE *file;
+    errno_t err = fopen_s(&file, appPath.c_str(), "r");
+    if (err == 0 && file != NULL)
+    {
+      PyRun_SimpleFileEx(file, appPath.c_str(), 1);
+      fclose(file);
+    }
 
-      Py_Finalize();
+    Py_Finalize();
   }
 
 } // namespace serious_python_windows
