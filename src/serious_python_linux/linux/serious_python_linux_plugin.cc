@@ -123,7 +123,11 @@ static void serious_python_linux_plugin_handle_method_call(
     g_strfreev(module_paths_str_array); // free the array and its elements
     g_free(module_paths_str); // free the joined string
 
-    run_python_script(fl_value_to_string(app_path));
+    if (sync) {
+      run_python_script(fl_value_to_string(app_path));
+    } else {
+      g_thread_new(NULL, run_python_script_async, g_strdup(fl_value_to_string(app_path)));
+    }
 
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("")));
   } else {
@@ -144,6 +148,11 @@ void run_python_script(gchar* appPath) {
     }
 
     Py_Finalize();
+}
+
+gpointer run_python_script_async(gpointer data) {
+    run_python_script((gchar*)data);
+    return NULL;
 }
 
 FlMethodResponse* get_platform_version() {

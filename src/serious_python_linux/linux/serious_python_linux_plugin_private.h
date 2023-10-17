@@ -10,3 +10,4 @@
 FlMethodResponse *get_platform_version();
 
 void run_python_script(gchar* appPath);
+gpointer run_python_script_async(gpointer data);
