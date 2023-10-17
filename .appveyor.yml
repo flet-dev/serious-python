@@ -168,7 +168,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/run_example
-      - flutter test integration_test -d windows --release
+      - flutter test integration_test -d windows
       #- flutter build windows
 
   # ======================================

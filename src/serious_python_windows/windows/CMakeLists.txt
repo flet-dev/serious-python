@@ -33,6 +33,9 @@ if (NOT EXISTS ${PYTHON_PACKAGE})
   add_custom_command(
     TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
     COMMAND ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${PACKAGES}
+    COMMAND ${CMAKE_COMMAND} -E copy
+      "${PYTHON_PACKAGE}/tools/libs/python310.lib"
+      "${PYTHON_PACKAGE}/tools/libs/python310_d.lib"
     DEPENDS ${NUGET}
   )
 endif()
