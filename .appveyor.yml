@@ -161,7 +161,7 @@ for:
       - flutter upgrade --force
 
     build_script:
-      - cd src/serious_python_linux/example
+      - cd src/serious_python/example/run_example
       - flutter build linux
       - ls -alR build/linux/x64/release/bundle
 
@@ -190,7 +190,7 @@ for:
       # - popd
 
     build_script:
-      - cd src/serious_python_linux/example
+      - cd src/serious_python/example/run_example
       - flutter build linux
       - ls -alR build/linux/arm64/release/bundle
 
