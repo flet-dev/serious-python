@@ -13,13 +13,6 @@
 #include <memory>
 #include <sstream>
 
-// #ifdef _DEBUG
-// #undef _DEBUG
-// #include <Python.h>
-// #define _DEBUG
-// #else
-// #include <Python.h>
-// #endif
 #include <Python.h>
 
 #include <codecvt>
