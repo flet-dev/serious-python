@@ -20,6 +20,7 @@
 // #else
 // #include <Python.h>
 // #endif
+#include <Python.h>
 
 #include <codecvt>
 #include <locale>
