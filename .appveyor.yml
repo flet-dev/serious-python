@@ -162,8 +162,8 @@ for:
 
     build_script:
       - cd src/serious_python/example/run_example
-      - flutter build linux
-      - ls -alR build/linux/x64/release/bundle
+      - flutter test integration_test -d linux
+      #- ls -alR build/linux/x64/release/bundle
 
   # ======================================
   #    Test on Linux ARM64
@@ -191,8 +191,8 @@ for:
 
     build_script:
       - cd src/serious_python/example/run_example
-      - flutter build linux
-      - ls -alR build/linux/arm64/release/bundle
+      - flutter test integration_test -d linux
+      #- ls -alR build/linux/arm64/release/bundle
 
   # =========================================
   # Publish serious_python package to pub.dev
