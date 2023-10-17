@@ -164,6 +164,8 @@ for:
     install:
       - flutter upgrade --force
 
+    build: off
+
     test_script:
       - cd src/serious_python/example/run_example
       - flutter test integration_test -d windows
