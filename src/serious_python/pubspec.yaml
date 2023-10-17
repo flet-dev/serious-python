@@ -9,6 +9,7 @@ platforms:
   android:
   macos:
   windows:
+  linux:
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -25,8 +26,8 @@ flutter:
         default_package: serious_python_darwin
       windows:
         default_package: serious_python_windows
-      # linux:
-      #   default_package: serious_python_linux
+      linux:
+        default_package: serious_python_linux
 
 dependencies:
   flutter:
@@ -39,8 +40,8 @@ dependencies:
     path: ../serious_python_darwin
   serious_python_windows:
     path: ../serious_python_windows
-  # serious_python_linux:
-  #   path: ../serious_python_linux
+  serious_python_linux:
+    path: ../serious_python_linux
 
   path_provider: ^2.0.15
   archive: ^3.3.7

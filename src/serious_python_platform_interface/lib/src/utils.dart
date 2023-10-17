@@ -71,7 +71,7 @@ Future<String> extractAsset(String assetPath) async {
   Directory documentsDir = await getApplicationDocumentsDirectory();
 
   // (re-)create destination directory
-  Directory(p.join(documentsDir.path, p.dirname(assetPath)))
+  await Directory(p.join(documentsDir.path, p.dirname(assetPath)))
       .create(recursive: true);
 
   // extract file from assets
