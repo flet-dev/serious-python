@@ -17,13 +17,13 @@ environment:
     #   job_group: build_python
     #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    - job_name: Test on macOS
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-
-    # - job_name: Test on Windows
+    # - job_name: Test on macOS
     #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
     # - job_name: Test on Linux
     #   job_group: test_serious_python
@@ -196,8 +196,8 @@ for:
 
     test_script:
       - cd src/serious_python/example/run_example
-      #- flutter test integration_test -d windows
-      - flutter build windows
+      - flutter drive -d windows --release --driver=test_driver/integration_test.dart --target=integration_test
+      #- flutter build windows
 
   # ======================================
   #      Test on Linux
