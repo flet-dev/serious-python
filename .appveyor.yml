@@ -4,7 +4,7 @@ skip_branch_with_pr: true
 
 environment:
   PYTHON_STACK: python 3.10
-  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.5-stable.zip
+  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
@@ -17,9 +17,13 @@ environment:
     #   job_group: build_python
     #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    - job_name: Test on Windows
+    - job_name: Test on macOS
       job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    # - job_name: Test on Windows
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
     # - job_name: Test on Linux
     #   job_group: test_serious_python
@@ -149,6 +153,30 @@ for:
       artifact: python-dist-android
       on:
         APPVEYOR_REPO_TAG: true
+
+  # ======================================
+  #      Test on macOS
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on macOS
+
+    install:
+      - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
+      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
+      - export PATH="$PATH:$HOME/flutter/bin"
+      - flutter channel stable
+      - flutter upgrade
+      - flutter config --enable-macos-desktop
+      - flutter doctor
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/run_example
+      - flutter test integration_test -d macos
 
   # ======================================
   #      Test on Windows
