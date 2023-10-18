@@ -202,7 +202,7 @@ for:
       - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-16-1"
       - xcrun xctrace list devices
       - |
-          UDID=$(xcrun xctrace list devices | grep "^iPhone 12 Simulator (16.1)" | awk '{gsub(/[()]/,""); print $NF}')      
+          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (16.1)" | awk '{gsub(/[()]/,""); print $NF}')      
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
       - flutter doctor -v
