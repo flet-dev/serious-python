@@ -232,7 +232,7 @@ for:
       - DEVICE_NAME="android_emulator"
       - DEVICE_TYPE="pixel"
       - sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
-      - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET}${ARCH}"
+      - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
       - sdkmanager --update
       - echo "y" | sdkmanager --licenses
       - sdkmanager --list
