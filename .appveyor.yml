@@ -237,6 +237,8 @@ for:
       - sdkmanager --update
       - echo "y" | sdkmanager --licenses
       - echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
+      - sudo chgrp kvm /dev/kvm
+      - sudo chmod g+rw /dev/kvm
       - emulator -avd "${DEVICE_NAME}" -no-audio -no-window -no-snapstorage -no-snapshot -gpu swiftshader_indirect -no-boot-anim -no-accel -wipe-data -skip-adb-auth &
       - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
       - flutter upgrade --force
@@ -246,7 +248,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/run_example
-      - xvfb-run flutter test integration_test -d linux
+      - flutter test integration_test -d emulator-5554
 
 
   # ======================================
