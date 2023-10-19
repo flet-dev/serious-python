@@ -226,9 +226,9 @@ for:
         - job_name: Test on Android
 
     install:
-      - API_LEVEL="27"
+      - API_LEVEL="29"
       - TARGET="google_apis"
-      - ARCH="x86"
+      - ARCH="x86_64"
       - DEVICE_NAME="android_emulator"
       - DEVICE_TYPE="pixel"
       - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH'
@@ -237,9 +237,8 @@ for:
       - sdkmanager --update
       - echo "y" | sdkmanager --licenses
       - echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
-      - |
-          emulator -avd "${DEVICE_NAME}" -no-audio -no-window -no-snapstorage -no-snapshot -gpu swiftshader_indirect -no-boot-anim -no-accel -wipe-data -skip-adb-auth &
-          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done; input keyevent 82'
+      - emulator -avd "${DEVICE_NAME}" -no-audio -no-window -no-snapstorage -no-snapshot -gpu swiftshader_indirect -no-boot-anim -no-accel -wipe-data -skip-adb-auth &
+      - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
       - flutter upgrade --force
       - flutter doctor -v
 
