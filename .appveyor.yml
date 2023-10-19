@@ -231,7 +231,7 @@ for:
       - ARCH="x86"
       - DEVICE_NAME="android_emulator"
       - DEVICE_TYPE="pixel"
-      - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH'
+      - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH'
       - sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
       - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
       - sdkmanager --update
