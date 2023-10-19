@@ -226,17 +226,18 @@ for:
         - job_name: Test on Android
 
     install:
-      - API_LEVEL="27"
+      - API_LEVEL="30"
       - TARGET="google_apis"
-      - ARCH="x86"
+      - ARCH="x86_64"
       - DEVICE_NAME="android_emulator"
-      - DEVICE_TYPE="pixel"
+      - DEVICE_TYPE="pixel_5"
       - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH'
       - sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
       - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
       - sdkmanager --update
       - echo "y" | sdkmanager --licenses
       - echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
+      - ls -al ~/.android/avd
       #- sudo chgrp kvm /dev/kvm
       #- sudo chmod g+rw /dev/kvm
       #- sudo groupadd -r kvm
