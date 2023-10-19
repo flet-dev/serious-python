@@ -226,7 +226,7 @@ for:
         - job_name: Test on Android
 
     install:
-      - ls $ANDROID_SDK_ROOT
+      - ls $ANDROID_SDK_ROOT/platform-tools
       - API_LEVEL="27"
       - TARGET="google_apis"
       - ARCH="x86"
