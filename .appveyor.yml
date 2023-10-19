@@ -226,12 +226,12 @@ for:
         - job_name: Test on Android
 
     install:
-      - ls $ANDROID_SDK_ROOT/platform-tools
       - API_LEVEL="27"
       - TARGET="google_apis"
       - ARCH="x86"
       - DEVICE_NAME="android_emulator"
       - DEVICE_TYPE="pixel"
+      - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH'
       - sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
       - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
       - sdkmanager --update
