@@ -228,7 +228,7 @@ for:
     install:
       - API_LEVEL="30"
       - TARGET="google_apis"
-      - ARCH="x86"
+      - ARCH="x86_64"
       - DEVICE_NAME="android_emulator"
       - DEVICE_TYPE="pixel_5"
       - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH'
