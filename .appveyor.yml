@@ -244,7 +244,9 @@ for:
       #- sudo chgrp kvm /dev/kvm
       #- sudo chmod g+rw /dev/kvm
       #- sudo groupadd -r kvm
-      - sudo gpasswd -a $USER kvm
+      #- sudo gpasswd -a $USER kvm
+      - sudo adduser $USER kvm
+      - sudo chown $USER /dev/kvm
       - emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -cache-size 1000 -noaudio -no-window -partition-size 8192 &
       - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
       - flutter upgrade --force
