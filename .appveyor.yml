@@ -27,7 +27,7 @@ environment:
 
     - job_name: Test on Android
       job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
     # - job_name: Test on Windows
     #   job_group: test_serious_python
