@@ -226,7 +226,7 @@ for:
         - job_name: Test on Android
 
     install:
-      - sudo apt-get install cpu-checker
+      - sudo apt-get install -y cpu-checker
       - egrep -c '(vmx|svm)' /proc/cpuinfo
       - API_LEVEL="30"
       - TARGET="google_apis"
