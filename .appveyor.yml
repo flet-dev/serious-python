@@ -226,10 +226,7 @@ for:
         - job_name: Test on Android
 
     install:
-      - sudo apt-get install -y cpu-checker
-      - egrep -c '(vmx|svm)' /proc/cpuinfo
-      - kvm-ok
-      - API_LEVEL="30"
+      - API_LEVEL="33"
       - TARGET="google_atd"
       - ARCH="x86_64"
       - DEVICE_NAME="android_emulator"
@@ -241,10 +238,6 @@ for:
       - echo "y" | sdkmanager --licenses
       - echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
       - ls -al ~/.android/avd
-      #- sudo chgrp kvm /dev/kvm
-      #- sudo chmod g+rw /dev/kvm
-      #- sudo groupadd -r kvm
-      #- sudo gpasswd -a $USER kvm
       - sudo adduser $USER kvm
       - sudo chown $USER /dev/kvm
       - emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -cache-size 1000 -noaudio -no-window -partition-size 8192 &
