@@ -29,9 +29,9 @@ environment:
       job_group: test_serious_python
       APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    # - job_name: Test on Windows
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
     - job_name: Test on Linux
       job_group: test_serious_python
