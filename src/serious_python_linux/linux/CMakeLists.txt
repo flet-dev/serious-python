@@ -25,6 +25,14 @@ if (NOT EXISTS ${PYTHON_FILE})
   file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR})
 endif()
 
+add_custom_target(OPTIMIZE_PYTHON_DIST ALL)
+add_custom_command(TARGET OPTIMIZE_PYTHON_DIST PRE_BUILD
+  COMMAND "${PYTHON_PACKAGE}/bin/python3" -m compileall -b .
+  COMMAND rm -rf `find . -type d -name __pycache__`
+  COMMAND find . -name \"*.py\" -type f -delete
+  WORKING_DIRECTORY "${PYTHON_PACKAGE}/lib/python3.10"
+)
+
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
   "serious_python_linux_plugin.cc"
