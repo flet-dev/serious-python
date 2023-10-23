@@ -1,3 +1,7 @@
+## 0.4.0
+
+* macOS, Windows and Linux support.
+
 ## 0.3.1
 
 * Set Flutter SDK requirements to remove publishing warnings.

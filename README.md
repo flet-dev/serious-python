@@ -10,15 +10,17 @@ Serious Python is part of [Flet](https://flet.dev) project - the fastest way to 
 
 ## Platform Support
 
-| iOS     |   Android    |
-| :-----: | :----------: |
-|   ✅    |       ✅      |
+| iOS     |   Android    |   macOS    |   Linux    |   Windows    |
+| :-----: | :----------: | :---------: | :-------: | :----------: |
+|   ✅    |       ✅      |       ✅    |     ✅     |      ✅      |
 
 ### Python versions
 
-iOS version of plugin is based on [Kivy toolchain](https://github.com/kivy/kivy-ios) and currently uses Python 3.10.10.
-
-Android version of plugin is based on [Kivy python-for-android](https://github.com/kivy/python-for-android) and currently uses Python 3.10.10.
+* iOS: Python 3.10.10 - based on [Kivy toolchain](https://github.com/kivy/kivy-ios).
+* Android: Python 3.10.10 - based on [Kivy python-for-android](https://github.com/kivy/python-for-android).
+* macOS: Python 3.10.13 - based on [Beeware's Python Apple Support](https://github.com/beeware/Python-Apple-support).
+* Linux: Python 3.10.13 - based on [indygreg/python-build-standalone](https://github.com/indygreg/python-build-standalone).
+* Windows: Python 3.10.11 - based on [CPython](https://www.python.org/downloads/release/python-31011/).
 
 ## Usage
 
@@ -115,13 +117,14 @@ For iOS: packages with native extensions having a [recipe](https://github.com/ki
 
 TBD
 
+### Android
+
+TBD
+
 ## Examples
 
 [Python REPL with Flask backend](example/flask_example).
 
 [Flet app](example/flet_example).
 
-## Future plans
-
-- Adding Android support.
-- Embeddable Python for desktop Flutter apps (in the order of priority): macOS, Windows, Linux.
+[Run Python app](example/run_example).
