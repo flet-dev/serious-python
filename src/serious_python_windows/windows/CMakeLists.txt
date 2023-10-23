@@ -6,11 +6,7 @@ cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_windows")
-set(PYTHON_VERSION "3.10.11")
 project(${PROJECT_NAME} LANGUAGES CXX)
-
-# https://stackoverflow.com/questions/34799916/copy-file-from-source-directory-to-binary-directory-using-cmake
-# https://stackoverflow.com/questions/46995733/how-to-set-cmake-in-order-to-add-txt-files-into-working-directory-as-resource
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
