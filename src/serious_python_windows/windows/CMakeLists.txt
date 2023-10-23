@@ -20,24 +20,12 @@ cmake_policy(VERSION 3.14...3.25)
 # not be changed
 set(PLUGIN_NAME "serious_python_windows_plugin")
 
-set(NUGET_URL https://dist.nuget.org/win-x86-commandline/latest/nuget.exe)
-set(NUGET ${CMAKE_BINARY_DIR}/nuget.exe)
-if (NOT EXISTS ${NUGET})
-  file(DOWNLOAD ${NUGET_URL} ${NUGET})
-endif()
-
-set(PACKAGES ${CMAKE_BINARY_DIR}/packages)
-set(PYTHON_PACKAGE ${PACKAGES}/python)
-if (NOT EXISTS ${PYTHON_PACKAGE})
-  add_custom_target(PYTHON_PACKAGE_DOWNLOAD ALL)
-  add_custom_command(
-    TARGET PYTHON_PACKAGE_DOWNLOAD PRE_BUILD
-    COMMAND ${NUGET} install python -Version ${PYTHON_VERSION} -ExcludeVersion -OutputDirectory ${PACKAGES}
-    # COMMAND ${CMAKE_COMMAND} -E copy
-    #   "${PYTHON_PACKAGE}/tools/libs/python310.lib"
-    #   "${PYTHON_PACKAGE}/tools/libs/python310_d.lib"
-    DEPENDS ${NUGET}
-  )
+set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
+set(PYTHON_URL https://github.com/flet-dev/serious-python/releases/download/v0.1.0/Python310.zip)
+set(PYTHON_FILE ${CMAKE_BINARY_DIR}/Python310.zip)
+if (NOT EXISTS ${PYTHON_FILE})
+  file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
+  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${PYTHON_PACKAGE})
 endif()
 
 # Any new source files that you add to the plugin should be added here.
@@ -52,11 +40,6 @@ add_library(${PLUGIN_NAME} SHARED
   "include/serious_python_windows/serious_python_windows_plugin_c_api.h"
   "serious_python_windows_plugin_c_api.cpp"
   ${PLUGIN_SOURCES}
-)
-
-set_target_properties(
-  ${PLUGIN_NAME} PROPERTIES
-  VS_PROJECT_IMPORT ${PYTHON_PACKAGE}/build/native/python.props
 )
 
 # Apply a standard set of build settings that are configured in the
@@ -75,14 +58,23 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 # dependencies here.
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
+
+include_directories(
+  "${PYTHON_PACKAGE}/include"
+)
+
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+
+target_link_libraries(${PLUGIN_NAME} PRIVATE
+  "${PYTHON_PACKAGE}/libs/python310$<$<CONFIG:Debug>:_d>.lib"
+)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 set(serious_python_windows_bundled_libraries
-  "${PYTHON_PACKAGE}/tools/python310.dll"
-  "${PYTHON_PACKAGE}/tools/python3.dll"
+  "${PYTHON_PACKAGE}/python310$<$<CONFIG:Debug>:_d>.dll"
+  "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
   "$ENV{WINDIR}/system32/msvcp140.dll"
   "$ENV{WINDIR}/system32/vcruntime140.dll"
   "$ENV{WINDIR}/system32/vcruntime140_1.dll"
@@ -95,9 +87,14 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>"
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
-    "${PYTHON_PACKAGE}/tools/Lib"
+    "${PYTHON_PACKAGE}/Lib"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/Lib"
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
-    "${PYTHON_PACKAGE}/tools/DLLs"
+    "${PYTHON_PACKAGE}/DLLs"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
+  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
+  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
+  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
+  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
+  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\" /Q
 )

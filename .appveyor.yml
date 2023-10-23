@@ -270,8 +270,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/run_example
-      #- flutter drive -d windows --driver=test_driver/integration_test.dart --target=integration_test
-      - flutter build windows
+      - flutter test integration_test -d windows
 
   # ======================================
   #      Test on Linux
