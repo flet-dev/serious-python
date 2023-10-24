@@ -111,6 +111,24 @@ All "pure" Python packages are supported. These are packages that implemented in
 
 For iOS: packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) are supported. To use these packages you need to build a custom Python distributive for iOS (see below).
 
+## Platform notes
+
+### macOS
+
+macOS 10.15 (Catalina) is the minimal supported vesion of macOS.
+
+You have to update your Flutter app's `macos/Podfile` to have this line at the very top:
+
+```
+platform :osx, '10.15'
+```
+
+Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
+
+```
+MACOSX_DEPLOYMENT_TARGET = 10.15;
+```
+
 ## Building custom Python distributive
 
 ### iOS

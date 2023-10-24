@@ -11,9 +11,12 @@ import 'package:path_provider/path_provider.dart';
 Future<String> extractAssetOrFile(String path,
     {bool isAsset = true, String? targetPath}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  final documentsDir = await getApplicationDocumentsDirectory();
+  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android)
+      ? await getApplicationDocumentsDirectory()
+      : await getTemporaryDirectory();
   final destDir =
-      Directory(p.join(documentsDir.path, targetPath ?? p.dirname(path)));
+      Directory(p.join(documentsOrTempDir.path, targetPath ?? p.dirname(path)));
 
   // re-create dir
   if (await destDir.exists()) {
@@ -68,14 +71,17 @@ Future<String> extractFileZip(String filePath, {String? targetPath}) async {
 
 Future<String> extractAsset(String assetPath) async {
   WidgetsFlutterBinding.ensureInitialized();
-  Directory documentsDir = await getApplicationDocumentsDirectory();
+  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android)
+      ? await getApplicationDocumentsDirectory()
+      : await getTemporaryDirectory();
 
   // (re-)create destination directory
-  await Directory(p.join(documentsDir.path, p.dirname(assetPath)))
+  await Directory(p.join(documentsOrTempDir.path, p.dirname(assetPath)))
       .create(recursive: true);
 
   // extract file from assets
-  var destPath = p.join(documentsDir.path, assetPath);
+  var destPath = p.join(documentsOrTempDir.path, assetPath);
   if (kDebugMode && await File(destPath).exists()) {
     await File(destPath).delete();
   }

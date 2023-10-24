@@ -243,14 +243,16 @@ class PackageCommand extends Command {
         arch = 'x86_64-apple-darwin';
       } else if (Platform.isMacOS && isArm64) {
         arch = 'aarch64-apple-darwin';
-      } else if (Platform.isLinux) {
+      } else if (Platform.isLinux && !isArm64) {
         arch = 'x86_64-unknown-linux-gnu';
+      } else if (Platform.isLinux && isArm64) {
+        arch = 'aarch64-unknown-linux-gnu';
       } else if (Platform.isWindows) {
         arch = 'x86_64-pc-windows-msvc-shared';
       }
 
       final url =
-          "https://github.com/indygreg/python-build-standalone/releases/download/20230507/cpython-3.10.11+20230507-$arch-install_only.tar.gz";
+          "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-$arch-install_only.tar.gz";
 
       // Download the release asset
       var response = await http.get(Uri.parse(url));
