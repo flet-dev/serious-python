@@ -1,5 +1,11 @@
 # flask_example
 
+Before running the app run the following command to package Python add to an asset:
+
+```
+dart run serious_python:main package app/src
+```
+
 Important: to make `serious_python` work in your own Android app:
 
 If you build an App Bundle Edit `android/gradle.properties` and add the flag:
