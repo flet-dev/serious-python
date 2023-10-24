@@ -189,8 +189,8 @@ packages:
     dependency: "direct main"
     description:
       path: package
-      ref: "002692e"
-      resolved-ref: "002692ed9f912ec4622268ad54453c8ba5feb0da"
+      ref: "2060d43"
+      resolved-ref: "2060d4395c36060d0595a67ed40e3e5d2704ad25"
       url: "https://github.com/flet-dev/flet.git"
     source: git
     version: "0.10.3"
@@ -479,35 +479,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
   serious_python_darwin:
     dependency: transitive
     description:
       path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
+  serious_python_linux:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_linux"
+      relative: true
+    source: path
+    version: "0.4.0"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
   serious_python_windows:
     dependency: transitive
     description:
       path: "../../../serious_python_windows"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
   shake:
     dependency: transitive
     description:
