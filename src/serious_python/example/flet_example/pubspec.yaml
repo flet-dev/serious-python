@@ -40,7 +40,7 @@ dependencies:
     git:
       url: https://github.com/flet-dev/flet.git
       path: package
-      ref: '2060d43'
+      ref: 'e831f34'
   
   path: ^1.8.3
 
@@ -58,6 +58,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  integration_test:
+    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

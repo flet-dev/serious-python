@@ -5,21 +5,21 @@ import flet as ft
 logging.basicConfig(level=logging.DEBUG)
 
 
-def main(page: ft.Page):
+async def main(page: ft.Page):
     page.title = "Flet counter example"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
     txt_number = ft.TextField(value="0", text_align=ft.TextAlign.RIGHT, width=100)
 
-    def minus_click(e):
+    async def minus_click(e):
         txt_number.value = str(int(txt_number.value) - 1)
-        page.update()
+        await page.update_async()
 
-    def plus_click(e):
+    async def plus_click(e):
         txt_number.value = str(int(txt_number.value) + 1)
-        page.update()
+        await page.update_async()
 
-    page.add(
+    await page.add_async(
         ft.Row(
             [
                 ft.IconButton(

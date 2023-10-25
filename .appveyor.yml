@@ -183,7 +183,8 @@ for:
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - flutter test integration_test -d macos
 
   # ======================================
@@ -214,7 +215,8 @@ for:
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
@@ -248,7 +250,8 @@ for:
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - flutter test integration_test -d emulator-5554
 
 
@@ -269,7 +272,8 @@ for:
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - flutter test integration_test -d windows
 
   # ======================================
@@ -282,13 +286,14 @@ for:
 
     install:
       - sudo apt update --allow-releaseinfo-change
-      - sudo apt install -y libgtk-3-dev xvfb
+      - sudo apt install -y xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
       - flutter upgrade --force
 
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - xvfb-run flutter test integration_test -d linux
 
   # ======================================
@@ -302,7 +307,7 @@ for:
     install:
       # Flutter SDK
       - sudo apt update --allow-releaseinfo-change
-      - sudo apt install -y clang libgtk-3-dev xvfb
+      - sudo apt install -y clang xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
       - git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
       - export PATH="$PATH:$HOME/flutter/bin"
       - flutter upgrade
@@ -311,7 +316,8 @@ for:
     build: off
 
     test_script:
-      - cd src/serious_python/example/run_example
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
       - xvfb-run flutter test integration_test -d linux
 
   # =========================================
