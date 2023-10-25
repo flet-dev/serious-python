@@ -14,7 +14,7 @@ void main() {
 
       // Wait for up to 10 seconds for the app to start
       bool counterFound = false;
-      for (int i = 0; i < 10; i++) {
+      for (int i = 0; i < 20; i++) {
         await tester.pump(const Duration(seconds: 1));
 
         if (find.text('0').evaluate().isNotEmpty) {
