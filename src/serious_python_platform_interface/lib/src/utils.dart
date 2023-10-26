@@ -5,18 +5,22 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 Future<String> extractAssetOrFile(String path,
     {bool isAsset = true, String? targetPath}) async {
   WidgetsFlutterBinding.ensureInitialized();
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
   final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android)
       ? await getApplicationDocumentsDirectory()
       : await getTemporaryDirectory();
-  final destDir =
-      Directory(p.join(documentsOrTempDir.path, targetPath ?? p.dirname(path)));
+  final destDir = Directory(p.join(
+      documentsOrTempDir.path,
+      "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
+      targetPath ?? p.dirname(path)));
 
   // re-create dir
   if (await destDir.exists()) {
@@ -28,7 +32,7 @@ Future<String> extractAssetOrFile(String path,
       return destDir.path;
     }
   }
-  await destDir.create();
+  await destDir.create(recursive: true);
 
   // unpack from asset or file
   debugPrint("Start unpacking app archive");
@@ -71,13 +75,17 @@ Future<String> extractFileZip(String filePath, {String? targetPath}) async {
 
 Future<String> extractAsset(String assetPath) async {
   WidgetsFlutterBinding.ensureInitialized();
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
   final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android)
       ? await getApplicationDocumentsDirectory()
       : await getTemporaryDirectory();
 
   // (re-)create destination directory
-  await Directory(p.join(documentsOrTempDir.path, p.dirname(assetPath)))
+  await Directory(p.join(
+          documentsOrTempDir.path,
+          "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
+          p.dirname(assetPath)))
       .create(recursive: true);
 
   // extract file from assets
