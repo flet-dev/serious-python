@@ -40,6 +40,7 @@ Pod::Spec.new do |s|
     fi
 
     if [ -n "$SERIOUS_PYTHON_IOS_DIST" ]; then
+      mkdir -p dist
       cp -R "$SERIOUS_PYTHON_IOS_DIST/*" dist
     else
       PYTHON_IOS_DIST_FILE=python-ios-dist-v#{s.version}.tar.gz
