@@ -40,7 +40,7 @@ dependencies:
     git:
       url: https://github.com/flet-dev/flet.git
       path: package
-      ref: 'e831f34'
+      ref: '37b9581'
   
   path: ^1.8.3
 

@@ -189,8 +189,8 @@ packages:
     dependency: "direct main"
     description:
       path: package
-      ref: e831f34
-      resolved-ref: e831f34976ac62f91c424221b2ec6b9b19c7d4d6
+      ref: "37b9581"
+      resolved-ref: "37b9581158720c13bd4754e447d0f472d0f0c5ca"
       url: "https://github.com/flet-dev/flet.git"
     source: git
     version: "0.10.3"
