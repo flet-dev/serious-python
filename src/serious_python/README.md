@@ -129,11 +129,56 @@ Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
 MACOSX_DEPLOYMENT_TARGET = 10.15;
 ```
 
-## Building custom Python distributive
+## Adding custom Python libraries
 
 ### iOS
 
-TBD
+`serious_python` uses [Kivy for iOS](https://github.com/kivy/kivy-ios) to build Python and native Python packages for iOS.
+
+Python static library and its dependencies is downloaded and installed during project pod installation from [`serious_python` releases](https://github.com/flet-dev/serious-python/releases).
+
+To build your own Python distributive with custom native packages and use it with `serious_python` you need to use `toolchain` tool provided by Kivy for iOS.
+
+`toolchain` command-line tool can be run on macOS only.
+
+Start with creating a new Python virtual environment and installing `kivy-ios` package as described [here](https://github.com/kivy/kivy-ios#installation--requirements).
+
+Run `toolchain` command with the list of packages you need to build, for example to build `numpy`:
+
+```
+toolchain build numpy
+```
+
+**NOTE:** The library you want to build with `toolchain` command should have a recipe in [this folder](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes). You can [submit a request](https://github.com/kivy/kivy-ios/issues) to make a recipe for the library you need.
+
+You can also install package that don't require compilation with `pip`:
+
+```
+toolchain pip install flask
+```
+
+This case you don't need to include that package into `requirements.txt` of your Python app.
+
+When `toolchain` command is finished you should have everything you need in `dist` directory.
+
+Get the full path to `dist` directory by running `realpath dist` command.
+
+In the terminal where you run `flutter` commands to build your iOS app run the following command to
+store `dist` full path in `SERIOUS_PYTHON_IOS_DIST` environment variable:
+
+```
+export SERIOUS_PYTHON_IOS_DIST="<full-path-to-dist-directory>"
+```
+
+Remove old `build` directory by running:
+
+```
+flutter clean
+```
+
+Build your app by running `flutter ios` command.
+
+You app's bundle now includes custom Python libraries.
 
 ### Android
 
