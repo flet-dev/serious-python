@@ -1,6 +1,6 @@
-if [ -z "$SERIOUS_PYTHON_P4A_DIST" ]
+if [ -z "$SERIOUS_PYTHON_P4A_DIST" ] || [ ! -d "$SERIOUS_PYTHON_P4A_DIST" ]
 then
-  echo "Environment variable 'SERIOUS_PYTHON_P4A_DIST' is not set."
+  echo "Environment variable 'SERIOUS_PYTHON_P4A_DIST' is not set or does not point to a valid directory."
   exit 1
 fi
 
