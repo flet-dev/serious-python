@@ -41,7 +41,7 @@ Pod::Spec.new do |s|
 
     if [ -n "$SERIOUS_PYTHON_IOS_DIST" ]; then
       mkdir -p dist
-      cp -R "$SERIOUS_PYTHON_IOS_DIST/*" dist
+      cp -R "$SERIOUS_PYTHON_IOS_DIST" .
     else
       PYTHON_IOS_DIST_FILE=python-ios-dist-v#{s.version}.tar.gz
       curl -LO https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
