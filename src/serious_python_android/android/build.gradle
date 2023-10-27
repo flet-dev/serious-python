@@ -74,4 +74,15 @@ task unzipFile(dependsOn: downloadZipFile, type: Copy) {
     into 'src/main/jniLibs'
 }
 
-preBuild.dependsOn unzipFile
+task copyCustomDist(type: Exec) {
+    workingDir '.'
+    commandLine 'sh', 'bundle.sh'
+}
+
+if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
+    task copyOrUnzip(dependsOn: 'copyCustomDist')
+} else {
+    task copyOrUnzip(dependsOn: 'unzipFile')
+}
+
+preBuild.dependsOn copyOrUnzip
