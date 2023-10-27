@@ -273,6 +273,18 @@ Build your app by running `flutter appbundle` command to build `.apk`.
 
 You app's bundle now includes custom Python libraries.
 
+### macOS
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+
+### Windows
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+
+### Linux
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+
 ## Examples
 
 [Python REPL with Flask backend](example/flask_example).

@@ -111,20 +111,184 @@ All "pure" Python packages are supported. These are packages that implemented in
 
 For iOS: packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) are supported. To use these packages you need to build a custom Python distributive for iOS (see below).
 
-## Building custom Python distributive
+## Platform notes
+
+### macOS
+
+macOS 10.15 (Catalina) is the minimal supported vesion of macOS.
+
+You have to update your Flutter app's `macos/Podfile` to have this line at the very top:
+
+```
+platform :osx, '10.15'
+```
+
+Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
+
+```
+MACOSX_DEPLOYMENT_TARGET = 10.15;
+```
+
+## Adding custom Python libraries
 
 ### iOS
 
-TBD
+`serious_python` uses [Kivy for iOS](https://github.com/kivy/kivy-ios) to build Python and native Python packages for iOS.
+
+Python static library and its dependencies are downloaded and installed during project pod installation from [`serious_python` releases](https://github.com/flet-dev/serious-python/releases).
+
+To build your own Python distributive with custom native packages and use it with `serious_python` you need to use `toolchain` tool provided by Kivy for iOS.
+
+`toolchain` command-line tool can be run on macOS only.
+
+Start with creating a new Python virtual environment and installing `kivy-ios` package as described [here](https://github.com/kivy/kivy-ios#installation--requirements).
+
+Run `toolchain` command with the list of packages you need to build, for example to build `numpy`:
+
+```
+toolchain build numpy
+```
+
+**NOTE:** The library you want to build with `toolchain` command should have a recipe in [this folder](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes). You can [submit a request](https://github.com/kivy/kivy-ios/issues) to make a recipe for the library you need.
+
+You can also install package that don't require compilation with `pip`:
+
+```
+toolchain pip install flask
+```
+
+This case you don't need to include that package into `requirements.txt` of your Python app.
+
+When `toolchain` command is finished you should have everything you need in `dist` directory.
+
+Get the full path to `dist` directory by running `realpath dist` command.
+
+In the terminal where you run `flutter` commands to build your Flet iOS app run the following command to
+store `dist` full path in `SERIOUS_PYTHON_IOS_DIST` environment variable:
+
+```
+export SERIOUS_PYTHON_IOS_DIST="<full-path-to-dist-directory>"
+```
+
+Clean up old `build` directory by running:
+
+```
+flutter clean
+```
+
+Build your app by running `flutter ios` command.
+
+You app's bundle now includes custom Python libraries.
 
 ### Android
 
-TBD
+`serious_python` uses [Kivy for Android](https://github.com/kivy/python-for-android) to build Python and native Python packages for Android.
+
+Python static library and its dependencies are downloaded and installed on pre-build step of Gradle project from [`serious_python` releases](https://github.com/flet-dev/serious-python/releases).
+
+To build your own Python distributive with custom native packages and use it with `serious_python` you need to use `p4a` tool provided by Kivy for Android.
+
+`p4a` command-line tool can be run on macOS and Linux.
+
+To get Android SDK install Android Studio.
+
+On macOS Android SDK will be located at `$HOME/Library/Android/sdk`.
+
+Install Temurin8 to get JRE 1.8 required by `sdkmanager` tool:
+
+```
+brew install --cask temurin8
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home
+```
+
+Set the following environment variables:
+
+```
+export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
+export NDK_VERSION=25.2.9519653
+export SDK_VERSION=android-33
+```
+
+Add path to `sdkmanager` to `PATH`:
+
+```
+export PATH=$ANDROID_SDK_ROOT/tools/bin:$PATH
+```
+
+Install Android SDK and NDK from https://developer.android.com/ndk/downloads/ or with Android SDK Manager:
+
+```
+echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3
+echo "y" | sdkmanager --install "platforms;$SDK_VERSION"
+```
+
+Create new Python virtual environment:
+
+```
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+Install `p4a`:
+
+```
+pip install python-for-android
+```
+
+Install `cython`:
+
+```
+pip install --upgrade cython
+```
+
+Run `p4a` with `--requirements` including your custom Python libraries separated with comma, like `numpy` in the following example:
+
+```
+p4a create --requirements numpy --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
+```
+
+*Choose No to "Do you want automatically install prerequisite JDK? [y/N]".*
+
+**NOTE:** The library you want to build with `p4a` command should have a recipe in [this folder](https://github.com/kivy/python-for-android/tree/develop/pythonforandroid/recipes). You can [submit a request](https://github.com/kivy/python-for-android/issues) to make a recipe for the library you need.
+
+When `p4a` command completes a Python distributive with your custom libraries will be located at:
+
+```
+$HOME/.python-for-android/dists/serious_python
+```
+
+In the terminal where you run `flutter` commands to build your Flet Android app run the following command to store distributive full path in `SERIOUS_PYTHON_P4A_DIST` environment variable:
+
+```
+export SERIOUS_PYTHON_P4A_DIST=$HOME/.python-for-android/dists/serious_python
+```
+
+Clean up old `build` directory by running:
+
+```
+flutter clean
+```
+
+Build your app by running `flutter appbundle` command to build `.apk`.
+
+You app's bundle now includes custom Python libraries.
+
+### macOS
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+
+### Windows
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+
+### Linux
+
+List libraries and their versions in `requirements.txt` in the root of your Python app directory.
 
 ## Examples
 
-[Python REPL with Flask backend](example/flask_example).
+[Python REPL with Flask backend](src/serious_python/example/flask_example).
 
-[Flet app](example/flet_example).
+[Flet app](src/serious_python/example/flet_example).
 
-[Run Python app](example/run_example).
+[Run Python app](src/serious_python/example/run_example).
