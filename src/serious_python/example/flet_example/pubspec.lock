@@ -189,12 +189,17 @@ packages:
     dependency: "direct main"
     description:
       name: flet
-      sha256: ddda4d9ccb73d4922395368466adc721e84b54c40e0eb6de547f880082bb9481
+      sha256: "967a3b95be56fc9a8dc7afe0c635b6032c63a5edf58649217eeee6f4dcc5d08f"
       url: "https://pub.dev"
     source: hosted
-    version: "0.10.1"
+    version: "0.11.0"
   flutter:
     dependency: "direct main"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
+  flutter_driver:
+    dependency: transitive
     description: flutter
     source: sdk
     version: "0.0.0"
@@ -256,6 +261,11 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  fuchsia_remote_debug_protocol:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   highlight:
     dependency: transitive
     description:
@@ -280,6 +290,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.0.2"
+  integration_test:
+    dependency: "direct dev"
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   js:
     dependency: transitive
     description:
@@ -328,6 +343,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
+  package_info_plus:
+    dependency: transitive
+    description:
+      name: package_info_plus
+      sha256: "7e76fad405b3e4016cd39d08f455a4eb5199723cf594cd1b8916d47140d93017"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.0"
+  package_info_plus_platform_interface:
+    dependency: transitive
+    description:
+      name: package_info_plus_platform_interface
+      sha256: "9bc8ba46813a4cc42c66ab781470711781940780fd8beddd0c3da62506d3a6c6"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   path:
     dependency: "direct main"
     description:
@@ -444,10 +475,10 @@ packages:
     dependency: transitive
     description:
       name: screen_retriever
-      sha256: "4931f226ca158123ccd765325e9fbf360bfed0af9b460a10f960f9bb13d58323"
+      sha256: "6ee02c8a1158e6dae7ca430da79436e3b1c9563c8cf02f524af997c201ac2b90"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.6"
+    version: "0.1.9"
   sensors_plus:
     dependency: transitive
     description:
@@ -478,28 +509,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "0.3.1"
-  serious_python_ios:
+    version: "0.4.0"
+  serious_python_darwin:
     dependency: transitive
     description:
-      path: "../../../serious_python_ios"
+      path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
+  serious_python_linux:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_linux"
+      relative: true
+    source: path
+    version: "0.4.0"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "0.3.1"
+    version: "0.4.0"
+  serious_python_windows:
+    dependency: transitive
+    description:
+      path: "../../../serious_python_windows"
+      relative: true
+    source: path
+    version: "0.4.0"
   shake:
     dependency: transitive
     description:
@@ -601,6 +646,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
+  sync_http:
+    dependency: transitive
+    description:
+      name: sync_http
+      sha256: "7f0cd72eca000d2e026bcd6f990b81d0ca06022ef4e32fb257b30d3d1014a961"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.1"
   synchronized:
     dependency: transitive
     description:
@@ -745,6 +798,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.4"
+  vm_service:
+    dependency: transitive
+    description:
+      name: vm_service
+      sha256: c620a6f783fa22436da68e42db7ebbf18b8c44b9a46ab911f666ff09ffd9153f
+      url: "https://pub.dev"
+    source: hosted
+    version: "11.7.1"
   web:
     dependency: transitive
     description:
@@ -761,6 +822,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.4.0"
+  webdriver:
+    dependency: transitive
+    description:
+      name: webdriver
+      sha256: "3c923e918918feeb90c4c9fdf1fe39220fa4c0e8e2c0fffaded174498ef86c49"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.2"
   win32:
     dependency: transitive
     description:
@@ -773,10 +842,10 @@ packages:
     dependency: transitive
     description:
       name: window_manager
-      sha256: "95096fede562cbb65f30d38b62d819a458f59ba9fe4a317f6cee669710f6676b"
+      sha256: "6ee795be9124f90660ea9d05e581a466de19e1c89ee74fc4bf528f60c8600edd"
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.4"
+    version: "0.3.6"
   window_to_front:
     dependency: transitive
     description:
@@ -802,5 +871,5 @@ packages:
     source: hosted
     version: "6.3.0"
 sdks:
-  dart: ">=3.1.0-185.0.dev <4.0.0"
+  dart: ">=3.1.3 <4.0.0"
   flutter: ">=3.10.0"

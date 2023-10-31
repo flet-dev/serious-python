@@ -4,7 +4,7 @@ skip_branch_with_pr: true
 
 environment:
   PYTHON_STACK: python 3.10
-  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.10.5-stable.zip
+  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
@@ -17,9 +17,36 @@ environment:
       job_group: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
+    - job_name: Test on macOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    - job_name: Test on iOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    - job_name: Test on Android
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+
+    - job_name: Test on Linux
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+
+    - job_name: Test on Linux ARM64
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+
     - job_name: Publish serious_python package to pub.dev
       job_group: publish_package
-      job_depends_on: build_python
+      job_depends_on: build_python, test_serious_python
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
@@ -46,6 +73,7 @@ for:
           Update-AppveyorBuild -Version $v
 
       # install Kivy toolchain
+      - pip3 list
       - pip3 install kivy-ios
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
       - brew link libtool
@@ -138,6 +166,164 @@ for:
       on:
         APPVEYOR_REPO_TAG: true
 
+  # ======================================
+  #      Test on macOS
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on macOS
+
+    install:
+      - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
+      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
+      - export PATH="$PATH:$HOME/flutter/bin"
+      - flutter channel stable
+      - flutter upgrade
+      - flutter config --enable-macos-desktop
+      - flutter doctor
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - flutter test integration_test -d macos
+
+  # ======================================
+  #      Test on iOS
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on iOS
+
+    install:
+      - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
+      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
+      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
+      - export PATH="$PATH:$HOME/flutter/bin"
+      - flutter channel stable
+      - flutter upgrade
+      - flutter config --enable-macos-desktop
+      - xcrun simctl list runtimes
+      - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-16-1"
+      - xcrun xctrace list devices
+      - |
+          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (16.1)" | awk '{gsub(/[()]/,""); print $NF}')      
+          echo $UDID
+          xcrun simctl boot "${UDID:?No Simulator with this name found}"
+      - flutter doctor -v
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+
+  # ======================================
+  #      Test on Android
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on Android
+
+    install:
+      - API_LEVEL="33"
+      - TARGET="google_atd"
+      - ARCH="x86_64"
+      - DEVICE_NAME="android_emulator"
+      - DEVICE_TYPE="pixel_5"
+      - 'export PATH=$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH'
+      - sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
+      - sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
+      - sdkmanager --update
+      - echo "y" | sdkmanager --licenses
+      - echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
+      - ls -al ~/.android/avd
+      - sudo adduser $USER kvm
+      - sudo chown $USER /dev/kvm
+      - emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -cache-size 1000 -noaudio -no-window -partition-size 8192 &
+      - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
+      - flutter upgrade --force
+      - flutter doctor -v
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - flutter test integration_test -d emulator-5554
+
+
+  # ======================================
+  #      Test on Windows
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on Windows
+
+    #environment:
+    #  VC_REDIST_DIR: 'C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Redist\MSVC\14.29.30133\x64\Microsoft.VC142.CRT'
+
+    install:
+      - flutter upgrade --force
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - flutter test integration_test -d windows
+
+  # ======================================
+  #      Test on Linux
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on Linux
+
+    install:
+      - sudo apt update --allow-releaseinfo-change
+      - sudo apt install -y xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+      - flutter upgrade --force
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - xvfb-run flutter test integration_test -d linux
+
+  # ======================================
+  #    Test on Linux ARM64
+  # ======================================
+
+  - matrix:
+      only:
+        - job_name: Test on Linux ARM64
+
+    install:
+      # Flutter SDK
+      - sudo apt update --allow-releaseinfo-change
+      - sudo apt install -y clang xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+      - git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
+      - export PATH="$PATH:$HOME/flutter/bin"
+      - flutter upgrade
+      - flutter doctor
+
+    build: off
+
+    test_script:
+      - cd src/serious_python/example/flet_example
+      - dart run serious_python:main package app/src --pre
+      - xvfb-run flutter test integration_test -d linux
+
   # =========================================
   # Publish serious_python package to pub.dev
   # =========================================
@@ -171,10 +357,9 @@ for:
             python3 ci/patch_pubspec.py src/serious_python_platform_interface/pubspec.yaml $PKG_VER
             python3 ci/patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
             python3 ci/patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
-            python3 ci/patch_pubspec.py src/serious_python_ios/pubspec.yaml $PKG_VER
-            #python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
-            #python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
-            #python3 ci/patch_pubspec.py src/serious_python_macos/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_darwin/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
 
             pushd src/serious_python_platform_interface
             dart pub publish --force || exit 1
@@ -184,7 +369,15 @@ for:
             dart pub publish --force || exit 1
             popd
 
-            pushd src/serious_python_ios
+            pushd src/serious_python_darwin
+            dart pub publish --force || exit 1
+            popd
+
+            pushd src/serious_python_windows
+            dart pub publish --force || exit 1
+            popd
+
+            pushd src/serious_python_linux
             dart pub publish --force || exit 1
             popd
 
@@ -202,7 +395,15 @@ for:
             dart pub publish --dry-run
             popd
 
-            pushd src/serious_python_ios
+            pushd src/serious_python_darwin
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_windows
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_linux
             dart pub publish --dry-run
             popd
 

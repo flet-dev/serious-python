@@ -5,15 +5,22 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 Future<String> extractAssetOrFile(String path,
     {bool isAsset = true, String? targetPath}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  final documentsDir = await getApplicationDocumentsDirectory();
-  final destDir =
-      Directory(p.join(documentsDir.path, targetPath ?? p.dirname(path)));
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android)
+      ? await getApplicationDocumentsDirectory()
+      : await getTemporaryDirectory();
+  final destDir = Directory(p.join(
+      documentsOrTempDir.path,
+      "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
+      targetPath ?? p.dirname(path)));
 
   // re-create dir
   if (await destDir.exists()) {
@@ -25,7 +32,7 @@ Future<String> extractAssetOrFile(String path,
       return destDir.path;
     }
   }
-  await destDir.create();
+  await destDir.create(recursive: true);
 
   // unpack from asset or file
   debugPrint("Start unpacking app archive");
@@ -68,14 +75,21 @@ Future<String> extractFileZip(String filePath, {String? targetPath}) async {
 
 Future<String> extractAsset(String assetPath) async {
   WidgetsFlutterBinding.ensureInitialized();
-  Directory documentsDir = await getApplicationDocumentsDirectory();
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android)
+      ? await getApplicationDocumentsDirectory()
+      : await getTemporaryDirectory();
 
   // (re-)create destination directory
-  Directory(p.join(documentsDir.path, p.dirname(assetPath)))
+  await Directory(p.join(
+          documentsOrTempDir.path,
+          "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
+          p.dirname(assetPath)))
       .create(recursive: true);
 
   // extract file from assets
-  var destPath = p.join(documentsDir.path, assetPath);
+  var destPath = p.join(documentsOrTempDir.path, assetPath);
   if (kDebugMode && await File(destPath).exists()) {
     await File(destPath).delete();
   }
@@ -84,4 +98,14 @@ Future<String> extractAsset(String assetPath) async {
       data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
   await File(destPath).writeAsBytes(bytes);
   return destPath;
+}
+
+Future<String> getDirFiles(String path, {bool recursive = false}) async {
+  final dir = Directory(path);
+  if (!await dir.exists()) {
+    return "<not found>";
+  }
+  return (await dir.list(recursive: recursive).toList())
+      .map((file) => file.path)
+      .join('\n');
 }

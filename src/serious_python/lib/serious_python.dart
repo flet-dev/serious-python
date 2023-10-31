@@ -93,4 +93,8 @@ class SeriousPython {
         environmentVariables: environmentVariables,
         sync: sync);
   }
+
+  static void terminate() {
+    SeriousPythonPlatform.instance.terminate();
+  }
 }

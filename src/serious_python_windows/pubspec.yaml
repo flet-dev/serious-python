@@ -1,0 +1,30 @@
+name: serious_python_windows
+description: Windows implementations of the serious_python plugin
+homepage: https://flet.dev
+repository: https://github.com/flet-dev/serious-python
+version: 0.4.0
+
+environment:
+  sdk: '>=3.1.3 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  plugin_platform_interface: ^2.0.2
+  serious_python_platform_interface:
+    path: ../serious_python_platform_interface
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  plugin:
+    implements: serious_python
+    platforms:
+      windows:
+        pluginClass: SeriousPythonWindowsPluginCApi
+        dartPluginClass: SeriousPythonWindows
+        ffiPlugin: true

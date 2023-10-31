@@ -37,4 +37,8 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
       bool? sync}) {
     throw UnimplementedError('run() has not been implemented.');
   }
+
+  void terminate() {
+    // nothing to do
+  }
 }

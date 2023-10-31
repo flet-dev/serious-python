@@ -6,12 +6,13 @@ Bump version in:
 
 * `pubspec.yaml`
 * `src/serious_python_android/android/build.gradle`
-* `src/serious_python_ios/ios/serious_python_ios.podspec`
+* `src/serious_python_darwin/ios/serious_python_darwin.podspec`
 
 Bump `serious_python` dependency version with `flutter pub get` in example lock files:
 
 * `src/serious_python/example/flet_example/pubspec.lock`
 * `src/serious_python/example/flask_example/pubspec.lock`
+* `src/serious_python/example/run_example/pubspec.lock`
 
 Update `CHANGELOG.md`.
 
