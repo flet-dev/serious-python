@@ -358,8 +358,8 @@ for:
             python3 ci/patch_pubspec.py src/serious_python/pubspec.yaml $PKG_VER
             python3 ci/patch_pubspec.py src/serious_python_android/pubspec.yaml $PKG_VER
             python3 ci/patch_pubspec.py src/serious_python_darwin/pubspec.yaml $PKG_VER
-            #python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
-            #python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
+            python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
 
             pushd src/serious_python_platform_interface
             dart pub publish --force || exit 1
@@ -370,6 +370,14 @@ for:
             popd
 
             pushd src/serious_python_darwin
+            dart pub publish --force || exit 1
+            popd
+
+            pushd src/serious_python_windows
+            dart pub publish --force || exit 1
+            popd
+
+            pushd src/serious_python_linux
             dart pub publish --force || exit 1
             popd
 
@@ -388,6 +396,14 @@ for:
             popd
 
             pushd src/serious_python_darwin
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_windows
+            dart pub publish --dry-run
+            popd
+
+            pushd src/serious_python_linux
             dart pub publish --dry-run
             popd
 

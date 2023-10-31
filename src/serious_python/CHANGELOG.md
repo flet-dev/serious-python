@@ -1,6 +1,7 @@
 ## 0.4.0
 
 * macOS, Windows and Linux support.
+* Support for custom Python libraries in Android and iOS apps.
 
 ## 0.3.1
 

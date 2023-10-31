@@ -1,6 +1,7 @@
 import logging
 
 import flet as ft
+from flet_core.version import version
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -29,7 +30,12 @@ def main(page: ft.Page):
                 ft.IconButton(ft.icons.ADD, key="test:increment", on_click=plus_click),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
-        )
+            expand=True,
+        ),
+        ft.Row(
+            [ft.Text(f"Flet version: {version}")],
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
     )
 
 

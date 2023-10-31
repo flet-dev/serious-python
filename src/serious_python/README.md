@@ -113,6 +113,16 @@ For iOS: packages with native extensions having a [recipe](https://github.com/ki
 
 ## Platform notes
 
+### Build matrix
+
+The following matrix shows which platform you should build on to target specific platforms:
+
+| Build on / Target  |   iOS   |   Android   |   macOS    |   Linux    |   Windows    |    Web    |
+| :----------------: | :-----: | :---------: | :--------: | :--------: | :----------: | :--------: |
+| macOS              |   ✅    |       ✅     |      ✅    |           |              |     ✅     |
+| Windows            |         |       ✅     |            |  ✅ (WSL)  |      ✅      |     ✅     |
+| Linux              |         |       ✅     |            |     ✅     |              |     ✅     |
+
 ### macOS
 
 macOS 10.15 (Catalina) is the minimal supported vesion of macOS.
