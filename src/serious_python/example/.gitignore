@@ -1,0 +1,4 @@
+# Python
+.venv/
+__pypackages__/
+*.zip
