@@ -64,13 +64,13 @@ android {
 
 import de.undercouch.gradle.tasks.download.Download
 
-task downloadZipFile(type: Download) {
-    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.zip"
-    dest new File(buildDir, "python-android-dist-v${version}.zip")
+task downloadDistArchive(type: Download) {
+    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.tar.gz"
+    dest new File(buildDir, "python-android-dist-v${version}.tar.gz")
 }
 
-task unzipFile(dependsOn: downloadZipFile, type: Copy) {
-    from zipTree(downloadZipFile.dest)
+task untarFile(dependsOn: downloadDistArchive, type: Copy) {
+    from tarTree(downloadDistArchive.dest)
     into 'src/main/jniLibs'
 }
 
@@ -80,9 +80,9 @@ task copyCustomDist(type: Exec) {
 }
 
 if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
-    task copyOrUnzip(dependsOn: 'copyCustomDist')
+    task copyOrUntar(dependsOn: 'copyCustomDist')
 } else {
-    task copyOrUnzip(dependsOn: 'unzipFile')
+    task copyOrUntar(dependsOn: 'untarFile')
 }
 
-preBuild.dependsOn copyOrUnzip
+preBuild.dependsOn copyOrUntar

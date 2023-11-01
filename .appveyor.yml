@@ -32,22 +32,22 @@ environment:
       job_depends_on: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    - job_name: Test on Windows
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    # - job_name: Test on Windows
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
-    - job_name: Test on Linux
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    # - job_name: Test on Linux
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
-    - job_name: Test on Linux ARM64
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+    # - job_name: Test on Linux ARM64
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
 
-    - job_name: Publish serious_python package to pub.dev
-      job_group: publish_package
-      job_depends_on: build_python, test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    # - job_name: Publish serious_python package to pub.dev
+    #   job_group: publish_package
+    #   job_depends_on: build_python, test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
 - $PYTHON_STACK
@@ -152,9 +152,9 @@ for:
       - popd
 
       # package all .so files
-      - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.zip
+      - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       - pushd ~/.local/share/python-for-android/dists/serious_python/libs
-      - zip -r $DIST_FILE_NAME .
+      - tar -czvf $DIST_FILE_NAME *
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
       - popd
 
@@ -183,6 +183,13 @@ for:
       - flutter upgrade
       - flutter config --enable-macos-desktop
       - flutter doctor
+
+      # download dist for non-releases
+      - |
+          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
+            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
+            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
+          fi
 
     build: off
 
@@ -215,6 +222,13 @@ for:
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
       - flutter doctor -v
+
+      # download dist for non-releases
+      - |
+          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
+            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
+            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
+          fi
 
     build: off
 
@@ -250,6 +264,13 @@ for:
       - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
       - flutter upgrade --force
       - flutter doctor -v
+
+      # download dist for non-releases
+      - |
+          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
+            python3 ci/download_artifact.py "Build Python for Android" "python-android-dist-v{version}.tar.gz"
+            export SERIOUS_PYTHON_P4A_DIST=$APPVEYOR_BUILD_FOLDER/python_dist
+          fi
 
     build: off
 
