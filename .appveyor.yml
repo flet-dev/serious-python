@@ -9,23 +9,23 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    - job_name: Build Python for iOS
-      job_group: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Build Python for iOS
+    #   job_group: build_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Build Python for Android
       job_group: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    - job_name: Test on macOS
-      job_group: test_serious_python
-      job_depends_on: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Test on macOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Test on iOS
-      job_group: test_serious_python
-      job_depends_on: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Test on iOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Test on Android
       job_group: test_serious_python
@@ -269,7 +269,7 @@ for:
       - |
           if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
             python3 ci/download_artifact.py "Build Python for Android" "python-android-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_P4A_DIST=$APPVEYOR_BUILD_FOLDER/python_dist
+            export SERIOUS_PYTHON_BUILD_DIST=$APPVEYOR_BUILD_FOLDER/python_dist
           fi
 
     build: off

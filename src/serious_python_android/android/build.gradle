@@ -79,8 +79,16 @@ task copyCustomDist(type: Exec) {
     commandLine 'sh', 'bundle.sh'
 }
 
+task copyBuildDist(type: Copy) {
+    def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
+    from srcDir
+    into 'src/main/jniLibs'
+}
+
 if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
     task copyOrUntar(dependsOn: 'copyCustomDist')
+} else if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
+    task copyOrUntar(dependsOn: 'copyBuildDist')
 } else {
     task copyOrUntar(dependsOn: 'untarFile')
 }
