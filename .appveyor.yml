@@ -9,45 +9,45 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    # - job_name: Build Python for iOS
-    #   job_group: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Build Python for iOS
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Build Python for Android
       job_group: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    # - job_name: Test on macOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Test on macOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    # - job_name: Test on iOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Test on iOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Test on Android
       job_group: test_serious_python
       job_depends_on: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    # - job_name: Test on Windows
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
-    # - job_name: Test on Linux
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - job_name: Test on Linux
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
-    # - job_name: Test on Linux ARM64
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+    - job_name: Test on Linux ARM64
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
 
-    # - job_name: Publish serious_python package to pub.dev
-    #   job_group: publish_package
-    #   job_depends_on: build_python, test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    - job_name: Publish serious_python package to pub.dev
+      job_group: publish_package
+      job_depends_on: build_python, test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
 - $PYTHON_STACK
