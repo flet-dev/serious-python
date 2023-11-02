@@ -16,7 +16,7 @@ print(f"Patching pubspec.yaml file {pubspec_path} with {ver}")
 dependencies = [
     "serious_python_platform_interface",
     "serious_python_android",
-    "serious_python_ios",
+    "serious_python_darwin",
     "serious_python_windows",
     "serious_python_linux",
     "serious_python_macos",
