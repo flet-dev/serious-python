@@ -64,13 +64,13 @@ android {
 
 import de.undercouch.gradle.tasks.download.Download
 
-task downloadZipFile(type: Download) {
-    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.zip"
-    dest new File(buildDir, "python-android-dist-v${version}.zip")
+task downloadDistArchive(type: Download) {
+    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.tar.gz"
+    dest new File(buildDir, "python-android-dist-v${version}.tar.gz")
 }
 
-task unzipFile(dependsOn: downloadZipFile, type: Copy) {
-    from zipTree(downloadZipFile.dest)
+task untarFile(dependsOn: downloadDistArchive, type: Copy) {
+    from tarTree(downloadDistArchive.dest)
     into 'src/main/jniLibs'
 }
 
@@ -79,10 +79,18 @@ task copyCustomDist(type: Exec) {
     commandLine 'sh', 'bundle.sh'
 }
 
-if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
-    task copyOrUnzip(dependsOn: 'copyCustomDist')
-} else {
-    task copyOrUnzip(dependsOn: 'unzipFile')
+task copyBuildDist(type: Copy) {
+    def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
+    from srcDir
+    into 'src/main/jniLibs'
 }
 
-preBuild.dependsOn copyOrUnzip
+if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
+    task copyOrUntar(dependsOn: 'copyCustomDist')
+} else if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
+    task copyOrUntar(dependsOn: 'copyBuildDist')
+} else {
+    task copyOrUntar(dependsOn: 'untarFile')
+}
+
+preBuild.dependsOn copyOrUntar
