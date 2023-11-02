@@ -81,8 +81,10 @@ task copyCustomDist(type: Exec) {
 
 task copyBuildDist(type: Copy) {
     def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
-    from srcDir
-    into 'src/main/jniLibs'
+    if (srcDir != null) {
+        from srcDir
+        into 'src/main/jniLibs'
+    }
 }
 
 if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
