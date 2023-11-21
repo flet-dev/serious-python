@@ -13,19 +13,19 @@ environment:
       job_group: build_python
       APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    # - job_name: Build Python for Android
-    #   job_group: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    - job_name: Build Python for Android
+      job_group: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    # - job_name: Test on macOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Test on macOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    # - job_name: Test on iOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Test on iOS
+      job_group: test_serious_python
+      job_depends_on: build_python
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     # - job_name: Test on Android
     #   job_group: test_serious_python
@@ -80,7 +80,7 @@ for:
 
     build_script:
       # build Python 3
-      - toolchain build python3 numpy
+      - toolchain build python3
       - ls dist
 
       # package dist
@@ -125,7 +125,7 @@ for:
       - echo "y" | sdkmanager --install "platforms;$SDK_VERSION" > /dev/null
 
       # install Kivy for Android
-      - pip3 install python-for-android
+      - pip3 install git+https://github.com/flet-dev/python-for-android.git@3.11.6
       - pip3 install --upgrade cython
       - p4a --help
       - p4a create --requirements python3 --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
