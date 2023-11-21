@@ -80,7 +80,7 @@ for:
 
     build_script:
       # build Python 3
-      - toolchain build python3
+      - toolchain build python3 numpy
       - ls dist
 
       # package dist
