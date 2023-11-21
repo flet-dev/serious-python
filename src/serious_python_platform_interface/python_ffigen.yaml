@@ -1,6 +1,6 @@
 # Run with `dart run ffigen --config python_ffigen.yaml`.
 
-output: "lib/src/android/gen.dart"
+output: "lib/src/gen.dart"
 # enums:
 #   rename:
 #     "_(.*)": "$1"
