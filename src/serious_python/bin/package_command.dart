@@ -131,10 +131,14 @@ class PackageCommand extends Command {
           "PYTHONPATH": tempDir.path,
           "PYTHONOPTIMIZE": "2",
         });
-
-        // compile all python code
-        await runPython(['-m', 'compileall', '-b', tempDir.path]);
+      } else {
+        stdout.writeln(
+            "Neither requirements.txt, nor pyproject.toml found in the root of source directory. No dependencies will be installed/bundled.");
       }
+
+      // compile all python code
+      stdout.writeln("Compiling Python sources at ${tempDir.path}");
+      await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
       // remove unnecessary files
       cleanupPyPackages(tempDir);
