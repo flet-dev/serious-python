@@ -9,7 +9,7 @@ PODS:
     - FlutterMacOS
   - screen_retriever (0.0.1):
     - FlutterMacOS
-  - serious_python_darwin (0.3.1):
+  - serious_python_darwin (0.4.1):
     - Flutter
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
@@ -62,7 +62,7 @@ SPEC CHECKSUMS:
   package_info_plus: 02d7a575e80f194102bef286361c6c326e4c29ce
   path_provider_foundation: eaf5b3e458fc0e5fbb9940fb09980e853fe058b8
   screen_retriever: 59634572a57080243dd1bf715e55b6c54f241a38
-  serious_python_darwin: a56e5abbd03a9dae9eb69cb6631d183d32a04b7c
+  serious_python_darwin: 9f70530340090c8704d985333396f53d8f79df1a
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   url_launcher_macos: 5335912b679c073563f29d89d33d10d459f95451
   window_manager: 3a1844359a6295ab1e47659b1a777e36773cd6e8

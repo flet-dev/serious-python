@@ -59,6 +59,7 @@ Pod::Spec.new do |s|
     cp -R pod_templates/libpython3.11.xcframework dist/xcframework
     cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-arm64/Headers
     cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-x86_64-simulator/Headers
+    cp #{python_framework}/ios-arm64/Headers/module.modulemap #{python_macos_framework}/macos-arm64_x86_64/Headers
 
     # compile dist_macos/python-stdlib
     pushd dist_macos/python-stdlib
@@ -105,8 +106,9 @@ CMD
   end
 
   s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
-  #s.ios.vendored_libraries = 'dist/lib/*.a'
   s.ios.vendored_frameworks = ios_frameworks
   s.ios.resource = ['dist/root/python3/lib']
+
+  s.osx.vendored_frameworks = python_macos_framework
   s.osx.resource = ['dist_macos/python-stdlib']
 end
