@@ -54,7 +54,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     debugPrint("pythonLibPath: $pythonLibPath");
 
     runPythonProgramFFI(
-        sync ?? false, "libpython3.10.so", pythonLibPath, appPath, [
+        sync ?? false, "libpython3.11.so", pythonLibPath, appPath, [
       ...?modulePaths,
       "$pythonLibPath/modules",
       "$pythonLibPath/site-packages",

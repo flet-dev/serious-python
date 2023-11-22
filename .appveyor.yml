@@ -9,28 +9,28 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    - job_name: Build Python for iOS
-      job_group: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Build Python for iOS
+    #   job_group: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Build Python for Android
-      job_group: build_python
+      job_group: build_python_android
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
-    - job_name: Test on macOS
-      job_group: test_serious_python
-      job_depends_on: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-
-    - job_name: Test on iOS
-      job_group: test_serious_python
-      job_depends_on: build_python
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-
-    # - job_name: Test on Android
+    # - job_name: Test on macOS
     #   job_group: test_serious_python
-    #   job_depends_on: build_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    # - job_name: Test on iOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+
+    - job_name: Test on Android
+      job_group: test_serious_python
+      job_depends_on: build_python_android
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
     # - job_name: Test on Windows
     #   job_group: test_serious_python
