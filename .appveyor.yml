@@ -13,9 +13,9 @@ environment:
     #   job_group: build_python_darwin
     #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Build Python for Android
-      job_group: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    # - job_name: Build Python for Android
+    #   job_group: build_python_android
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
     # - job_name: Test on macOS
     #   job_group: test_serious_python
@@ -27,14 +27,14 @@ environment:
     #   job_depends_on: build_python_darwin
     #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Test on Android
-      job_group: test_serious_python
-      job_depends_on: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
-
-    # - job_name: Test on Windows
+    # - job_name: Test on Android
     #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    #   job_depends_on: build_python_android
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
     # - job_name: Test on Linux
     #   job_group: test_serious_python
