@@ -187,12 +187,8 @@ for:
       # download dist for non-releases
       - |
           if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            #python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            #export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
-
-            curl -OL https://ci.appveyor.com/api/buildjobs/47039ehjixle2mq5/artifacts/python-ios-dist-v0.5.0%2B256.tar.gz
-            tar -xzf python-ios-dist-v0.5.0%2B256.tar.gz
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/dist
+            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
+            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
           fi
 
     build: off
@@ -225,13 +221,17 @@ for:
           UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (16.1)" | awk '{gsub(/[()]/,""); print $NF}')      
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
-      - flutter doctor -v
+      #- flutter doctor -v
 
       # download dist for non-releases
       - |
           if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
+            #python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
+            #export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
+
+            curl -OL https://ci.appveyor.com/api/buildjobs/47039ehjixle2mq5/artifacts/python-ios-dist-v0.5.0%2B256.tar.gz
+            tar -xzf python-ios-dist-v0.5.0%2B256.tar.gz
+            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/dist
           fi
 
     build: off
