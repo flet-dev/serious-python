@@ -31,7 +31,7 @@ Pod::Spec.new do |s|
   python_framework = 'dist/xcframework/libpython3.11.xcframework'
   python_macos_framework = 'dist_macos/Python.xcframework'
 
-  s.prepare_command = <<-CMD
+  prepare_command = <<-CMD
     if [ -d "dist" ]; then
       rm -rf dist
     fi
@@ -93,6 +93,8 @@ Pod::Spec.new do |s|
     # remove junk
     rm -rf dist/root/python3/lib/python3.11
 CMD
+
+  puts `#{prepare_command}`
 
   # Directory path
   dir_path = "dist/xcframework"

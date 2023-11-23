@@ -239,10 +239,7 @@ for:
     test_script:
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src --pre
-      - sh: |
-          flutter build ios --no-codesign
-          flutter clean
-          flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+      - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
   #      Test on Android
