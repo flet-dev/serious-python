@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 
 Build:
 
-gcc -o myprogram myprogram.c -I$HOME/.pyenv/versions/3.10.10/include/python3.10 -L$HOME/.pyenv/versions/3.10.10/lib -lpython3.10
+gcc -o myprogram myprogram.c -I$HOME/.pyenv/versions/3.11.3/include/python3.11 -L$HOME/.pyenv/versions/3.11.3/lib -lpython3.11
 
 Run:
 
@@ -52,9 +52,9 @@ Run:
 
 */
 
-const pyConfigPythonpathEnvOffset = 248;
-const pyConfigHomeOffset = 256;
-const pyConfigModuleSearchPathsOffset = 280;
+const pyConfigPythonpathEnvOffset = 272;
+const pyConfigHomeOffset = 280;
+const pyConfigModuleSearchPathsOffset = 304;
 
 Future<Isolate?> runPythonProgramFFI(
     bool sync,

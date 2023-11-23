@@ -1,3 +1,7 @@
+## 0.5.0
+
+* Python 3.11.6.
+
 ## 0.4.1
 
 * Bumping version after fixing pubspec.yaml.
