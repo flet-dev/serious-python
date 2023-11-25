@@ -71,6 +71,8 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
   // run user program
   final moduleNamePtr = programModuleName.toNativeUtf8();
   var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+
+  var result = "Python program exited";
   if (modulePtr == nullptr) {
     // final pType =
     //     calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
@@ -81,7 +83,7 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
     // cpython.PyErr_Fetch(pType, pValue, pTrace);
     // cpython.PyErr_NormalizeException(pType, pValue, pTrace);
     // cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
-    sendPort.send("Error running Python program");
+    result = "Error running Python program";
   }
 
   // final pythonCodePtr = pythonCode.toNativeUtf8();
@@ -91,5 +93,5 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
 
   cpython.Py_Finalize();
   debugPrint("after Py_Finalize");
-  sendPort.send("Python program exited");
+  sendPort.send(result);
 }
