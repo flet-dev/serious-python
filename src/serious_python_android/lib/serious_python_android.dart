@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 /// An implementation of [SeriousPythonPlatform] that uses method channels.
@@ -29,12 +30,9 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       {List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
-    // set environment variables
-    if (environmentVariables != null) {
-      for (var v in environmentVariables.entries) {
-        await methodChannel.invokeMethod<String>(
-            'setEnvironmentVariable', {'name': v.key, 'value': v.value});
-      }
+    Future setenv(String key, String value) async {
+      await methodChannel.invokeMethod<String>(
+          'setEnvironmentVariable', {'name': key, 'value': value});
     }
 
     // unpack python bundle
@@ -53,13 +51,34 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
 
     debugPrint("pythonLibPath: $pythonLibPath");
 
-    runPythonProgramFFI(
-        sync ?? false, "libpython3.11.so", pythonLibPath, appPath, [
+    var programDirPath = p.dirname(appPath);
+
+    var moduleSearchPaths = [
+      programDirPath,
+      "$programDirPath/__pypackages__",
       ...?modulePaths,
       "$pythonLibPath/modules",
       "$pythonLibPath/site-packages",
       "$pythonLibPath/stdlib.zip"
-    ]);
+    ];
+
+    setenv("PYTHONINSPECT", "1");
+    setenv("PYTHONOPTIMIZE", "2");
+    setenv("PYTHONDONTWRITEBYTECODE", "1");
+    setenv("PYTHONNOUSERSITE", "1");
+    setenv("PYTHONUNBUFFERED", "1");
+    setenv("LC_CTYPE", "UTF-8");
+    setenv("PYTHONHOME", pythonLibPath);
+    setenv("PYTHONPATH", moduleSearchPaths.join(":"));
+
+    // set environment variables
+    if (environmentVariables != null) {
+      for (var v in environmentVariables.entries) {
+        setenv(v.key, v.value);
+      }
+    }
+
+    runPythonProgramFFI(sync ?? false, "libpython3.11.so", appPath);
 
     return null;
   }
