@@ -82,14 +82,15 @@ Future<String> extractAsset(String assetPath) async {
       : await getTemporaryDirectory();
 
   // (re-)create destination directory
-  await Directory(p.join(
-          documentsOrTempDir.path,
-          "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
-          p.dirname(assetPath)))
-      .create(recursive: true);
+  var destDir = Directory(p.join(
+      documentsOrTempDir.path,
+      "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
+      p.dirname(assetPath)));
+
+  await destDir.create(recursive: true);
 
   // extract file from assets
-  var destPath = p.join(documentsOrTempDir.path, assetPath);
+  var destPath = p.join(destDir.path, p.basename(assetPath));
   if (kDebugMode && await File(destPath).exists()) {
     await File(destPath).delete();
   }

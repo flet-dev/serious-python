@@ -1,6 +1,6 @@
 # Run with `dart run ffigen --config python_ffigen.yaml`.
 
-output: "lib/src/android/gen.dart"
+output: "lib/src/gen.dart"
 # enums:
 #   rename:
 #     "_(.*)": "$1"
@@ -14,11 +14,11 @@ globals:
     "^class (\\w+) extends ffi.Union": "final class $1 extends ffi.Union"
 headers:
   entry-points:
-    - "/Users/feodor/.pyenv/versions/3.10.10/include/python3.10/Python.h"
+    - "/Users/feodor/Downloads/python/include/python3.11/Python.h"
   include-directives:
-    - "/Users/feodor/.pyenv/versions/3.10.10/include/python3.10/*"
-    - "/Users/feodor/.pyenv/versions/3.10.10/include/python3.10/internal/*"
-    - "/Users/feodor/.pyenv/versions/3.10.10/include/python3.10/cpython/*"
+    - "/Users/feodor/Downloads/python/include/python3.11/*"
+    - "/Users/feodor/Downloads/python/include/python3.11/internal/*"
+    - "/Users/feodor/Downloads/python/include/python3.11/cpython/*"
 name: "CPython"
 llvm-path:
   - /opt/homebrew/opt/llvm

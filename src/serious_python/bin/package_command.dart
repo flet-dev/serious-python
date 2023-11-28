@@ -225,7 +225,7 @@ class PackageCommand extends Command {
   Future runPython(List<String> args,
       {Map<String, String>? environment}) async {
     var pythonDir =
-        Directory(path.join(Directory.systemTemp.path, "hostpython3.10"));
+        Directory(path.join(Directory.systemTemp.path, "hostpython3.11"));
 
     var pythonExePath = Platform.isWindows
         ? path.join(pythonDir.path, 'python', 'python.exe')
@@ -256,7 +256,7 @@ class PackageCommand extends Command {
       }
 
       final url =
-          "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.10.13+20231002-$arch-install_only.tar.gz";
+          "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.11.6+20231002-$arch-install_only.tar.gz";
 
       // Download the release asset
       var response = await http.get(Uri.parse(url));

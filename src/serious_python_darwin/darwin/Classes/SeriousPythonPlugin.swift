@@ -48,7 +48,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
                 "\(appDir)/__pypackages__",
                 resourcePath,
                 "\(resourcePath)/lib/site-packages.zip",
-                "\(resourcePath)/lib/python3.10",
+                "\(resourcePath)/lib/python3.11",
                 "\(resourcePath)/python-stdlib",
                 "\(resourcePath)/python-stdlib/lib-dynload"
             ]
