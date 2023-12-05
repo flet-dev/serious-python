@@ -7,10 +7,13 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
-const junkFileExtensions = [".so", ".py", ".c", ".typed"];
+const junkFileExtensions = [".py", ".c", ".typed"];
+const mobileJunkFileExtensions = [".so"];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
+  bool _verbose = false;
+
   @override
   final name = "package";
 
@@ -20,6 +23,8 @@ class PackageCommand extends Command {
   PackageCommand() {
     argParser.addFlag("pre",
         help: "Install pre-release dependencies.", negatable: false);
+    argParser.addFlag("mobile", help: "Package for mobile.", negatable: false);
+    argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
     argParser.addOption('asset',
         abbr: 'a',
         help:
@@ -29,6 +34,7 @@ class PackageCommand extends Command {
   // [run] may also return a Future.
   @override
   Future run() async {
+    stdout.writeln("Running package command");
     if (argResults == null ||
         argResults?.rest == null ||
         argResults!.rest.isEmpty) {
@@ -42,8 +48,12 @@ class PackageCommand extends Command {
     try {
       final currentPath = Directory.current.path;
 
-      // source dir
+      // args
       var sourceDirPath = argResults!.rest.first;
+      var assetPath = argResults?['asset'];
+      var pre = argResults?["pre"];
+      var mobile = argResults?["mobile"];
+      _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
         sourceDirPath = path.join(currentPath, sourceDirPath);
@@ -51,43 +61,47 @@ class PackageCommand extends Command {
 
       final sourceDir = Directory(sourceDirPath);
 
-      if (!sourceDir.existsSync()) {
+      if (!await sourceDir.exists()) {
         stdout.writeln('Source directory does not exist.');
         exit(2);
       }
 
       final pubspecFile = File(path.join(currentPath, "pubspec.yaml"));
-      if (!pubspecFile.existsSync()) {
+      if (!await pubspecFile.exists()) {
         stdout.writeln("Current directory must contain pubspec.yaml.");
         exit(1);
       }
 
       // asset path
-      var assetPath = argResults?['asset'];
       if (assetPath == null) {
         assetPath = "app/app.zip";
       } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
         assetPath = assetPath.substring(1);
       }
 
-      // delete dest archive
+      // create dest dir
       final dest = File(path.join(currentPath, assetPath));
-      dest.parent.createSync(recursive: true);
+      if (!await dest.parent.exists()) {
+        stdout.writeln("Creating asset directory: ${dest.parent.path}");
+        await dest.parent.create(recursive: true);
+      }
 
       // create temp dir
-      tempDir = Directory.systemTemp.createTempSync('serious_python_temp');
+      tempDir = await Directory.systemTemp.createTemp('serious_python_temp');
 
       // copy app to a temp dir
-      copyDirectory(sourceDir, tempDir);
+      stdout.writeln(
+          "Copying Python app from ${sourceDir.path} to ${tempDir.path}");
+      await copyDirectory(sourceDir, tempDir);
 
       // discover dependencies
       List<String>? dependencies;
       final requirementsFile =
           File(path.join(tempDir.path, 'requirements.txt'));
       final pyprojectFile = File(path.join(tempDir.path, 'pyproject.toml'));
-      if (requirementsFile.existsSync()) {
+      if (await requirementsFile.exists()) {
         dependencies = await requirementsFile.readAsLines();
-      } else if (pyprojectFile.existsSync()) {
+      } else if (await pyprojectFile.exists()) {
         final content = await pyprojectFile.readAsString();
         final document = TomlDocument.parse(content).toMap();
         var depSection = findTomlDependencies(document);
@@ -111,9 +125,14 @@ class PackageCommand extends Command {
             .toList();
 
         List<String> extraArgs = [];
-        if (argResults?["pre"]) {
+        if (pre) {
           extraArgs.add("--pre");
         }
+
+        var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
+
+        stdout.writeln(
+            "Installing dependencies $dependencies with pip command to $pyPackagesDir");
 
         await runPython([
           '-m',
@@ -123,7 +142,7 @@ class PackageCommand extends Command {
           '--upgrade',
           ...extraArgs,
           '--target',
-          path.join(tempDir.path, '__pypackages__'),
+          pyPackagesDir,
           ...dependencies
         ], environment: {
           "CC": "/bin/false",
@@ -133,24 +152,36 @@ class PackageCommand extends Command {
         });
       } else {
         stdout.writeln(
-            "Neither requirements.txt, nor pyproject.toml found in the root of source directory. No dependencies will be installed/bundled.");
+            "WARNING: Neither requirements.txt, nor pyproject.toml found in the root of source directory. No dependencies will be installed/bundled.");
       }
 
       // compile all python code
       stdout.writeln("Compiling Python sources at ${tempDir.path}");
       await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
+      List<String> fileExtensions = [
+        ...junkFileExtensions,
+        ...mobile ? mobileJunkFileExtensions : []
+      ];
+
       // remove unnecessary files
-      cleanupPyPackages(tempDir);
+      stdout
+          .writeln("Delete unnecessary files with extensions: $fileExtensions");
+      stdout.writeln(
+          "Delete unnecessary files and directories: $junkFilesAndDirectories");
+      await cleanupPyPackages(tempDir, fileExtensions, junkFilesAndDirectories);
 
       // create archive
+      stdout
+          .writeln("Creating app archive at ${dest.path} from ${tempDir.path}");
       final encoder = ZipFileEncoder();
       encoder.zipDirectory(tempDir, filename: dest.path);
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {
-      if (tempDir != null && tempDir.existsSync()) {
-        tempDir.deleteSync(recursive: true);
+      if (tempDir != null && await tempDir.exists()) {
+        stdout.writeln("Deleting temp directory ${tempDir.path}");
+        await tempDir.delete(recursive: true);
       }
     }
   }
@@ -172,39 +203,42 @@ class PackageCommand extends Command {
     return null;
   }
 
-  void copyDirectory(Directory source, Directory destination) {
-    source.listSync().forEach((entity) {
+  Future<void> copyDirectory(Directory source, Directory destination) async {
+    await for (var entity in source.list()) {
       if (entity is Directory) {
         final newDirectory =
             Directory(path.join(destination.path, path.basename(entity.path)));
-        newDirectory.createSync();
-        copyDirectory(entity.absolute, newDirectory);
+        await newDirectory.create();
+        await copyDirectory(entity.absolute, newDirectory);
       } else if (entity is File) {
-        entity
-            .copySync(path.join(destination.path, path.basename(entity.path)));
+        await entity
+            .copy(path.join(destination.path, path.basename(entity.path)));
       }
-    });
+    }
   }
 
-  void cleanupPyPackages(Directory directory) {
-    directory.listSync().forEach((entity) {
+  Future<void> cleanupPyPackages(Directory directory,
+      List<String> fileExtensions, List<String> filesAndDirectories) async {
+    await for (var entity in directory.list()) {
       if (entity is Directory) {
-        cleanupPyPackages(entity);
+        await cleanupPyPackages(entity, fileExtensions, filesAndDirectories);
       } else if (entity is File &&
-              junkFileExtensions.contains(path.extension(entity.path)) ||
-          junkFilesAndDirectories.contains(path.basename(entity.path))) {
-        stdout.writeln("Deleting ${entity.path}");
-        entity.deleteSync();
-      }
-    });
+          (fileExtensions.contains(path.extension(entity.path)) ||
+              filesAndDirectories.contains(path.basename(entity.path)))) {
+        verbose("Deleting ${entity.path}");
 
-    directory.listSync().forEach((entity) {
-      if (entity is Directory &&
-          junkFilesAndDirectories.contains(path.basename(entity.path))) {
-        stdout.writeln("Deleting ${entity.path}");
-        entity.deleteSync(recursive: true);
+        await entity.delete();
       }
-    });
+    }
+
+    await for (var entity in directory.list()) {
+      if (entity is Directory &&
+          filesAndDirectories.contains(path.basename(entity.path))) {
+        verbose("Deleting ${entity.path}");
+
+        await entity.delete(recursive: true);
+      }
+    }
   }
 
   Future<int> runExec(String execPath, List<String> args,
@@ -212,17 +246,17 @@ class PackageCommand extends Command {
     final proc = await Process.start(execPath, args, environment: environment);
 
     await for (final line in proc.stdout.transform(utf8.decoder)) {
-      stdout.write(line);
+      verbose(line.trim());
     }
 
     if (await proc.exitCode != 0) {
-      stdout.write(await proc.stderr.transform(utf8.decoder).join());
+      stderr.write(await proc.stderr.transform(utf8.decoder).join());
       exit(1);
     }
     return proc.exitCode;
   }
 
-  Future runPython(List<String> args,
+  Future<int> runPython(List<String> args,
       {Map<String, String>? environment}) async {
     var pythonDir =
         Directory(path.join(Directory.systemTemp.path, "hostpython3.11"));
@@ -266,10 +300,17 @@ class PackageCommand extends Command {
       // Extract the archive
       await Process.run('tar', ['-xzf', archivePath, '-C', pythonDir.path]);
     } else {
-      stdout.writeln("Python executable found at $pythonExePath");
+      verbose("Python executable found at $pythonExePath");
     }
 
     // Run the python executable
+    verbose([pythonExePath, ...args].join(" "));
     return await runExec(pythonExePath, args, environment: environment);
+  }
+
+  void verbose(String text) {
+    if (_verbose) {
+      stdout.writeln("VERBOSE: $text");
+    }
   }
 }
