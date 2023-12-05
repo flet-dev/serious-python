@@ -234,7 +234,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --pre --mobile
       - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
@@ -276,7 +276,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --pre --mobile
       - flutter test integration_test -d emulator-5554
 
 

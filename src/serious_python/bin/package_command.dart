@@ -24,6 +24,7 @@ class PackageCommand extends Command {
     argParser.addFlag("pre",
         help: "Install pre-release dependencies.", negatable: false);
     argParser.addFlag("mobile", help: "Package for mobile.", negatable: false);
+    argParser.addFlag("web", help: "Package for web.", negatable: false);
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
     argParser.addOption('asset',
         abbr: 'a',
@@ -53,7 +54,13 @@ class PackageCommand extends Command {
       var assetPath = argResults?['asset'];
       var pre = argResults?["pre"];
       var mobile = argResults?["mobile"];
+      var web = argResults?["web"];
       _verbose = argResults?["verbose"];
+
+      if (mobile && web) {
+        stderr.writeln("--mobile and --web cannot be used together.");
+        exit(1);
+      }
 
       if (path.isRelative(sourceDirPath)) {
         sourceDirPath = path.join(currentPath, sourceDirPath);
@@ -62,14 +69,14 @@ class PackageCommand extends Command {
       final sourceDir = Directory(sourceDirPath);
 
       if (!await sourceDir.exists()) {
-        stdout.writeln('Source directory does not exist.');
+        stderr.writeln('Source directory does not exist.');
         exit(2);
       }
 
       final pubspecFile = File(path.join(currentPath, "pubspec.yaml"));
       if (!await pubspecFile.exists()) {
-        stdout.writeln("Current directory must contain pubspec.yaml.");
-        exit(1);
+        stderr.writeln("Current directory must contain pubspec.yaml.");
+        exit(2);
       }
 
       // asset path
@@ -95,7 +102,7 @@ class PackageCommand extends Command {
       await copyDirectory(sourceDir, tempDir);
 
       // discover dependencies
-      List<String>? dependencies;
+      List<String>? dependencies = [];
       final requirementsFile =
           File(path.join(tempDir.path, 'requirements.txt'));
       final pyprojectFile = File(path.join(tempDir.path, 'pyproject.toml'));
@@ -118,42 +125,43 @@ class PackageCommand extends Command {
       }
 
       // install dependencies
-      if (dependencies != null) {
-        dependencies = dependencies
-            .map((d) => d.replaceAllMapped(RegExp(r'flet(\W{1,}|$)'),
-                (match) => 'flet-embed${match.group(1)}'))
-            .toList();
+      String coreFletLib = web ? "flet-pyodide" : "flet-embed";
+      dependencies = dependencies
+          .map((d) => d.replaceAllMapped(RegExp(r'flet(\W{1,}|$)'),
+              (match) => '$coreFletLib${match.group(1)}'))
+          .toList();
 
-        List<String> extraArgs = [];
-        if (pre) {
-          extraArgs.add("--pre");
-        }
-
-        var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
-
-        stdout.writeln(
-            "Installing dependencies $dependencies with pip command to $pyPackagesDir");
-
-        await runPython([
-          '-m',
-          'pip',
-          'install',
-          '--isolated',
-          '--upgrade',
-          ...extraArgs,
-          '--target',
-          pyPackagesDir,
-          ...dependencies
-        ], environment: {
-          "CC": "/bin/false",
-          "CXX": "/bin/false",
-          "PYTHONPATH": tempDir.path,
-          "PYTHONOPTIMIZE": "2",
-        });
-      } else {
-        stdout.writeln(
-            "WARNING: Neither requirements.txt, nor pyproject.toml found in the root of source directory. No dependencies will be installed/bundled.");
+      if (!dependencies
+          .any((s) => RegExp(coreFletLib + r'(\W{1,}|$)').hasMatch(s))) {
+        dependencies.add(coreFletLib);
       }
+
+      List<String> extraArgs = [];
+      if (pre) {
+        extraArgs.add("--pre");
+      }
+
+      var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
+
+      stdout.writeln(
+          "Installing dependencies $dependencies with pip command to $pyPackagesDir");
+
+      await runPython([
+        '-m',
+        'pip',
+        'install',
+        '--isolated',
+        '--upgrade',
+        ...extraArgs,
+        '--target',
+        pyPackagesDir,
+        ...dependencies
+      ], environment: {
+        "CC": "/bin/false",
+        "CXX": "/bin/false",
+        "PYTHONPATH": tempDir.path,
+        "PYTHONOPTIMIZE": "2",
+      });
 
       // compile all python code
       stdout.writeln("Compiling Python sources at ${tempDir.path}");
