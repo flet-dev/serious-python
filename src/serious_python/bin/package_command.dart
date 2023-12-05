@@ -8,7 +8,7 @@ import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
 const junkFileExtensions = [".py", ".c", ".typed"];
-const mobileJunkFileExtensions = [".so"];
+const mobileJunkFileExtensions = [".so", ".a", ".pdb", ".pyd", ".exe", ".dll"];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
