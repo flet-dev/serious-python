@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
-const junkFileExtensions = [".py", ".c", ".typed"];
+const junkFileExtensions = [".py", ".c", ".h", ".typed"];
 const mobileJunkFileExtensions = [".so", ".a", ".pdb", ".pyd", ".exe", ".dll"];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
 
