@@ -1,3 +1,10 @@
+## 0.6.0
+
+* CLI `--verbose` flag for verbose output.
+* CLI `--mobile` flag to remove `.so` from dest archive.
+* More detailed CLI output.
+* Bump deps versions.
+
 ## 0.5.1
 
 * Simplified Python initialization on Android.
