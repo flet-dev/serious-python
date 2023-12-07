@@ -30,6 +30,15 @@ class PackageCommand extends Command {
         abbr: 'a',
         help:
             "Asset path, relative to pubspec.yaml, to package Python program into.");
+    argParser.addOption('dep-mappings',
+        help: "Pip dependency mappings in the format 'dep1>dep2,dep3>dep4'.");
+    argParser.addOption('extra-deps',
+        help: "Extra pip dependencies in the format 'dep1,dep2==version,...'");
+    argParser.addOption('find-links',
+        help: "Path or URL to HTML page with links to wheels.");
+    argParser.addOption('platform',
+        help:
+            "Make pip to install dependencies for this platform, e.g. 'emscripten_3_1_45_wasm32'. An attempt to install native Python modules will raise an error.");
   }
 
   // [run] may also return a Future.
@@ -55,6 +64,10 @@ class PackageCommand extends Command {
       var pre = argResults?["pre"];
       var mobile = argResults?["mobile"];
       var web = argResults?["web"];
+      var depMappingsArg = argResults?['dep-mappings'];
+      var extraDepsArg = argResults?['extra-deps'];
+      var findLinksArg = argResults?['find-links'];
+      var platformArg = argResults?['platform'];
       _verbose = argResults?["verbose"];
 
       if (mobile && web) {
@@ -131,10 +144,13 @@ class PackageCommand extends Command {
               (match) => '$coreFletLib${match.group(1)}'))
           .toList();
 
+      // extra dependencies should be added via command line
       if (!dependencies
           .any((s) => RegExp(coreFletLib + r'(\W{1,}|$)').hasMatch(s))) {
         dependencies.add(coreFletLib);
       }
+      // built-in Pyodide dependencies must be removed
+      // TODO
 
       List<String> extraArgs = [];
       if (pre) {
