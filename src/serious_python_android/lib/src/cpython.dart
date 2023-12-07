@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
-import 'utils.dart';
 
 export 'gen.dart';
 
@@ -58,12 +57,9 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  var programDirPathFiles = await getDirFiles(programDirPath);
-
   debugPrint("dynamicLibPath: $dynamicLibPath");
   debugPrint("programDirPath: $programDirPath");
   debugPrint("programModuleName: $programModuleName");
-  debugPrint("programDirPathFiles: $programDirPathFiles");
 
   final cpython = getCPython(dynamicLibPath);
   cpython.Py_Initialize();

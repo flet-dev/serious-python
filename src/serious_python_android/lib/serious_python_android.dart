@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
+import 'src/cpython.dart';
+
 /// An implementation of [SeriousPythonPlatform] that uses method channels.
 class SeriousPythonAndroid extends SeriousPythonPlatform {
   /// The method channel used to interact with the native platform.
