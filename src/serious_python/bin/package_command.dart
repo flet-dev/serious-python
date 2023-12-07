@@ -7,8 +7,24 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
-const junkFileExtensions = [".py", ".c", ".h", ".typed"];
-const mobileJunkFileExtensions = [".so", ".a", ".pdb", ".pyd", ".exe", ".dll"];
+const desktopJunkFileExtensions = [".py", ".c", ".h", ".typed", ".exe"];
+const mobileJunkFileExtensions = [
+  ...desktopJunkFileExtensions,
+  ".so",
+  ".a",
+  ".pdb",
+  ".pyd",
+  ".exe",
+  ".dll"
+];
+const webJunkFileExtensions = [
+  ...desktopJunkFileExtensions,
+  ".a",
+  ".pdb",
+  ".pyd",
+  ".exe",
+  ".dll"
+];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
@@ -32,8 +48,9 @@ class PackageCommand extends Command {
             "Asset path, relative to pubspec.yaml, to package Python program into.");
     argParser.addOption('dep-mappings',
         help: "Pip dependency mappings in the format 'dep1>dep2,dep3>dep4'.");
-    argParser.addOption('extra-deps',
-        help: "Extra pip dependencies in the format 'dep1,dep2==version,...'");
+    argParser.addOption('req-deps',
+        help:
+            "Required pip dependencies in the format 'dep1,dep2==version,...'");
     argParser.addOption('find-links',
         help: "Path or URL to HTML page with links to wheels.");
     argParser.addOption('platform',
@@ -59,15 +76,15 @@ class PackageCommand extends Command {
       final currentPath = Directory.current.path;
 
       // args
-      var sourceDirPath = argResults!.rest.first;
-      var assetPath = argResults?['asset'];
-      var pre = argResults?["pre"];
-      var mobile = argResults?["mobile"];
-      var web = argResults?["web"];
-      var depMappingsArg = argResults?['dep-mappings'];
-      var extraDepsArg = argResults?['extra-deps'];
-      var findLinksArg = argResults?['find-links'];
-      var platformArg = argResults?['platform'];
+      String? sourceDirPath = argResults!.rest.first;
+      String? assetPath = argResults?['asset'];
+      bool pre = argResults?["pre"];
+      bool mobile = argResults?["mobile"];
+      bool web = argResults?["web"];
+      String? depMappingsArg = argResults?['dep-mappings'];
+      String? reqDepsArg = argResults?['req-deps'];
+      String? findLinksArg = argResults?['find-links'];
+      String? platformArg = argResults?['platform'];
       _verbose = argResults?["verbose"];
 
       if (mobile && web) {
@@ -115,7 +132,7 @@ class PackageCommand extends Command {
       await copyDirectory(sourceDir, tempDir);
 
       // discover dependencies
-      List<String>? dependencies = [];
+      List<String> dependencies = [];
       final requirementsFile =
           File(path.join(tempDir.path, 'requirements.txt'));
       final pyprojectFile = File(path.join(tempDir.path, 'pyproject.toml'));
@@ -137,20 +154,38 @@ class PackageCommand extends Command {
         }
       }
 
-      // install dependencies
-      String coreFletLib = web ? "flet-pyodide" : "flet-embed";
-      dependencies = dependencies
-          .map((d) => d.replaceAllMapped(RegExp(r'flet(\W{1,}|$)'),
-              (match) => '$coreFletLib${match.group(1)}'))
-          .toList();
-
-      // extra dependencies should be added via command line
-      if (!dependencies
-          .any((s) => RegExp(coreFletLib + r'(\W{1,}|$)').hasMatch(s))) {
-        dependencies.add(coreFletLib);
+      // apply dependency mappings
+      if (depMappingsArg != null) {
+        for (var depMappingPair
+            in depMappingsArg.split(",").map((s) => s.trim())) {
+          List<String> mapping =
+              depMappingPair.split(">").map((s) => s.trim()).toList();
+          if (mapping.length != 2) {
+            stderr.writeln("Invalid dependency mapping: $depMappingPair");
+            exit(3);
+          }
+          dependencies = dependencies
+              .map((d) => d.replaceAllMapped(RegExp(mapping[0] + r'(\W{1,}|$)'),
+                  (match) => '${mapping[1]}${match.group(1)}'))
+              .toList();
+        }
       }
-      // built-in Pyodide dependencies must be removed
-      // TODO
+
+      // add extra dependencies
+      if (reqDepsArg != null) {
+        var depNameRe = RegExp(r'([A-Za-z0-9_-]+)(\W{1,}|$)');
+        for (var reqDep in reqDepsArg.split(",").map((s) => s.trim())) {
+          var depName = depNameRe.allMatches(reqDep).firstOrNull?.group(1);
+          if (depName == null) {
+            stderr.writeln("Invalid required dependency: $reqDep");
+            exit(4);
+          }
+          if (!dependencies
+              .any((s) => RegExp(depName + r'(\W{1,}|$)').hasMatch(s))) {
+            dependencies.add(reqDep);
+          }
+        }
+      }
 
       List<String> extraArgs = [];
       if (pre) {
@@ -183,10 +218,9 @@ class PackageCommand extends Command {
       stdout.writeln("Compiling Python sources at ${tempDir.path}");
       await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
-      List<String> fileExtensions = [
-        ...junkFileExtensions,
-        ...mobile ? mobileJunkFileExtensions : []
-      ];
+      List<String> fileExtensions = mobile
+          ? mobileJunkFileExtensions
+          : (web ? webJunkFileExtensions : desktopJunkFileExtensions);
 
       // remove unnecessary files
       stdout
