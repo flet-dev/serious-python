@@ -160,7 +160,7 @@ class PackageCommand extends Command {
         for (var depMappingPair
             in depMappingsArg.split(",").map((s) => s.trim())) {
           List<String> mapping =
-              depMappingPair.split(">").map((s) => s.trim()).toList();
+              depMappingPair.split("=").map((s) => s.trim()).toList();
           if (mapping.length != 2) {
             stderr.writeln("Invalid dependency mapping: $depMappingPair");
             exit(3);
