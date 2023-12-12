@@ -195,7 +195,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - flutter test integration_test -d macos
 
   # ======================================
@@ -234,7 +234,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre --mobile
+      - dart run serious_python:main package app/src --mobile --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
@@ -276,7 +276,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre --mobile
+      - dart run serious_python:main package app/src --mobile --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - flutter test integration_test -d emulator-5554
 
 
@@ -298,7 +298,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - flutter test integration_test -d windows
 
   # ======================================
@@ -318,7 +318,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - xvfb-run flutter test integration_test -d linux
 
   # ======================================
@@ -342,7 +342,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --pre
+      - dart run serious_python:main package app/src --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
       - xvfb-run flutter test integration_test -d linux
 
   # =========================================

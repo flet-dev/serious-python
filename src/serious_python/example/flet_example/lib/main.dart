@@ -38,6 +38,7 @@ void main() async {
   runApp(FletApp(
     pageUrl: pageUrl,
     assetsDir: path.join(appDir, "assets"),
+    hideLoadingPage: true,
   ));
 }
 

@@ -5,11 +5,11 @@ Before running the app run the following command to package Python app to an ass
 when packaging for a desktop app:
 
 ```
-dart run serious_python:main package app/src --req-deps "flet"
+dart run serious_python:main package app/src
 ```
 
 when packaging for a mobile app:
 
 ```
-dart run serious_python:main package app/src --mobile --dep-mappings "flet>flet-embed" --req-deps "flet-embed"
+dart run serious_python:main package app/src --mobile
 ```

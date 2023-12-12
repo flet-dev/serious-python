@@ -115,7 +115,7 @@ SPEC CHECKSUMS:
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
   SDWebImage: 7ac2b7ddc5e8484c79aa90fc4e30b149d6a2c88f
   sensors_plus: 5717760720f7e6acd96fdbd75b7428f5ad755ec2
-  serious_python_darwin: d5c85ae2cd4539b52c71ea8ba8af357aa6311647
+  serious_python_darwin: 0eaf3be753db71ab8f24d80644d5fb291f5968f0
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   SwiftyGif: 93a1cc87bf3a51916001cf8f3d63835fb64c819f
   url_launcher_ios: 08a3dfac5fb39e8759aeb0abbd5d9480f30fc8b4
