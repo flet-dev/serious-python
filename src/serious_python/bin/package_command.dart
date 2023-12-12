@@ -16,7 +16,6 @@ const mobileJunkFileExtensions = [
   ".a",
   ".pdb",
   ".pyd",
-  ".exe",
   ".dll"
 ];
 const webJunkFileExtensions = [
@@ -24,7 +23,6 @@ const webJunkFileExtensions = [
   ".a",
   ".pdb",
   ".pyd",
-  ".exe",
   ".dll"
 ];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
@@ -36,7 +34,7 @@ class PackageCommand extends Command {
   final name = "package";
 
   @override
-  final description = "Packages Python app to Flutter assets.";
+  final description = "Packages Python app into Flutter asset.";
 
   PackageCommand() {
     argParser.addFlag("pre",
@@ -213,7 +211,6 @@ class PackageCommand extends Command {
         "PYTHONPATH": [tempDir.path, sitecustomizeDir?.path]
             .where((e) => e != null)
             .join(Platform.isWindows ? ";" : ":"),
-        "PYTHONOPTIMIZE": "2",
       };
 
       var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
