@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:toml/toml.dart';
 
+import 'sitecustomize.dart';
+
 const desktopJunkFileExtensions = [".py", ".c", ".h", ".typed", ".exe"];
 const mobileJunkFileExtensions = [
   ...desktopJunkFileExtensions,
@@ -71,6 +73,7 @@ class PackageCommand extends Command {
     }
 
     Directory? tempDir;
+    Directory? sitecustomizeDir;
 
     try {
       final currentPath = Directory.current.path;
@@ -172,8 +175,8 @@ class PackageCommand extends Command {
       }
 
       // add extra dependencies
+      var depNameRe = RegExp(r'([A-Za-z0-9_-]+)(\W{1,}|$)');
       if (reqDepsArg != null) {
-        var depNameRe = RegExp(r'([A-Za-z0-9_-]+)(\W{1,}|$)');
         for (var reqDep in reqDepsArg.split(",").map((s) => s.trim())) {
           var depName = depNameRe.allMatches(reqDep).firstOrNull?.group(1);
           if (depName == null) {
@@ -192,27 +195,91 @@ class PackageCommand extends Command {
         extraArgs.add("--pre");
       }
 
-      var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
+      if (platformArg != null) {
+        // create temp dir with sitecustomize.py
+        sitecustomizeDir = await Directory.systemTemp
+            .createTemp('serious_python_sitecustomize');
+        var sitecustomizePath =
+            path.join(sitecustomizeDir.path, "sitecustomize.py");
+        stdout.writeln(
+            "Configured $platformArg platform with sitecustomize.py at $sitecustomizePath");
+        await File(sitecustomizePath).writeAsString(
+            sitecustomizePy.replaceAll('"emscripten"', '"$platformArg"'));
+      }
 
-      stdout.writeln(
-          "Installing dependencies $dependencies with pip command to $pyPackagesDir");
-
-      await runPython([
-        '-m',
-        'pip',
-        'install',
-        '--isolated',
-        '--upgrade',
-        ...extraArgs,
-        '--target',
-        pyPackagesDir,
-        ...dependencies
-      ], environment: {
+      var pipEnvVars = {
         "CC": "/bin/false",
         "CXX": "/bin/false",
-        "PYTHONPATH": tempDir.path,
+        "PYTHONPATH": [tempDir.path, sitecustomizeDir?.path]
+            .where((e) => e != null)
+            .join(Platform.isWindows ? ";" : ":"),
         "PYTHONOPTIMIZE": "2",
-      });
+      };
+
+      var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
+
+      if (findLinksArg != null) {
+        var findLinksPath = findLinksArg;
+        if (path.isRelative(findLinksPath)) {
+          findLinksPath = path.join(currentPath, findLinksPath);
+        }
+        var findLinksFile = File(findLinksPath);
+        if (!await findLinksFile.exists()) {
+          stderr.writeln('--find-links file does not exist.');
+          exit(2);
+        }
+        var findLinks = await findLinksFile.readAsString();
+        List<String> findLinkDependencies = [];
+        for (var dep in dependencies.toList()) {
+          var depName =
+              depNameRe.allMatches(dep).firstOrNull?.group(1)?.toLowerCase();
+          if (depName == null) {
+            stderr.writeln("Invalid dependency: $dep");
+            exit(4);
+          }
+          if (findLinks.contains(">$depName-")) {
+            findLinkDependencies.add(dep);
+            dependencies.remove(dep);
+          }
+        }
+
+        if (findLinkDependencies.isNotEmpty) {
+          stdout.writeln(
+              "Installing 'find-links' dependencies $findLinkDependencies with pip command to $pyPackagesDir");
+
+          await runPython([
+            '-m',
+            'pip',
+            'install',
+            '--isolated',
+            '--upgrade',
+            ...extraArgs,
+            '--target',
+            pyPackagesDir,
+            '--no-index',
+            '--find-links',
+            findLinksPath,
+            ...findLinkDependencies
+          ], environment: pipEnvVars);
+        }
+      } // --find-links
+
+      if (dependencies.isNotEmpty) {
+        stdout.writeln(
+            "Installing dependencies $dependencies with pip command to $pyPackagesDir");
+
+        await runPython([
+          '-m',
+          'pip',
+          'install',
+          '--isolated',
+          '--upgrade',
+          ...extraArgs,
+          '--target',
+          pyPackagesDir,
+          ...dependencies
+        ], environment: pipEnvVars);
+      }
 
       // compile all python code
       stdout.writeln("Compiling Python sources at ${tempDir.path}");
@@ -240,6 +307,11 @@ class PackageCommand extends Command {
       if (tempDir != null && await tempDir.exists()) {
         stdout.writeln("Deleting temp directory ${tempDir.path}");
         await tempDir.delete(recursive: true);
+      }
+      if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
+        stdout.writeln(
+            "Deleting sitecustomize directory ${sitecustomizeDir.path}");
+        await sitecustomizeDir.delete(recursive: true);
       }
     }
   }

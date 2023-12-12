@@ -17,7 +17,7 @@ dart run serious_python:main package app/src --mobile --dep-mappings "flet>flet-
 when packaging for a web app:
 
 ```
-dart run serious_python:main package app/src --web --dep-mappings "flet>flet-pyodide" --req-deps "flet-pyodide"
+dart run serious_python:main package app/src --web --dep-mappings "flet>flet-pyodide" --req-deps "flet-pyodide" --platform emscripten_3_1_45_wasm32
 ```
 
 Important: to make `serious_python` work in your own Android app:
