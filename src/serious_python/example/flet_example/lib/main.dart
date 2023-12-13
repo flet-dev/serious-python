@@ -23,7 +23,8 @@ void main() async {
 
   if (defaultTargetPlatform == TargetPlatform.windows) {
     // use TCP on Windows
-    var port = await getUnusedPort();
+    //var port = await getUnusedPort();
+    var port = 63777;
     pageUrl = "tcp://localhost:$port";
     environmentVariables["FLET_SERVER_PORT"] = port.toString();
   } else {
@@ -42,6 +43,7 @@ void main() async {
   ));
 }
 
+// Calling this method causes Windows firewall dialog to popup
 Future<int> getUnusedPort() {
   return ServerSocket.bind(InternetAddress.anyIPv4, 0).then((socket) {
     var port = socket.port;
