@@ -1,0 +1,27 @@
+# Run with `dart run ffigen --config python_ffigen.yaml`.
+
+output: "lib/src/gen.dart"
+# enums:
+#   rename:
+#     "_(.*)": "$1"
+#   member-rename:
+#     "_(.*)":
+#       "_(.*)": "$1"
+globals:
+  rename:
+    "^class (\\w+) extends ffi.Struct": "final class $1 extends ffi.Struct"
+    "^class (\\w+) extends ffi.Opaque": "final class $1 extends ffi.Opaque"
+    "^class (\\w+) extends ffi.Union": "final class $1 extends ffi.Union"
+headers:
+  entry-points:
+    - "/Users/feodor/Downloads/python/include/python3.11/Python.h"
+  include-directives:
+    - "/Users/feodor/Downloads/python/include/python3.11/*"
+    - "/Users/feodor/Downloads/python/include/python3.11/internal/*"
+    - "/Users/feodor/Downloads/python/include/python3.11/cpython/*"
+name: "CPython"
+llvm-path:
+  - /opt/homebrew/opt/llvm
+#compiler-opts: "-I/usr/local/opt/llvm/lib/clang/10.0.0/include/ -I/usr/local/Frameworks/Python.framework/Versions/3.8/include/python3.8/"
+description: "Bindings to Python C interface\nignore_for_file: unused_field, unused_element\n"
+#array-workaround: true

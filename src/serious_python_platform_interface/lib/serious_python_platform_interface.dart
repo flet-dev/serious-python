@@ -2,8 +2,6 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'src/method_channel_serious_python.dart';
 
-export 'src/cpython.dart';
-export 'src/gen.dart';
 export 'src/utils.dart';
 
 abstract class SeriousPythonPlatform extends PlatformInterface {

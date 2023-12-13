@@ -1,9 +1,23 @@
 # flet_example
 
-Before running the app run the following command to package Python add to an asset:
+Before running the app run the following command to package Python app to an asset:
+
+when packaging for a desktop app:
 
 ```
-dart run serious_python:main package app/src
+dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+```
+
+when packaging for a mobile app:
+
+```
+dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+```
+
+when packaging for a web app:
+
+```
+dart run serious_python:main package app/src --web --dep-mappings "flet=flet-pyodide" --req-deps "flet-pyodide" --platform emscripten_3_1_45_wasm32
 ```
 
 Important: to make `serious_python` work in your own Android app:
