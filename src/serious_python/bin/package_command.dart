@@ -56,6 +56,9 @@ class PackageCommand extends Command {
     argParser.addOption('platform',
         help:
             "Make pip to install dependencies for this platform, e.g. 'emscripten_3_1_45_wasm32'. An attempt to install native Python modules will raise an error.");
+    argParser.addOption('exclude',
+        help:
+            "List of relative paths to exclude from app package, e.g. \"assets,build\".");
   }
 
   // [run] may also return a Future.
@@ -86,6 +89,7 @@ class PackageCommand extends Command {
       String? reqDepsArg = argResults?['req-deps'];
       String? findLinksArg = argResults?['find-links'];
       String? platformArg = argResults?['platform'];
+      String? excludeArg = argResults?['exclude'];
       _verbose = argResults?["verbose"];
 
       if (mobile && web) {
@@ -130,7 +134,13 @@ class PackageCommand extends Command {
       // copy app to a temp dir
       stdout.writeln(
           "Copying Python app from ${sourceDir.path} to ${tempDir.path}");
-      await copyDirectory(sourceDir, tempDir);
+      await copyDirectory(
+          sourceDir,
+          tempDir,
+          sourceDir.path,
+          excludeArg != null
+              ? excludeArg.split(",").map((s) => s.trim()).toList()
+              : []);
 
       // discover dependencies
       List<String> dependencies = [];
@@ -330,13 +340,18 @@ class PackageCommand extends Command {
     return null;
   }
 
-  Future<void> copyDirectory(Directory source, Directory destination) async {
+  Future<void> copyDirectory(Directory source, Directory destination,
+      String rootDir, List<String> excludeList) async {
     await for (var entity in source.list()) {
+      if (excludeList.contains(path.relative(entity.path, from: rootDir))) {
+        continue;
+      }
       if (entity is Directory) {
         final newDirectory =
             Directory(path.join(destination.path, path.basename(entity.path)));
         await newDirectory.create();
-        await copyDirectory(entity.absolute, newDirectory);
+        await copyDirectory(
+            entity.absolute, newDirectory, rootDir, excludeList);
       } else if (entity is File) {
         await entity
             .copy(path.join(destination.path, path.basename(entity.path)));
