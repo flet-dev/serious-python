@@ -1,3 +1,8 @@
+## 0.6.1
+
+* `--exclude` option for `package` command - to exclude directories and files from Python app package.
+* Re-create temp Python distributive directory on every run of `package` command.
+
 ## 0.6.0
 
 * `--verbose` flag - verbose output.
