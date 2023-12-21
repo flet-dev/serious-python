@@ -29,6 +29,7 @@ const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
+  Directory? _pythonDir;
 
   @override
   final name = "package";
@@ -320,6 +321,10 @@ class PackageCommand extends Command {
             "Deleting sitecustomize directory ${sitecustomizeDir.path}");
         await sitecustomizeDir.delete(recursive: true);
       }
+      if (_pythonDir != null && await _pythonDir!.exists()) {
+        stdout.writeln("Deleting Python directory ${_pythonDir!.path}");
+        await _pythonDir!.delete(recursive: true);
+      }
     }
   }
 
@@ -400,21 +405,8 @@ class PackageCommand extends Command {
 
   Future<int> runPython(List<String> args,
       {Map<String, String>? environment}) async {
-    var pythonDir =
-        Directory(path.join(Directory.systemTemp.path, "hostpython3.11"));
-
-    var pythonExePath = Platform.isWindows
-        ? path.join(pythonDir.path, 'python', 'python.exe')
-        : path.join(pythonDir.path, 'python', 'bin', 'python3');
-
-    if (!await File(pythonExePath).exists()) {
-      stdout
-          .writeln("Downloading and extracting Python into ${pythonDir.path}");
-
-      if (await pythonDir.exists()) {
-        await pythonDir.delete(recursive: true);
-      }
-      await pythonDir.create(recursive: true);
+    if (_pythonDir == null) {
+      _pythonDir = await Directory.systemTemp.createTemp('hostpython3.11_');
 
       var isArm64 = Platform.version.contains("arm64");
 
@@ -431,19 +423,34 @@ class PackageCommand extends Command {
         arch = 'x86_64-pc-windows-msvc-shared';
       }
 
-      final url =
-          "https://github.com/indygreg/python-build-standalone/releases/download/20231002/cpython-3.11.6+20231002-$arch-install_only.tar.gz";
+      var pythonArchiveFilename =
+          "cpython-3.11.6+20231002-$arch-install_only.tar.gz";
 
-      // Download the release asset
-      var response = await http.get(Uri.parse(url));
-      var archivePath = path.join(pythonDir.path, 'python.tar.gz');
-      await File(archivePath).writeAsBytes(response.bodyBytes);
+      var pythonArchivePath =
+          path.join(Directory.systemTemp.path, pythonArchiveFilename);
 
-      // Extract the archive
-      await Process.run('tar', ['-xzf', archivePath, '-C', pythonDir.path]);
-    } else {
-      verbose("Python executable found at $pythonExePath");
+      if (!await File(pythonArchivePath).exists()) {
+        // download Python distr from GitHub
+        final url =
+            "https://github.com/indygreg/python-build-standalone/releases/download/20231002/$pythonArchiveFilename";
+
+        stdout.writeln(
+            "Downloading Python distributive from $url to $pythonArchivePath");
+
+        var response = await http.get(Uri.parse(url));
+        await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
+      }
+
+      // extract Python from archive
+      stdout.writeln(
+          "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}");
+      await Process.run(
+          'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
     }
+
+    var pythonExePath = Platform.isWindows
+        ? path.join(_pythonDir!.path, 'python', 'python.exe')
+        : path.join(_pythonDir!.path, 'python', 'bin', 'python3');
 
     // Run the python executable
     verbose([pythonExePath, ...args].join(" "));
