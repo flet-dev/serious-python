@@ -123,6 +123,21 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     COMPONENT Runtime)
 endforeach(bundled_library)
 
+# Link bundled libraries from plugins into main executable to enable dlopen
+# with only library name.
+# Will NOT be needed once: https://github.com/flutter/engine/pull/28525 lands in Flutter channel we are using
+# Alternative approach is to update plugin's RUNPATH before packaging:
+# chrpath -r \$ORIGIN ./build/linux/arm64/release/bundle/lib/libserious_python_linux_plugin.so
+foreach(plugin ${FLUTTER_PLUGIN_LIST})
+  if(${plugin}_bundled_libraries)
+    target_link_libraries(
+      ${BINARY_NAME}
+      PRIVATE
+      ${${plugin}_bundled_libraries}
+    )
+  endif()
+endforeach(plugin)
+
 # Fully re-copy the assets directory on each build to avoid having stale files
 # from a previous install.
 set(FLUTTER_ASSET_DIR_NAME "flutter_assets")
