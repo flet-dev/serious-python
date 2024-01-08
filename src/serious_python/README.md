@@ -81,7 +81,15 @@ To simplify the packaging of your Python app Serious Python provides a CLI which
 dart run serious_python:main
 ```
 
-There is `package` command which takes a directory with Python app as the first argument. The command must be run in Flutter app root directory, where `pubspec.yaml` is located. The path could be either relative or an absolute:
+There is `package` command which takes a directory with Python app as the first argument. The command must be run in Flutter app root directory, where `pubspec.yaml` is located. The path could be either relative or an absolute.
+
+To package Python files for a mobile app run: 
+
+```
+dart run serious_python:main package app/src --mobile
+```
+
+To package for a desktop app run:
 
 ```
 dart run serious_python:main package app/src
@@ -295,10 +303,20 @@ List libraries and their versions in `requirements.txt` in the root of your Pyth
 
 List libraries and their versions in `requirements.txt` in the root of your Python app directory.
 
+## Troubleshooting
+
+### Detailed logging
+
+Use `--verbose` flag to enabled detailed logging:
+
+```
+dart run serious_python:main package app/src --mobile --verbose
+```
+
 ## Examples
 
-[Python REPL with Flask backend](example/flask_example).
+[Python REPL with Flask backend](src/serious_python/example/flask_example).
 
-[Flet app](example/flet_example).
+[Flet app](src/serious_python/example/flet_example).
 
-[Run Python app](example/run_example).
+[Run Python app](src/serious_python/example/run_example).
