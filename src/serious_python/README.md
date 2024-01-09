@@ -120,6 +120,16 @@ All "pure" Python packages are supported. These are packages that implemented in
 For iOS: packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) are supported. To use these packages you need to build a custom Python distributive for iOS (see below).
 
 ## Platform notes
+### Build matrix
+
+The following matrix shows which platform you should build on to target specific platforms:
+
+| Build on / Target  |   iOS   |   Android   |   macOS    |   Linux    |   Windows    |    Web    |
+| :----------------: | :-----: | :---------: | :--------: | :--------: | :----------: | :--------: |
+| macOS              |   ✅    |       ✅     |      ✅    |           |              |     ✅     |
+| Windows            |         |       ✅     |            |  ✅ (WSL)  |      ✅      |     ✅     |
+| Linux              |         |       ✅     |            |     ✅     |              |     ✅     |
+
 
 ### macOS
 
