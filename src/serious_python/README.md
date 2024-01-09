@@ -121,29 +121,19 @@ For iOS: packages with native extensions having a [recipe](https://github.com/ki
 
 ## Platform notes
 
-### Build matrix
-
-The following matrix shows which platform you should build on to target specific platforms:
-
-| Build on / Target  |   iOS   |   Android   |   macOS    |   Linux    |   Windows    |    Web    |
-| :----------------: | :-----: | :---------: | :--------: | :--------: | :----------: | :--------: |
-| macOS              |   ✅    |       ✅     |      ✅    |           |              |     ✅     |
-| Windows            |         |       ✅     |            |  ✅ (WSL)  |      ✅      |     ✅     |
-| Linux              |         |       ✅     |            |     ✅     |              |     ✅     |
-
 ### macOS
 
 macOS 10.15 (Catalina) is the minimal supported vesion of macOS.
 
 You have to update your Flutter app's `macos/Podfile` to have this line at the very top:
 
-```
+```ruby
 platform :osx, '10.15'
 ```
 
 Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
 
-```
+```objc
 MACOSX_DEPLOYMENT_TARGET = 10.15;
 ```
 
@@ -184,7 +174,7 @@ Get the full path to `dist` directory by running `realpath dist` command.
 In the terminal where you run `flutter` commands to build your Flet iOS app run the following command to
 store `dist` full path in `SERIOUS_PYTHON_IOS_DIST` environment variable:
 
-```
+```bash
 export SERIOUS_PYTHON_IOS_DIST="<full-path-to-dist-directory>"
 ```
 
@@ -214,14 +204,14 @@ On macOS Android SDK will be located at `$HOME/Library/Android/sdk`.
 
 Install Temurin8 to get JRE 1.8 required by `sdkmanager` tool:
 
-```
+```bash
 brew install --cask temurin8
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home
 ```
 
 Set the following environment variables:
 
-```
+```bash
 export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
 export NDK_VERSION=25.2.9519653
 export SDK_VERSION=android-33
@@ -229,20 +219,20 @@ export SDK_VERSION=android-33
 
 Add path to `sdkmanager` to `PATH`:
 
-```
+```bash
 export PATH=$ANDROID_SDK_ROOT/tools/bin:$PATH
 ```
 
 Install Android SDK and NDK from https://developer.android.com/ndk/downloads/ or with Android SDK Manager:
 
-```
+```bash
 echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3
 echo "y" | sdkmanager --install "platforms;$SDK_VERSION"
 ```
 
 Create new Python virtual environment:
 
-```
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
@@ -277,7 +267,7 @@ $HOME/.python-for-android/dists/serious_python
 
 In the terminal where you run `flutter` commands to build your Flet Android app run the following command to store distributive full path in `SERIOUS_PYTHON_P4A_DIST` environment variable:
 
-```
+```bash
 export SERIOUS_PYTHON_P4A_DIST=$HOME/.python-for-android/dists/serious_python
 ```
 
