@@ -60,7 +60,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   cpython.Py_Initialize();
   debugPrint("after Py_Initialize()");
 
-  String outFilename = "out.txt";
+  String outFilename = "stdout.txt";
 
   // redirect output
   String wrapScript = """
