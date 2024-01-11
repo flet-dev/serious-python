@@ -34,7 +34,8 @@ void main() async {
   }
 
   SeriousPython.runProgram(path.join(appDir, "main.pyc"),
-      environmentVariables: environmentVariables);
+          environmentVariables: environmentVariables)
+      .then((result) => debugPrint("Python program running result: $result"));
 
   runApp(FletApp(
     pageUrl: pageUrl,
