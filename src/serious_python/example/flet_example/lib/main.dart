@@ -16,6 +16,17 @@ final hideLoadingPage =
 final windowsTcpPort =
     int.tryParse("{{ cookiecutter.windows_tcp_port }}") ?? 63777;
 
+const pythonScript = """
+import traceback, sys
+
+print("This is script!!!")
+
+try:
+    import {module_name}
+except Exception as e:
+    traceback.print_exception(e)
+""";
+
 // global vars
 String pageUrl = "";
 String assetsDir = "";
@@ -33,12 +44,8 @@ void main() async {
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
           // OK - start Python program
-          var pythonResult = SeriousPython.runProgram(
-              path.join(appDir, "$pythonModuleName.pyc"),
-              environmentVariables: environmentVariables);
-
           return FutureBuilder(
-              future: pythonResult,
+              future: runPythonApp(),
               builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
                 if (snapshot.hasData || snapshot.hasError) {
                   // error or premature finish
@@ -90,6 +97,12 @@ Future prepareApp() async {
   }
 
   return "";
+}
+
+Future<String?> runPythonApp() async {
+  var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
+  return SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
+      script: script, environmentVariables: environmentVariables);
 }
 
 class ErrorScreen extends StatelessWidget {
