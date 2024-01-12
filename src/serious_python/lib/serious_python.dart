@@ -84,11 +84,13 @@ class SeriousPython {
   /// Set [sync] to `true` to sychronously run Python program; otherwise the
   /// program starts in a new thread.
   static Future<String?> runProgram(String appPath,
-      {List<String>? modulePaths,
+      {String? script,
+      List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     // run python program
     return SeriousPythonPlatform.instance.run(appPath,
+        script: script,
         modulePaths: modulePaths,
         environmentVariables: environmentVariables,
         sync: sync);

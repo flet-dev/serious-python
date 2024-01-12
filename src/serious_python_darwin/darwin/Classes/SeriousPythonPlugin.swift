@@ -32,6 +32,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         case "runPython":
             let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
             let appPath = args["appPath"] as! String
+            var script = args["script"] as? String
             let modulePaths = args["modulePaths"] as? [String] ?? []
             let envVars = args["environmentVariables"] as? [String:String] ?? [:]
             let sync = args["sync"] as? Bool ?? false
@@ -39,6 +40,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             NSLog("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths))")
             
             let appDir = URL(fileURLWithPath: appPath).deletingLastPathComponent().path
+            let appModuleName = URL(fileURLWithPath: appPath).deletingPathExtension().lastPathComponent
             
             // bundle root path
             guard let resourcePath = Bundle(for: type(of: self)).resourcePath else { return }
@@ -66,13 +68,26 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             envVars.forEach {v in
                 setenv(v.key, v.value, 1)
             }
+
+            if (script != nil) {
+                script = script!.replacingOccurrences(of: "{module_name}", with: appModuleName)
+            }
             
             // run program either sync or in a thread
             if (sync) {
-                runPython(appPath: appPath)
+                if (script == nil) {
+                    runPythonFile(appPath: appPath)
+                } else {
+                    runPythonScript(script: script!)
+                }
             } else {
-                let t = Thread(target: self, selector: #selector(runPython), object: appPath)
-                t.start()
+                if (script == nil) {
+                    let t = Thread(target: self, selector: #selector(runPythonFile), object: appPath)
+                    t.start()
+                } else {
+                    let t = Thread(target: self, selector: #selector(runPythonScript), object: script!)
+                    t.start()
+                }
             }
             
             result(nil)
@@ -81,7 +96,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    @objc func runPython(appPath: String) {
+    @objc func runPythonFile(appPath: String) {
         Py_Initialize()
         
         // run app
@@ -89,6 +104,18 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         let result = PyRun_SimpleFileEx(file, appPath, 1)
         if (result != 0) {
             print("Python program completed with error.")
+        }
+        
+        Py_Finalize()
+    }
+
+    @objc func runPythonScript(script: String) {
+        Py_Initialize()
+        
+        // run app
+        let result = PyRun_SimpleString(script)
+        if (result != 0) {
+            print("Python script completed with error.")
         }
         
         Py_Finalize()

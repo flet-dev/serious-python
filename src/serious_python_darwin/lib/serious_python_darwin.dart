@@ -22,11 +22,13 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
 
   @override
   Future<String?> run(String appPath,
-      {List<String>? modulePaths,
+      {String? script,
+      List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     final Map<String, dynamic> arguments = {
       'appPath': appPath,
+      'script': script,
       'modulePaths': modulePaths,
       'environmentVariables': environmentVariables,
       'sync': sync

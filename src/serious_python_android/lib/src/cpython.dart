@@ -17,24 +17,18 @@ CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
 }
 
-Future<String> runPythonProgramFFI(
-    bool sync, String dynamicLibPath, String pythonProgramPath) async {
+Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
+    String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
-    return await runPythonProgramInIsolate([
-      receivePort.sendPort,
-      dynamicLibPath,
-      pythonProgramPath,
-    ]);
+    return await runPythonProgramInIsolate(
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
   } else {
     var completer = Completer<String>();
     // async run
-    final isolate = await Isolate.spawn(runPythonProgramInIsolate, [
-      receivePort.sendPort,
-      dynamicLibPath,
-      pythonProgramPath,
-    ]);
+    final isolate = await Isolate.spawn(runPythonProgramInIsolate,
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
     receivePort.listen((message) {
       receivePort.close();
       isolate.kill();
@@ -48,6 +42,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   final sendPort = arguments[0] as SendPort;
   final dynamicLibPath = arguments[1] as String;
   final pythonProgramPath = arguments[2] as String;
+  final script = arguments[3] as String;
 
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
