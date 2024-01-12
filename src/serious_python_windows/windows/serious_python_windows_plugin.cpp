@@ -85,6 +85,7 @@ namespace serious_python_windows
     {
       std::string exe_path;
       std::string app_path;
+      std::string script;
       flutter::EncodableList module_paths;
       flutter::EncodableMap env_vars;
       bool sync = false;
@@ -101,6 +102,12 @@ namespace serious_python_windows
         if (app_path_it != arguments->end())
         {
           app_path = std::get<std::string>(app_path_it->second);
+        }
+
+        auto script_it = arguments->find(EncodableValue("script"));
+        if (script_it != arguments->end())
+        {
+          script = std::get<std::string>(script_it->second);
         }
 
         auto module_paths_it = arguments->find(EncodableValue("modulePaths"));
@@ -193,13 +200,29 @@ namespace serious_python_windows
       // run program
       if (sync)
       {
-        printf("Running Python program synchronously...");
-        RunPythonScript(app_path);
+        if (script == "")
+        {
+          printf("Running Python program synchronously...");
+          RunPythonProgram(app_path);
+        }
+        else
+        {
+          printf("Running Python script synchronously...");
+          RunPythonScript(script);
+        }
       }
       else
       {
-        printf("Running Python program asynchronously...");
-        RunPythonScriptAsync(app_path);
+        if (script == "")
+        {
+          printf("Running Python program asynchronously...");
+          RunPythonProgramAsync(app_path);
+        }
+        else
+        {
+          printf("Running Python script asynchronously...");
+          RunPythonScriptAsync(script);
+        }
       }
 
       result->Success(flutter::EncodableValue(app_path));
@@ -210,16 +233,25 @@ namespace serious_python_windows
     }
   }
 
-  void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string appPath)
+  void SeriousPythonWindowsPlugin::RunPythonProgramAsync(std::string appPath)
   {
-    // Create a new thread that runs the script
-    std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonScript, this, appPath);
+    // Create a new thread that runs the program
+    std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonProgram, this, appPath);
 
     // Detach the thread so it runs independently
     pyThread.detach();
   }
 
-  void SeriousPythonWindowsPlugin::RunPythonScript(std::string appPath)
+  void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string script)
+  {
+    // Create a new thread that runs the script
+    std::thread pyThread(&SeriousPythonWindowsPlugin::RunPythonScript, this, script);
+
+    // Detach the thread so it runs independently
+    pyThread.detach();
+  }
+
+  void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath)
   {
     Py_Initialize();
 
@@ -230,6 +262,15 @@ namespace serious_python_windows
       PyRun_SimpleFileEx(file, appPath.c_str(), 1);
       fclose(file);
     }
+
+    Py_Finalize();
+  }
+
+  void SeriousPythonWindowsPlugin::RunPythonScript(std::string script)
+  {
+    Py_Initialize();
+
+    PyRun_SimpleString(script);
 
     Py_Finalize();
   }

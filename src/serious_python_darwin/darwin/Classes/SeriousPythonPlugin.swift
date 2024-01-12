@@ -32,7 +32,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         case "runPython":
             let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
             let appPath = args["appPath"] as! String
-            var script = args["script"] as? String
+            let script = args["script"] as? String
             let modulePaths = args["modulePaths"] as? [String] ?? []
             let envVars = args["environmentVariables"] as? [String:String] ?? [:]
             let sync = args["sync"] as? Bool ?? false
@@ -40,7 +40,6 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             NSLog("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths))")
             
             let appDir = URL(fileURLWithPath: appPath).deletingLastPathComponent().path
-            let appModuleName = URL(fileURLWithPath: appPath).deletingPathExtension().lastPathComponent
             
             // bundle root path
             guard let resourcePath = Bundle(for: type(of: self)).resourcePath else { return }
@@ -67,10 +66,6 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             // custom env vars
             envVars.forEach {v in
                 setenv(v.key, v.value, 1)
-            }
-
-            if (script != nil) {
-                script = script!.replacingOccurrences(of: "{module_name}", with: appModuleName)
             }
             
             // run program either sync or in a thread

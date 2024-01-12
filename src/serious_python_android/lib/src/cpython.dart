@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
@@ -55,37 +54,29 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   cpython.Py_Initialize();
   debugPrint("after Py_Initialize()");
 
-  String outFilename = "stdout.txt";
-
-  // redirect output
-  String wrapScript = """
-import traceback, sys
-_out_f = open("$outFilename", "w")
-sys.stdout = sys.stderr = _out_f
-
-try:
-    import $programModuleName
-except Exception as e:
-    traceback.print_exception(e)
-finally:
-    _out_f.close()
-""";
-
-  // run before script
-  final wrapScriptPtr = wrapScript.toNativeUtf8();
-  int bsr = cpython.PyRun_SimpleString(wrapScriptPtr.cast<Char>());
-  debugPrint("PyRun_SimpleString for wrapScript result: $bsr");
-  malloc.free(wrapScriptPtr);
-
   var result = "";
+
+  if (script != "") {
+    // run script
+    final scriptPtr = script.toNativeUtf8();
+    int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+    debugPrint("PyRun_SimpleString for script result: $sr");
+    malloc.free(scriptPtr);
+    if (sr != 0) {
+      result = "Error running Python script";
+    }
+  } else {
+    // run program
+    final moduleNamePtr = programModuleName.toNativeUtf8();
+    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+    if (modulePtr == nullptr) {
+      result = "Error running Python program";
+    }
+    malloc.free(moduleNamePtr);
+  }
 
   cpython.Py_Finalize();
   debugPrint("after Py_Finalize()");
-
-  var outFile = File(outFilename);
-  if (await outFile.exists()) {
-    result = await outFile.readAsString();
-  }
 
   sendPort.send(result);
 
