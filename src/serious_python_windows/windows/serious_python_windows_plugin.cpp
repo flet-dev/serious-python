@@ -200,7 +200,7 @@ namespace serious_python_windows
       // run program
       if (sync)
       {
-        if (script == "")
+        if (script.empty())
         {
           printf("Running Python program synchronously...");
           RunPythonProgram(app_path);
@@ -213,7 +213,7 @@ namespace serious_python_windows
       }
       else
       {
-        if (script == "")
+        if (script.empty())
         {
           printf("Running Python program asynchronously...");
           RunPythonProgramAsync(app_path);
@@ -270,7 +270,7 @@ namespace serious_python_windows
   {
     Py_Initialize();
 
-    PyRun_SimpleString(script);
+    PyRun_SimpleString(script.c_str());
 
     Py_Finalize();
   }

@@ -101,8 +101,16 @@ Future prepareApp() async {
 
 Future<String?> runPythonApp() async {
   var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
-  return SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
+
+  // start socket server - TODO
+  
+  // run python async
+  SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
       script: script, environmentVariables: environmentVariables);
+
+  // wait for client connection to close
+  // TODO
+  return null;
 }
 
 class ErrorScreen extends StatelessWidget {
