@@ -61,6 +61,9 @@ static void serious_python_linux_plugin_handle_method_call(
 
     gchar *app_dir = g_path_get_dirname(fl_value_to_string(app_path));
 
+    // script
+    FlValue *script = fl_value_lookup_string(args, "script");
+
     // sync
     bool sync = false;
     g_autoptr(FlValue) sync_key = fl_value_new_string("sync");
@@ -139,11 +142,25 @@ static void serious_python_linux_plugin_handle_method_call(
 
     if (sync)
     {
-      run_python_script(fl_value_to_string(app_path));
+      if (script != nullptr)
+      {
+        run_python_script(fl_value_to_string(script));
+      }
+      else
+      {
+        run_python_program(fl_value_to_string(app_path));
+      }
     }
     else
     {
-      g_thread_new(NULL, run_python_script_async, g_strdup(fl_value_to_string(app_path)));
+      if (script != nullptr)
+      {
+        g_thread_new(NULL, run_python_script_async, g_strdup(fl_value_to_string(script)));
+      }
+      else
+      {
+        g_thread_new(NULL, run_python_program_async, g_strdup(fl_value_to_string(app_path)));
+      }
     }
 
     response = FL_METHOD_RESPONSE(fl_method_success_response_new(fl_value_new_string("")));
@@ -156,7 +173,7 @@ static void serious_python_linux_plugin_handle_method_call(
   fl_method_call_respond(method_call, response, nullptr);
 }
 
-void run_python_script(gchar *appPath)
+void run_python_program(gchar *appPath)
 {
   Py_Initialize();
 
@@ -171,6 +188,21 @@ void run_python_script(gchar *appPath)
   }
 
   Py_Finalize();
+}
+
+void run_python_script(gchar *script)
+{
+  Py_Initialize();
+
+  PyRun_SimpleString(script);
+
+  Py_Finalize();
+}
+
+gpointer run_python_program_async(gpointer data)
+{
+  run_python_program((gchar *)data);
+  return NULL;
 }
 
 gpointer run_python_script_async(gpointer data)
