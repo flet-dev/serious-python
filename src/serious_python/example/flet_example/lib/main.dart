@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flet/flet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
 import 'package:serious_python/serious_python.dart';
 import 'package:url_strategy/url_strategy.dart';
@@ -16,9 +18,27 @@ final hideLoadingPage =
         true;
 final windowsTcpPort =
     int.tryParse("{{ cookiecutter.windows_tcp_port }}") ?? 63777;
+final windowsStdoutTcpPort =
+    int.tryParse("{{ cookiecutter.windows_tcp_port }}") ?? 63778;
 
 const pythonScript = """
-import traceback, sys
+import os, socket, sys, traceback
+
+class SocketWriter:
+    def __init__(self, socket):
+        self.socket = socket
+
+    def write(self, message):
+        self.socket.sendall(message.encode())
+
+    def flush(self):
+        pass
+
+stdout_socket_addr = os.environ.get("FLET_PYTHON_OUTPUT_SOCKET_ADDR")
+stdout_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+stdout_socket.connect(stdout_socket_addr)
+
+sys.stdout = sys.stderr =SocketWriter(stdout_socket)
 
 print("This is script!!!")
 
@@ -26,6 +46,8 @@ try:
     import {module_name}
 except Exception as e:
     traceback.print_exception(e)
+
+stdout_socket.close()
 """;
 
 // global vars
@@ -57,9 +79,11 @@ void main() async {
                       (BuildContext context, AsyncSnapshot<String?> snapshot) {
                     if (snapshot.hasData || snapshot.hasError) {
                       // error or premature finish
-                      return ErrorScreen(
-                          title: "Error running app",
-                          text: snapshot.data ?? snapshot.error.toString());
+                      return MaterialApp(
+                        home: ErrorScreen(
+                            title: "Error running app",
+                            text: snapshot.data ?? snapshot.error.toString()),
+                      );
                     } else {
                       // no result of error
                       return FletApp(
@@ -71,11 +95,13 @@ void main() async {
                   });
         } else if (snapshot.hasError) {
           // error
-          return ErrorScreen(
-              title: "Error starting app", text: snapshot.error.toString());
+          return MaterialApp(
+              home: ErrorScreen(
+                  title: "Error starting app",
+                  text: snapshot.error.toString()));
         } else {
           // loading
-          return const BlankScreen();
+          return const MaterialApp(home: BlankScreen());
         }
       }));
 }
@@ -119,15 +145,54 @@ Future prepareApp() async {
 Future<String?> runPythonApp() async {
   var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
 
-  // start socket server - TODO
+  var completer = Completer<String>();
+
+  ServerSocket outSocketServer;
+  String socketAddr = "";
+  StringBuffer stdout = StringBuffer();
+
+  if (defaultTargetPlatform == TargetPlatform.windows) {
+    var tcpAddr = "127.0.0.1";
+    var tcpPort = windowsStdoutTcpPort;
+    outSocketServer = await ServerSocket.bind(tcpAddr, tcpPort);
+    debugPrint(
+        'Python output TCP Server is listening on port ${outSocketServer.port}');
+    socketAddr = "$tcpAddr:$tcpPort";
+  } else {
+    socketAddr = "stdout.sock";
+    outSocketServer = await ServerSocket.bind(
+        InternetAddress(socketAddr, type: InternetAddressType.unix), 0);
+    debugPrint('Python output Socket Server is listening on $socketAddr');
+  }
+
+  environmentVariables["FLET_PYTHON_OUTPUT_SOCKET_ADDR"] = socketAddr;
+
+  void closeOutServer() {
+    outSocketServer.close();
+    completer.complete(stdout.toString());
+  }
+
+  outSocketServer.listen((client) {
+    debugPrint(
+        'Connection from: ${client.remoteAddress.address}:${client.remotePort}');
+    client.listen((data) {
+      var s = String.fromCharCodes(data);
+      stdout.write(s);
+    }, onError: (error) {
+      client.close();
+      closeOutServer();
+    }, onDone: () {
+      client.close();
+      closeOutServer();
+    });
+  });
 
   // run python async
   SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
       script: script, environmentVariables: environmentVariables);
 
   // wait for client connection to close
-  // TODO
-  return null;
+  return completer.future;
 }
 
 class ErrorScreen extends StatelessWidget {
@@ -138,23 +203,42 @@ class ErrorScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: SafeArea(
-            child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              SelectableText(text, style: Theme.of(context).textTheme.bodySmall)
-            ],
-          ),
-        )),
-      ),
+    return Scaffold(
+      body: SafeArea(
+          child: Container(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: text));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied to clipboard')),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.copy,
+                    size: 16,
+                  ),
+                )
+              ],
+            ),
+            Expanded(
+                child: SingleChildScrollView(
+              child: SelectableText(text,
+                  style: Theme.of(context).textTheme.bodySmall),
+            ))
+          ],
+        ),
+      )),
     );
   }
 }
@@ -166,10 +250,8 @@ class BlankScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: SizedBox.shrink(),
-      ),
+    return const Scaffold(
+      body: SizedBox.shrink(),
     );
   }
 }

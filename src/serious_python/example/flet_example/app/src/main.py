@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 print("Hello from Python!")
 
-# import aaa
+import aaa
 
 print("Hello again from Python!")
 
@@ -43,6 +43,8 @@ def main(page: ft.Page):
             alignment=ft.MainAxisAlignment.CENTER,
         ),
     )
+
+    print("This is inside main() method!")
 
 
 ft.app(main)
