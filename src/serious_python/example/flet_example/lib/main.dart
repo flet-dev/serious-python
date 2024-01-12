@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:serious_python/serious_python.dart';
+import 'package:url_strategy/url_strategy.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
 
@@ -44,23 +45,30 @@ void main() async {
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
           // OK - start Python program
-          return FutureBuilder(
-              future: runPythonApp(),
-              builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
-                if (snapshot.hasData || snapshot.hasError) {
-                  // error or premature finish
-                  return ErrorScreen(
-                      title: "Error running app",
-                      text: snapshot.data ?? snapshot.error.toString());
-                } else {
-                  // no result of error
-                  return FletApp(
-                    pageUrl: pageUrl,
-                    assetsDir: assetsDir,
-                    hideLoadingPage: hideLoadingPage,
-                  );
-                }
-              });
+          return kIsWeb
+              ? FletApp(
+                  pageUrl: pageUrl,
+                  assetsDir: assetsDir,
+                  hideLoadingPage: hideLoadingPage,
+                )
+              : FutureBuilder(
+                  future: runPythonApp(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<String?> snapshot) {
+                    if (snapshot.hasData || snapshot.hasError) {
+                      // error or premature finish
+                      return ErrorScreen(
+                          title: "Error running app",
+                          text: snapshot.data ?? snapshot.error.toString());
+                    } else {
+                      // no result of error
+                      return FletApp(
+                        pageUrl: pageUrl,
+                        assetsDir: assetsDir,
+                        hideLoadingPage: hideLoadingPage,
+                      );
+                    }
+                  });
         } else if (snapshot.hasError) {
           // error
           return ErrorScreen(
@@ -73,27 +81,36 @@ void main() async {
 }
 
 Future prepareApp() async {
-  await setupDesktop();
-
-  // extract app from asset
-  appDir = await extractAssetZip(assetPath);
-
-  // set current directory to app path
-  Directory.current = appDir;
-
-  assetsDir = path.join(appDir, "assets");
-
-  environmentVariables["FLET_PLATFORM"] =
-      defaultTargetPlatform.name.toLowerCase();
-
-  if (defaultTargetPlatform == TargetPlatform.windows) {
-    // use TCP on Windows
-    pageUrl = "tcp://localhost:$windowsTcpPort";
-    environmentVariables["FLET_SERVER_PORT"] = windowsTcpPort.toString();
+  if (kIsWeb) {
+    // web mode - connect via HTTP
+    pageUrl = Uri.base.toString();
+    var routeUrlStrategy = getFletRouteUrlStrategy();
+    if (routeUrlStrategy == "path") {
+      setPathUrlStrategy();
+    }
   } else {
-    // use UDS on other platforms
-    pageUrl = "flet.sock";
-    environmentVariables["FLET_SERVER_UDS_PATH"] = pageUrl;
+    await setupDesktop();
+
+    // extract app from asset
+    appDir = await extractAssetZip(assetPath);
+
+    // set current directory to app path
+    Directory.current = appDir;
+
+    assetsDir = path.join(appDir, "assets");
+
+    environmentVariables["FLET_PLATFORM"] =
+        defaultTargetPlatform.name.toLowerCase();
+
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      // use TCP on Windows
+      pageUrl = "tcp://localhost:$windowsTcpPort";
+      environmentVariables["FLET_SERVER_PORT"] = windowsTcpPort.toString();
+    } else {
+      // use UDS on other platforms
+      pageUrl = "flet.sock";
+      environmentVariables["FLET_SERVER_UDS_PATH"] = pageUrl;
+    }
   }
 
   return "";
@@ -103,7 +120,7 @@ Future<String?> runPythonApp() async {
   var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
 
   // start socket server - TODO
-  
+
   // run python async
   SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
       script: script, environmentVariables: environmentVariables);
