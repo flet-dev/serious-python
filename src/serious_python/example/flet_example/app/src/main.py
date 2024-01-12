@@ -5,6 +5,12 @@ from flet_core.version import version
 
 logging.basicConfig(level=logging.DEBUG)
 
+print("Hello from Python!")
+
+# import aaa
+
+print("Hello again from Python!")
+
 
 def main(page: ft.Page):
     page.title = "Flet counter example"
