@@ -35,12 +35,15 @@ class SocketWriter:
         pass
 
 stdout_socket_addr = os.environ.get("FLET_PYTHON_OUTPUT_SOCKET_ADDR")
-stdout_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-stdout_socket.connect(stdout_socket_addr)
+if ":" in stdout_socket_addr:
+    addr, port = stdout_socket_addr.split(":")
+    stdout_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    stdout_socket.connect((addr, int(port)))
+else:
+    stdout_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    stdout_socket.connect(stdout_socket_addr)
 
-sys.stdout = sys.stderr =SocketWriter(stdout_socket)
-
-print("This is script!!!")
+sys.stdout = sys.stderr = SocketWriter(stdout_socket)
 
 try:
     import {module_name}
@@ -217,17 +220,18 @@ class ErrorScreen extends StatelessWidget {
                   title,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                TextButton(
+                TextButton.icon(
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: text));
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Copied to clipboard')),
                     );
                   },
-                  child: const Icon(
+                  icon: const Icon(
                     Icons.copy,
                     size: 16,
                   ),
+                  label: const Text("Copy"),
                 )
               ],
             ),
