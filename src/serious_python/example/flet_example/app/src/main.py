@@ -7,7 +7,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 print("Hello from Python!")
 
-import aaa
+#import aaa
 
 print("Hello again from Python!")
 

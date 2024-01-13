@@ -16,10 +16,6 @@ const pythonModuleName = "main"; // {{ cookiecutter.python_module_name }}
 final hideLoadingPage =
     bool.tryParse("{{ cookiecutter.hide_loading_animation }}".toLowerCase()) ??
         true;
-final windowsTcpPort =
-    int.tryParse("{{ cookiecutter.windows_tcp_port }}") ?? 63777;
-final windowsStdoutTcpPort =
-    int.tryParse("{{ cookiecutter.windows_tcp_port }}") ?? 63778;
 
 const pythonScript = """
 import os, socket, sys, traceback
@@ -133,8 +129,9 @@ Future prepareApp() async {
 
     if (defaultTargetPlatform == TargetPlatform.windows) {
       // use TCP on Windows
-      pageUrl = "tcp://localhost:$windowsTcpPort";
-      environmentVariables["FLET_SERVER_PORT"] = windowsTcpPort.toString();
+      var tcpPort = await getUnusedPort();
+      pageUrl = "tcp://localhost:$tcpPort";
+      environmentVariables["FLET_SERVER_PORT"] = tcpPort.toString();
     } else {
       // use UDS on other platforms
       pageUrl = "flet.sock";
@@ -156,11 +153,10 @@ Future<String?> runPythonApp() async {
 
   if (defaultTargetPlatform == TargetPlatform.windows) {
     var tcpAddr = "127.0.0.1";
-    var tcpPort = windowsStdoutTcpPort;
-    outSocketServer = await ServerSocket.bind(tcpAddr, tcpPort);
+    outSocketServer = await ServerSocket.bind(tcpAddr, 0);
     debugPrint(
         'Python output TCP Server is listening on port ${outSocketServer.port}');
-    socketAddr = "$tcpAddr:$tcpPort";
+    socketAddr = "$tcpAddr:${outSocketServer.port}";
   } else {
     socketAddr = "stdout.sock";
     outSocketServer = await ServerSocket.bind(
@@ -258,4 +254,12 @@ class BlankScreen extends StatelessWidget {
       body: SizedBox.shrink(),
     );
   }
+}
+
+Future<int> getUnusedPort() {
+  return ServerSocket.bind("127.0.0.1", 0).then((socket) {
+    var port = socket.port;
+    socket.close();
+    return port;
+  });
 }
