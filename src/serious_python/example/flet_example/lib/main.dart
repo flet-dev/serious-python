@@ -16,37 +16,40 @@ const pythonModuleName = "main"; // {{ cookiecutter.python_module_name }}
 final hideLoadingPage =
     bool.tryParse("{{ cookiecutter.hide_loading_animation }}".toLowerCase()) ??
         true;
+const outLogFilename = "out.log";
+const errorExitCode = 100;
 
 const pythonScript = """
 import os, socket, sys, traceback
 
-class SocketWriter:
-    def __init__(self, socket):
-        self.socket = socket
+out_file = open("$outLogFilename", "w")
 
-    def write(self, message):
-        self.socket.sendall(message.encode())
-
-    def flush(self):
-        pass
-
-stdout_socket_addr = os.environ.get("FLET_PYTHON_OUTPUT_SOCKET_ADDR")
-if ":" in stdout_socket_addr:
-    addr, port = stdout_socket_addr.split(":")
-    stdout_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    stdout_socket.connect((addr, int(port)))
+callback_socket_addr = os.environ.get("FLET_PYTHON_CALLBACK_SOCKET_ADDR")
+if ":" in callback_socket_addr:
+    addr, port = callback_socket_addr.split(":")
+    callback_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    callback_socket.connect((addr, int(port)))
 else:
-    stdout_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    stdout_socket.connect(stdout_socket_addr)
+    callback_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    callback_socket.connect(callback_socket_addr)
 
-sys.stdout = sys.stderr = SocketWriter(stdout_socket)
+sys.stdout = sys.stderr = out_file
 
+# def flet_exit(code=0):
+#     callback_socket.sendall(str(code).encode())
+#     out_file.close()
+#     callback_socket.close()
+
+# sys.exit = flet_exit
+
+ex = None
 try:
     import {module_name}
 except Exception as e:
+    ex = e
     traceback.print_exception(e)
 
-stdout_socket.close()
+# sys.exit(0 if ex is None else $errorExitCode)
 """;
 
 // global vars
@@ -149,7 +152,7 @@ Future<String?> runPythonApp() async {
 
   ServerSocket outSocketServer;
   String socketAddr = "";
-  StringBuffer stdout = StringBuffer();
+  StringBuffer pythonOut = StringBuffer();
 
   if (defaultTargetPlatform == TargetPlatform.windows) {
     var tcpAddr = "127.0.0.1";
@@ -164,11 +167,22 @@ Future<String?> runPythonApp() async {
     debugPrint('Python output Socket Server is listening on $socketAddr');
   }
 
-  environmentVariables["FLET_PYTHON_OUTPUT_SOCKET_ADDR"] = socketAddr;
+  environmentVariables["FLET_PYTHON_CALLBACK_SOCKET_ADDR"] = socketAddr;
 
-  void closeOutServer() {
+  void closeOutServer() async {
     outSocketServer.close();
-    completer.complete(stdout.toString());
+
+    int exitCode = int.tryParse(pythonOut.toString().trim()) ?? 0;
+
+    if (exitCode == errorExitCode) {
+      var out = "";
+      if (await File(outLogFilename).exists()) {
+        out = await File(outLogFilename).readAsString();
+      }
+      completer.complete(out);
+    } else {
+      exit(exitCode);
+    }
   }
 
   outSocketServer.listen((client) {
@@ -176,7 +190,7 @@ Future<String?> runPythonApp() async {
         'Connection from: ${client.remoteAddress.address}:${client.remotePort}');
     client.listen((data) {
       var s = String.fromCharCodes(data);
-      stdout.write(s);
+      pythonOut.write(s);
     }, onError: (error) {
       client.close();
       closeOutServer();

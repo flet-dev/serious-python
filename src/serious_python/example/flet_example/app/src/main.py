@@ -1,9 +1,10 @@
 import logging
+import sys
 
 import flet as ft
 from flet_core.version import version
 
-logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.DEBUG)
 
 print("Hello from Python!")
 
@@ -19,11 +20,18 @@ def main(page: ft.Page):
     txt_number = ft.TextField(value="0", text_align=ft.TextAlign.RIGHT, width=100)
 
     def minus_click(e):
+        print("Clicked minus button")
         txt_number.value = str(int(txt_number.value) - 1)
         page.update()
 
     def plus_click(e):
         txt_number.value = str(int(txt_number.value) + 1)
+        if txt_number.value == "5":
+            with open("out.log", "r") as f:
+                l = f.read()
+            page.show_dialog(ft.AlertDialog(content=ft.Text(l)))
+            return
+            # sys.exit(100)
         page.update()
 
     page.add(
