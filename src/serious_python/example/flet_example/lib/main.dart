@@ -22,7 +22,7 @@ const errorExitCode = 100;
 const pythonScript = """
 import os, socket, sys, traceback
 
-out_file = open("$outLogFilename", "w")
+out_file = open("$outLogFilename", "w+", buffering=1)
 
 callback_socket_addr = os.environ.get("FLET_PYTHON_CALLBACK_SOCKET_ADDR")
 if ":" in callback_socket_addr:
@@ -35,12 +35,12 @@ else:
 
 sys.stdout = sys.stderr = out_file
 
-# def flet_exit(code=0):
-#     callback_socket.sendall(str(code).encode())
-#     out_file.close()
-#     callback_socket.close()
+def flet_exit(code=0):
+    callback_socket.sendall(str(code).encode())
+    out_file.close()
+    callback_socket.close()
 
-# sys.exit = flet_exit
+sys.exit = flet_exit
 
 ex = None
 try:
@@ -49,7 +49,7 @@ except Exception as e:
     ex = e
     traceback.print_exception(e)
 
-# sys.exit(0 if ex is None else $errorExitCode)
+sys.exit(0 if ex is None else $errorExitCode)
 """;
 
 // global vars

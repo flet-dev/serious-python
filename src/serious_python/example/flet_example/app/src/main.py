@@ -8,10 +8,6 @@ from flet_core.version import version
 
 print("Hello from Python!")
 
-# import aaa
-
-print("Hello again from Python!")
-
 
 def main(page: ft.Page):
     page.title = "Flet counter example"
@@ -26,12 +22,6 @@ def main(page: ft.Page):
 
     def plus_click(e):
         txt_number.value = str(int(txt_number.value) + 1)
-        if txt_number.value == "5":
-            with open("out.log", "r") as f:
-                l = f.read()
-            page.show_dialog(ft.AlertDialog(content=ft.Text(l)))
-            return
-            # sys.exit(100)
         page.update()
 
     page.add(
