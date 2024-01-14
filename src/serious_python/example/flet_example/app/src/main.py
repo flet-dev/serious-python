@@ -7,6 +7,9 @@ from flet_core.version import version
 # logging.basicConfig(level=logging.DEBUG)
 
 print("Hello from Python!")
+print(__name__)
+
+# import aaa
 
 
 def main(page: ft.Page):
@@ -37,7 +40,10 @@ def main(page: ft.Page):
             expand=True,
         ),
         ft.Row(
-            [ft.Text(f"Flet version: {version}")],
+            [
+                ft.Text(f"Flet version: {version}"),
+                ft.OutlinedButton("Exit app", on_click=lambda _: sys.exit(100)),
+            ],
             alignment=ft.MainAxisAlignment.CENTER,
         ),
     )
@@ -45,4 +51,5 @@ def main(page: ft.Page):
     print("This is inside main() method!")
 
 
-ft.app(main)
+if __name__ == "__main__":
+    ft.app(main)

@@ -20,7 +20,7 @@ const outLogFilename = "out.log";
 const errorExitCode = 100;
 
 const pythonScript = """
-import os, socket, sys, traceback
+import os, runpy, socket, sys, traceback
 
 out_file = open("$outLogFilename", "w+", buffering=1)
 
@@ -44,7 +44,7 @@ sys.exit = flet_exit
 
 ex = None
 try:
-    import {module_name}
+    runpy.run_module("{module_name}", run_name="__main__")
 except Exception as e:
     ex = e
     traceback.print_exception(e)
