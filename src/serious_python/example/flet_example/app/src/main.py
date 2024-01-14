@@ -1,5 +1,6 @@
 import logging
 import sys
+import urllib.request
 
 import flet as ft
 from flet_core.version import version
@@ -27,6 +28,15 @@ def main(page: ft.Page):
         txt_number.value = str(int(txt_number.value) + 1)
         page.update()
 
+    def check_ssl(e):
+        try:
+            with urllib.request.urlopen("https://google.com") as res:
+                result = "OK"
+        except Exception as ex:
+            result = str(ex)
+        page.show_dialog(ft.AlertDialog(content=ft.Text(result)))
+        # print(result)
+
     page.add(
         ft.Row(
             [
@@ -42,6 +52,7 @@ def main(page: ft.Page):
         ft.Row(
             [
                 ft.Text(f"Flet version: {version}"),
+                ft.OutlinedButton("Check SSL", on_click=check_ssl),
                 ft.OutlinedButton("Exit app", on_click=lambda _: sys.exit(100)),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
