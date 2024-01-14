@@ -55,6 +55,7 @@ def main(page: ft.Page):
                 ft.OutlinedButton("Check SSL", on_click=check_ssl),
                 ft.OutlinedButton("Exit app", on_click=lambda _: sys.exit(100)),
             ],
+            wrap=True,
             alignment=ft.MainAxisAlignment.CENTER,
         ),
     )
