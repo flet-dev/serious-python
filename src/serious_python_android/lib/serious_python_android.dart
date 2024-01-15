@@ -29,7 +29,8 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
 
   @override
   Future<String?> run(String appPath,
-      {List<String>? modulePaths,
+      {String? script,
+      List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
     Future setenv(String key, String value) async {
@@ -80,8 +81,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       }
     }
 
-    runPythonProgramFFI(sync ?? false, "libpython3.11.so", appPath);
-
-    return null;
+    return runPythonProgramFFI(
+        sync ?? false, "libpython3.11.so", appPath, script ?? "");
   }
 }

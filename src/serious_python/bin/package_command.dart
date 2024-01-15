@@ -26,6 +26,7 @@ const webJunkFileExtensions = [
   ".dll"
 ];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
+const tomlIgnoredDeps = ["python"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
@@ -158,10 +159,42 @@ class PackageCommand extends Command {
           if (depSection is List) {
             dependencies = depSection.map((e) => e.toString()).toList();
           } else {
-            stdout.writeln(
-                "Warning: [dependencies] section of map type is not yet supported.");
-            // dependencies = List<String>.from(
-            //     depSection.keys.map((key) => '$key=${depSection[key]}'));
+            dependencies = List<String>.from(depSection.keys.map((key) {
+              if (tomlIgnoredDeps.contains(key)) {
+                return "";
+              }
+              var value = depSection[key];
+              var version = "";
+              var suffix = "";
+              if (value is Map) {
+                version = value["version"];
+                if (value["python"] != null) {
+                  suffix = ";python_version=='${value["python"]}'"
+                      .replaceAll("=='^", ">='")
+                      .replaceAll("=='~", "~='")
+                      .replaceAll("=='<", "<'")
+                      .replaceAll("=='>", ">'")
+                      .replaceAll("=='<=", "<='")
+                      .replaceAll("=='>=", ">='");
+                } else if (value["markers"] != null) {
+                  suffix = ";${value["markers"]}";
+                }
+              } else if (value is String) {
+                version = value;
+              }
+              var sep = "==";
+              if (version.startsWith("^")) {
+                sep = ">=";
+                version = version.replaceAll("^", "");
+              } else if (version.startsWith("~")) {
+                sep = "~=";
+                version = version.replaceAll("~", "");
+              } else if (version.contains(">") || version.contains("<")) {
+                sep = "";
+                version = version.replaceAll(" ", "");
+              }
+              return "$key$sep$version$suffix";
+            })).where((s) => s != "").toList();
           }
         }
       }
@@ -177,7 +210,8 @@ class PackageCommand extends Command {
             exit(3);
           }
           dependencies = dependencies
-              .map((d) => d.replaceAllMapped(RegExp(mapping[0] + r'(\W{1,}|$)'),
+              .map((d) => d.replaceAllMapped(
+                  RegExp(mapping[0] + r'([><=]{1,}|$)'),
                   (match) => '${mapping[1]}${match.group(1)}'))
               .toList();
         }
@@ -198,6 +232,9 @@ class PackageCommand extends Command {
           }
         }
       }
+
+      // stdout.writeln(dependencies);
+      // exit(1);
 
       List<String> extraArgs = [];
       if (pre) {

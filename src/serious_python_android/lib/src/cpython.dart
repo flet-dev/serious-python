@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
@@ -16,43 +16,32 @@ CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
 }
 
-Future<Isolate?> runPythonProgramFFI(
-    bool sync, String dynamicLibPath, String pythonProgramPath) async {
+Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
+    String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
-    runPythonProgramInIsolate([
-      receivePort.sendPort,
-      dynamicLibPath,
-      pythonProgramPath,
-    ]);
-    return null;
+    return await runPythonProgramInIsolate(
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
   } else {
+    var completer = Completer<String>();
     // async run
-    final isolate = await Isolate.spawn(runPythonProgramInIsolate, [
-      receivePort.sendPort,
-      dynamicLibPath,
-      pythonProgramPath,
-    ]);
+    final isolate = await Isolate.spawn(runPythonProgramInIsolate,
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
     receivePort.listen((message) {
-      debugPrint(message);
       receivePort.close();
       isolate.kill();
-
-      var out = File("out.txt");
-      if (out.existsSync()) {
-        var r = out.readAsStringSync();
-        debugPrint("Result from out.txt: $r");
-      }
+      completer.complete(message);
     });
-    return isolate;
+    return completer.future;
   }
 }
 
-void runPythonProgramInIsolate(List<Object> arguments) async {
+Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   final sendPort = arguments[0] as SendPort;
   final dynamicLibPath = arguments[1] as String;
   final pythonProgramPath = arguments[2] as String;
+  final script = arguments[3] as String;
 
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
@@ -63,31 +52,33 @@ void runPythonProgramInIsolate(List<Object> arguments) async {
 
   final cpython = getCPython(dynamicLibPath);
   cpython.Py_Initialize();
+  debugPrint("after Py_Initialize()");
 
-  // run user program
-  final moduleNamePtr = programModuleName.toNativeUtf8();
-  var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+  var result = "";
 
-  var result = "Python program exited";
-  if (modulePtr == nullptr) {
-    // final pType =
-    //     calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
-    // final pValue =
-    //     calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
-    // final pTrace =
-    //     calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
-    // cpython.PyErr_Fetch(pType, pValue, pTrace);
-    // cpython.PyErr_NormalizeException(pType, pValue, pTrace);
-    // cpython.PyErr_Display(pType.value, pValue.value, pTrace.value);
-    result = "Error running Python program";
+  if (script != "") {
+    // run script
+    final scriptPtr = script.toNativeUtf8();
+    int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+    debugPrint("PyRun_SimpleString for script result: $sr");
+    malloc.free(scriptPtr);
+    if (sr != 0) {
+      result = "Error running Python script";
+    }
+  } else {
+    // run program
+    final moduleNamePtr = programModuleName.toNativeUtf8();
+    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+    if (modulePtr == nullptr) {
+      result = "Error running Python program";
+    }
+    malloc.free(moduleNamePtr);
   }
 
-  // final pythonCodePtr = pythonCode.toNativeUtf8();
-  // int r = dartpyc.PyRun_SimpleString(pythonCodePtr.cast<Char>());
-  // debugPrint("PyRun_SimpleString result: $r");
-  // malloc.free(pythonCodePtr);
-
   cpython.Py_Finalize();
-  debugPrint("after Py_Finalize");
+  debugPrint("after Py_Finalize()");
+
   sendPort.send(result);
+
+  return result;
 }

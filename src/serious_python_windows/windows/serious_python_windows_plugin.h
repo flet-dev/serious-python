@@ -27,8 +27,11 @@ namespace serious_python_windows
             const flutter::MethodCall<flutter::EncodableValue> &method_call,
             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
-        void RunPythonScript(std::string appPath);
-        void RunPythonScriptAsync(std::string appPath);
+        void RunPythonProgram(std::string appPath);
+        void RunPythonProgramAsync(std::string appPath);
+
+        void RunPythonScript(std::string script);
+        void RunPythonScriptAsync(std::string script);
     };
 
 } // namespace serious_python_windows

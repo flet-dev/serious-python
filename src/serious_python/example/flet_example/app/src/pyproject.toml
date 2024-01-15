@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "my_project"
+version = "0.1.0"
+description = "My Project"
+authors = ["Author <author@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "my_project"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+flet = "^0.18.0"
+flet-contrib = { "version" = "~2023.8.18", markers = "python_version <= '3.4' or sys_platform == 'win32'" }
+flask = { "version" = ">=2.2.5, <3.0", python = "^3.2" }
+
+[tool.poetry.group.dev.dependencies]
+uvicorn = "^0.25.0"
+flet-fastapi = "^0.18.0"
+gunicorn = "^21.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

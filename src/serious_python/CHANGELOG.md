@@ -1,3 +1,9 @@
+## 0.7.0
+
+* `runPython()` method to support running Python script.
+* Updated `flet_example` to catch program output and errors, `sys.exit()` support.
+* `package` command to read dependencies from `pyproject.toml`.
+
 ## 0.6.1
 
 * `--exclude` option for `package` command - to exclude directories and files from Python app package.
