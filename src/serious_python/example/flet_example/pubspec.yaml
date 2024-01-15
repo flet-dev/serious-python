@@ -67,3 +67,4 @@ flutter:
 
   assets:
     - app/app.zip
+    - app/app.zip.hash

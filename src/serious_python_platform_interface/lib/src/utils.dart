@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 Future<String> extractAssetOrFile(String path,
-    {bool isAsset = true, String? targetPath}) async {
+    {bool isAsset = true, String? targetPath, bool checkHash = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
@@ -22,14 +22,33 @@ Future<String> extractAssetOrFile(String path,
       "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
       targetPath ?? p.dirname(path)));
 
+  String assetHash = "";
+  String destHash = "";
+  var hashFile = File(p.join(destDir.path, ".hash"));
+
   // re-create dir
   if (await destDir.exists()) {
     if (kDebugMode) {
       // always re-create in debug mode
       await destDir.delete(recursive: true);
     } else {
-      debugPrint("Application archive already unpacked.");
-      return destDir.path;
+      if (checkHash) {
+        // read asset hash from asset
+        try {
+          assetHash = (await rootBundle.loadString("$path.hash")).trim();
+          // ignore: empty_catches
+        } catch (e) {}
+        if (await hashFile.exists()) {
+          destHash = (await hashFile.readAsString()).trim();
+        }
+      }
+
+      if (assetHash != destHash) {
+        await destDir.delete(recursive: true);
+      } else {
+        debugPrint("Application archive already unpacked.");
+        return destDir.path;
+      }
     }
   }
   await destDir.create(recursive: true);
@@ -61,16 +80,24 @@ Future<String> extractAssetOrFile(String path,
     }
   }
 
+  if (checkHash) {
+    await hashFile.writeAsString(assetHash);
+  }
+
   debugPrint("Finished unpacking application archive.");
   return destDir.path;
 }
 
-Future<String> extractAssetZip(String assetPath, {String? targetPath}) async {
-  return extractAssetOrFile(assetPath, targetPath: targetPath);
+Future<String> extractAssetZip(String assetPath,
+    {String? targetPath, bool checkHash = false}) async {
+  return extractAssetOrFile(assetPath,
+      targetPath: targetPath, checkHash: checkHash);
 }
 
-Future<String> extractFileZip(String filePath, {String? targetPath}) async {
-  return extractAssetOrFile(filePath, isAsset: false, targetPath: targetPath);
+Future<String> extractFileZip(String filePath,
+    {String? targetPath, bool checkHash = false}) async {
+  return extractAssetOrFile(filePath,
+      isAsset: false, targetPath: targetPath, checkHash: checkHash);
 }
 
 Future<String> extractAsset(String assetPath) async {

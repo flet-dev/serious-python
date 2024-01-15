@@ -135,7 +135,7 @@ Future prepareApp() async {
     await setupDesktop();
 
     // extract app from asset
-    appDir = await extractAssetZip(assetPath);
+    appDir = await extractAssetZip(assetPath, checkHash: true);
 
     // set current directory to app path
     Directory.current = appDir;
