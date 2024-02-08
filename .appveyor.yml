@@ -137,26 +137,26 @@ for:
       - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/arm64-v8a
-      - cd -
+      - cd $APPVEYOR_BUILD_FOLDER
 
       # armeabi-v7a
       - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/armeabi-v7a
-      - cd -
+      - cd $APPVEYOR_BUILD_FOLDER
 
       # armeabi-v7a
       - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/x86_64
-      - cd -
+      - cd $APPVEYOR_BUILD_FOLDER
 
       # package all .so files
       - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
       - cd ~/.local/share/python-for-android/dists/serious_python/libs
       - tar -czvf $DIST_FILE_NAME *
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
-      - cd -
+      - cd $APPVEYOR_BUILD_FOLDER
 
     deploy:
       provider: GitHub
@@ -384,53 +384,53 @@ for:
 
             cd src/serious_python_platform_interface
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_android
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_darwin
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_windows
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_linux
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python
             dart pub publish --force || exit 1
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
 
             cd src/serious_python_platform_interface
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_android
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_darwin
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_windows
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python_linux
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
 
             cd src/serious_python
             dart pub publish --dry-run
-            cd -
+            cd $APPVEYOR_BUILD_FOLDER
           fi
 
     test: off
