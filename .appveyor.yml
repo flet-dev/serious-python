@@ -134,29 +134,29 @@ for:
       - BUNDLE_NAME=libpythonbundle.so
 
       # arm64-v8a
-      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
+      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/arm64-v8a
-      - popd
+      - cd -
 
       # armeabi-v7a
-      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
+      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/armeabi-v7a
-      - popd
+      - cd -
 
       # armeabi-v7a
-      - pushd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
+      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
       - zip -r $BUNDLE_NAME .
       - mv $BUNDLE_NAME ../../libs/x86_64
-      - popd
+      - cd -
 
       # package all .so files
       - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      - pushd ~/.local/share/python-for-android/dists/serious_python/libs
+      - cd ~/.local/share/python-for-android/dists/serious_python/libs
       - tar -czvf $DIST_FILE_NAME *
       - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
-      - popd
+      - cd -
 
     deploy:
       provider: GitHub
@@ -382,55 +382,55 @@ for:
             python3 ci/patch_pubspec.py src/serious_python_windows/pubspec.yaml $PKG_VER
             python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
 
-            pushd src/serious_python_platform_interface
+            cd src/serious_python_platform_interface
             dart pub publish --force || exit 1
-            popd
+            cd -
 
-            pushd src/serious_python_android
+            cd src/serious_python_android
             dart pub publish --force || exit 1
-            popd
+            cd -
 
-            pushd src/serious_python_darwin
+            cd src/serious_python_darwin
             dart pub publish --force || exit 1
-            popd
+            cd -
 
-            pushd src/serious_python_windows
+            cd src/serious_python_windows
             dart pub publish --force || exit 1
-            popd
+            cd -
 
-            pushd src/serious_python_linux
+            cd src/serious_python_linux
             dart pub publish --force || exit 1
-            popd
+            cd -
 
-            pushd src/serious_python
+            cd src/serious_python
             dart pub publish --force || exit 1
-            popd
+            cd -
 
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
 
-            pushd src/serious_python_platform_interface
+            cd src/serious_python_platform_interface
             dart pub publish --dry-run
-            popd
+            cd -
 
-            pushd src/serious_python_android
+            cd src/serious_python_android
             dart pub publish --dry-run
-            popd
+            cd -
 
-            pushd src/serious_python_darwin
+            cd src/serious_python_darwin
             dart pub publish --dry-run
-            popd
+            cd -
 
-            pushd src/serious_python_windows
+            cd src/serious_python_windows
             dart pub publish --dry-run
-            popd
+            cd -
 
-            pushd src/serious_python_linux
+            cd src/serious_python_linux
             dart pub publish --dry-run
-            popd
+            cd -
 
-            pushd src/serious_python
+            cd src/serious_python
             dart pub publish --dry-run
-            popd
+            cd -
           fi
 
     test: off
