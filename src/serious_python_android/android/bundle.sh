@@ -14,22 +14,22 @@ rm -rf $JNI_LIBS_DIR
 mkdir -p $JNI_LIBS_DIR
 
 echo "Bundling arm64-v8a"
-pushd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__arm64-v8a/_python_bundle
+cd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__arm64-v8a/_python_bundle
 zip -r $BUNDLE_NAME . > /dev/null
 mv $BUNDLE_NAME ../../libs/arm64-v8a
-popd
+cd -
 
 echo "Bundling armeabi-v7a"
-pushd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__armeabi-v7a/_python_bundle
+cd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__armeabi-v7a/_python_bundle
 zip -r $BUNDLE_NAME . > /dev/null
 mv $BUNDLE_NAME ../../libs/armeabi-v7a
-popd
+cd -
 
 echo "Bundling armeabi-v7a"
-pushd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__x86_64/_python_bundle
+cd $SERIOUS_PYTHON_P4A_DIST/_python_bundle__x86_64/_python_bundle
 zip -r $BUNDLE_NAME . > /dev/null
 mv $BUNDLE_NAME ../../libs/x86_64
-popd
+cd -
 
 echo "Copying all .so files to `realpath $JNI_LIBS_DIR`"
 cp -R $SERIOUS_PYTHON_P4A_DIST/libs/* $JNI_LIBS_DIR

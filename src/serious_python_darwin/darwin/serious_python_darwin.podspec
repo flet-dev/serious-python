@@ -62,33 +62,33 @@ Pod::Spec.new do |s|
     cp #{python_framework}/ios-arm64/Headers/module.modulemap #{python_macos_framework}/macos-arm64_x86_64/Headers
 
     # compile dist_macos/python-stdlib
-    pushd dist_macos/python-stdlib
+    cd dist_macos/python-stdlib
     $ROOT/dist/hostpython3/bin/python -m compileall -b .
     find . \\( -name '*.py' -or -name '*.typed' \\) -type f -delete
     rm -rf __pycache__
     rm -rf **/__pycache__
-    popd
+    cd -
 
     # compile python311.zip
     PYTHON311_ZIP=$ROOT/dist/root/python3/lib/python311.zip
     unzip $PYTHON311_ZIP -d python311_temp
     rm $PYTHON311_ZIP
-    pushd python311_temp
+    cd python311_temp
     $ROOT/dist/hostpython3/bin/python -m compileall -b .
     find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
     zip -r $PYTHON311_ZIP .
-    popd
+    cd -
     rm -rf python311_temp
 
     # fix import subprocess, asyncio
     cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.11/site-packages
 
     # zip site-packages
-    pushd dist/root/python3/lib/python3.11/site-packages
+    cd dist/root/python3/lib/python3.11/site-packages
     $ROOT/dist/hostpython3/bin/python -m compileall -b .
     find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
     zip -r $ROOT/dist/root/python3/lib/site-packages.zip .
-    popd
+    cd -
   
     # remove junk
     rm -rf dist/root/python3/lib/python3.11
