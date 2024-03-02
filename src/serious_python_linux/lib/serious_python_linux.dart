@@ -30,11 +30,13 @@ class SeriousPythonLinux extends SeriousPythonPlatform {
     final Map<String, dynamic> arguments = {
       'exePath': Platform.resolvedExecutable,
       'appPath': appPath,
-      'script': script,
       'modulePaths': modulePaths,
       'environmentVariables': environmentVariables,
       'sync': sync
     };
+    if (script != null) {
+      arguments['script'] = script;
+    }
     return await methodChannel.invokeMethod<String>('runPython', arguments);
   }
 }
