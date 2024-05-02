@@ -129,19 +129,31 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
 
           debugPrint("AFTER CALL OBJECT");
 
-          var pStack = cpython.PyObject_Str(pythVal);
-          var stack =
-              cpython.PyUnicode_AsUTF8(pStack).cast<Utf8>().toDartString();
-          debugPrint("Stack: $stack");
+          //var pStackList = cpython.PyObject_Str(pythVal);
+          var exLines = [];
+          var listSize = cpython.PyList_Size(pythVal);
+          debugPrint("List size: $listSize");
+          for (var i = 0; i < listSize; i++) {
+            var itemObj = cpython.PyList_GetItem(pythVal, i);
+            var itemObjStr = cpython.PyObject_Str(itemObj);
+            var s = cpython.PyUnicode_AsUTF8(itemObjStr)
+                .cast<Utf8>()
+                .toDartString();
+            exLines.add(s);
+          }
+          result = exLines.join("");
+          // var stack =
+          //     cpython.PyUnicode_AsUTF8(pStack).cast<Utf8>().toDartString();
+          // debugPrint("Stack: $stack");
         }
+      } else {
+        result = "Error loading traceback module";
       }
 
       // debugPrint("Type: $type");
       // debugPrint("Value: $value");
       debugPrint("Trace: $trace");
       debugPrint("Ex: $ex");
-
-      result = "Error running Python program";
     }
     malloc.free(moduleNamePtr);
   }
