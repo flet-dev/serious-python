@@ -70,6 +70,31 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     final moduleNamePtr = programModuleName.toNativeUtf8();
     var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
     if (modulePtr == nullptr) {
+      final pType =
+          calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+      final pValue =
+          calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+      final pTrace =
+          calloc.allocate<Pointer<PyObject>>(sizeOf<Pointer<PyObject>>());
+
+      // https://stackoverflow.com/questions/1796510/accessing-a-python-traceback-from-the-c-api
+      cpython.PyErr_Fetch(pType, pValue, pTrace);
+
+      var pTypeStr = cpython.PyObject_Str(pType.value);
+      var type = cpython.PyUnicode_AsUTF8(pTypeStr).cast<Utf8>().toDartString();
+
+      var pValueStr = cpython.PyObject_Str(pValue.value);
+      var value =
+          cpython.PyUnicode_AsUTF8(pValueStr).cast<Utf8>().toDartString();
+
+      var pTraceStr = cpython.PyObject_Str(pTrace.value);
+      var trace =
+          cpython.PyUnicode_AsUTF8(pTraceStr).cast<Utf8>().toDartString();
+
+      debugPrint("Type: $type");
+      debugPrint("Value: $value");
+      debugPrint("Trace: $trace");
+
       result = "Error running Python program";
     }
     malloc.free(moduleNamePtr);

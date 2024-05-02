@@ -82,6 +82,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     }
 
     return runPythonProgramFFI(
-        sync ?? false, "libpython3.11.so", appPath, script ?? "");
+        sync ?? false, "libpython3.12.so", appPath, script ?? "");
   }
 }
