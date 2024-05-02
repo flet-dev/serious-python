@@ -63,58 +63,16 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     debugPrint("PyRun_SimpleString for script result: $sr");
     malloc.free(scriptPtr);
     if (sr != 0) {
-      result = "Error running Python script";
+      result = getPythonError(cpython);
     }
   } else {
     // run program
     final moduleNamePtr = programModuleName.toNativeUtf8();
     var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
     if (modulePtr == nullptr) {
-      // get error object
-      var exPtr = cpython.PyErr_GetRaisedException();
-
-      // use 'traceback' module to format exception
-      final tracebackModuleNamePtr = "traceback".toNativeUtf8();
-      var tracebackModulePtr =
-          cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
-      cpython.Py_DecRef(tracebackModuleNamePtr.cast());
-
-      if (tracebackModulePtr != nullptr) {
-        //debugPrint("Traceback module loaded");
-
-        final formatFuncName = "format_exception".toNativeUtf8();
-        final pFormatFunc = cpython.PyObject_GetAttrString(
-            tracebackModulePtr, formatFuncName.cast());
-        cpython.Py_DecRef(tracebackModuleNamePtr.cast());
-
-        if (pFormatFunc != nullptr &&
-            cpython.PyCallable_Check(pFormatFunc) != 0) {
-          // call `traceback.format_exception()` method
-          final pArgs = cpython.PyTuple_New(1);
-          cpython.PyTuple_SetItem(pArgs, 0, exPtr);
-
-          // result is a list
-          var listPtr = cpython.PyObject_CallObject(pFormatFunc, pArgs);
-
-          // get and combine list items
-          var exLines = [];
-          var listSize = cpython.PyList_Size(listPtr);
-          for (var i = 0; i < listSize; i++) {
-            var itemObj = cpython.PyList_GetItem(listPtr, i);
-            var itemObjStr = cpython.PyObject_Str(itemObj);
-            var s = cpython.PyUnicode_AsUTF8(itemObjStr)
-                .cast<Utf8>()
-                .toDartString();
-            exLines.add(s);
-          }
-          result = exLines.join("");
-        }
-      } else {
-        result = "Error loading traceback module";
-      }
+      result = getPythonError(cpython);
     }
     malloc.free(moduleNamePtr);
-    //malloc.free(modulePtr);
   }
 
   cpython.Py_Finalize();
@@ -123,4 +81,49 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   sendPort.send(result);
 
   return result;
+}
+
+String getPythonError(CPython cpython) {
+  // get error object
+  var exPtr = cpython.PyErr_GetRaisedException();
+
+  // use 'traceback' module to format exception
+  final tracebackModuleNamePtr = "traceback".toNativeUtf8();
+  var tracebackModulePtr =
+      cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
+  cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+
+  if (tracebackModulePtr != nullptr) {
+    //debugPrint("Traceback module loaded");
+
+    final formatFuncName = "format_exception".toNativeUtf8();
+    final pFormatFunc = cpython.PyObject_GetAttrString(
+        tracebackModulePtr, formatFuncName.cast());
+    cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+
+    if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
+      // call `traceback.format_exception()` method
+      final pArgs = cpython.PyTuple_New(1);
+      cpython.PyTuple_SetItem(pArgs, 0, exPtr);
+
+      // result is a list
+      var listPtr = cpython.PyObject_CallObject(pFormatFunc, pArgs);
+
+      // get and combine list items
+      var exLines = [];
+      var listSize = cpython.PyList_Size(listPtr);
+      for (var i = 0; i < listSize; i++) {
+        var itemObj = cpython.PyList_GetItem(listPtr, i);
+        var itemObjStr = cpython.PyObject_Str(itemObj);
+        var s =
+            cpython.PyUnicode_AsUTF8(itemObjStr).cast<Utf8>().toDartString();
+        exLines.add(s);
+      }
+      return exLines.join("");
+    } else {
+      return "traceback.format_exception() method not found.";
+    }
+  } else {
+    return "Error loading traceback module.";
+  }
 }
