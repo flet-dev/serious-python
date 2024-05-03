@@ -5,6 +5,8 @@ install_root=${1:?}
 python_version=${2:?}
 abi=${3:?}
 
+script_dir=$(dirname $(realpath $0))
+
 # build short Python version
 read python_version_major python_version_minor < <(echo $python_version | sed -E 's/^([0-9]+)\.([0-9]+).*/\1 \2/')
 python_version_short=$python_version_major.$python_version_minor
@@ -14,7 +16,7 @@ dist=dist/python-$python_version_short/$abi
 rm -rf $dist
 mkdir -p $dist
 dist_dir=$(realpath $dist)
-rsync -av --exclude-from=python-android-distro.exclude $install_root/android/$abi/python-$python_version_short/* $dist_dir
+rsync -av --exclude-from=$script_dir/python-android-distro.exclude $install_root/android/$abi/python-$python_version_short/* $dist_dir
 
 # create libpythonbundle.so
 bundle_dir=$dist_dir/libpythonbundle
