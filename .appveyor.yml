@@ -88,10 +88,13 @@ for:
           }
           Update-AppveyorBuild -Version $v
 
-      # get python-mobile repo
+    build_script:
+      # use python-mobile repo to build Python for Android
       - git clone -q --branch=main https://github.com/flet-dev/python-mobile.git
       - ./python-mobile/build.sh $PYTHON_VERSION $ANDROID_ABI
       - ./ci/package-python-for-android.sh python-mobile/install $PYTHON_VERSION $ANDROID_ABI
+
+    test: off
 
     artifacts:
       - path: dist/*.tar.gz
