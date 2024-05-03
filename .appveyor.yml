@@ -3,54 +3,105 @@ image: macos-monterey
 skip_branch_with_pr: true
 
 environment:
-  PYTHON_STACK: python 3.10
+  PYTHON_VERSION: 3.12
   FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    - job_name: Build Python for iOS
-      job_group: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-
-    - job_name: Build Python for Android
+    - job_name: Build Python for Android - arm64-v8a
       job_group: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      ANDROID_ABI: arm64-v8a
 
-    - job_name: Test on macOS
-      job_group: test_serious_python
-      job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Build Python for Android - armeabi-v7a
+    #   job_group: build_python_android
+    #   ANDROID_ABI: armeabi-v7a
 
-    - job_name: Test on iOS
-      job_group: test_serious_python
-      job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    # - job_name: Build Python for Android - x86_64
+    #   job_group: build_python_android
+    #   ANDROID_ABI: x86_64
 
-    - job_name: Test on Android
-      job_group: test_serious_python
-      job_depends_on: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+    # - job_name: Build Python for Android - x86
+    #   job_group: build_python_android
+    #   ANDROID_ABI: x86
 
-    - job_name: Test on Windows
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    # - job_name: Build Python for iOS
+    #   job_group: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Test on Linux
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    # - job_name: Test on macOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Test on Linux ARM64
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+    # - job_name: Test on iOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Publish serious_python package to pub.dev
-      job_group: publish_package
-      job_depends_on: build_python, test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+    # - job_name: Test on Android
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_android
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+
+    # - job_name: Test on Windows
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+
+    # - job_name: Test on Linux
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+
+    # - job_name: Test on Linux ARM64
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+
+    # - job_name: Publish serious_python package to pub.dev
+    #   job_group: publish_package
+    #   job_depends_on: build_python, test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
-- $PYTHON_STACK
+- python $PYTHON_VERSION
+
+  # ======================================
+  #      Build Python for Android
+  # ======================================
+
+  - matrix:
+      only:
+        - job_group: build_python_android
+
+    environment:
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+      NDK_VERSION: r26d
+
+    install:
+      # update build version
+      - ps: |
+          if ($env:APPVEYOR_REPO_TAG_NAME) {
+            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
+          } else {
+            $cv = [version](git describe --abbrev=0).substring(1)
+            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
+          }
+          Update-AppveyorBuild -Version $v
+
+      # get python-mobile repo
+      - git clone -q --branch=main https://github.com/flet-dev/python-mobile.git
+      - ./python-mobile/build.sh $PYTHON_VERSION $ANDROID_ABI
+      - ./ci/package-python-for-android.sh python-mobile/install $PYTHON_VERSION $ANDROID_ABI
+
+    artifacts:
+      - path: dist/*.tar.gz
+
+    deploy:
+      provider: GitHub
+      auth_token: $(GITHUB_TOKEN)
+      release: $(APPVEYOR_REPO_TAG_NAME)
+      artifact: python-dist-android
+      on:
+        APPVEYOR_REPO_TAG: true
 
 for:
   # ======================================
@@ -97,74 +148,6 @@ for:
         APPVEYOR_REPO_TAG: true
 
     test: off
-
-  # ======================================
-  #      Build Python for Android
-  # ======================================
-
-  - matrix:
-      only:
-        - job_name: Build Python for Android
-
-    install:
-      # update build version
-      - ps: |
-          if ($env:APPVEYOR_REPO_TAG_NAME) {
-            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
-          } else {
-            $cv = [version](git describe --abbrev=0).substring(1)
-            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
-          }
-          Update-AppveyorBuild -Version $v
-
-      # install NDK
-      - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
-      - export NDK_VERSION=25.2.9519653
-      - export SDK_VERSION=android-33
-      - echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3 > /dev/null
-      - echo "y" | sdkmanager --install "platforms;$SDK_VERSION" > /dev/null
-
-      # install Kivy for Android
-      - pip3 install git+https://github.com/flet-dev/python-for-android.git@3.11.6
-      - pip3 install --upgrade cython
-      - p4a --help
-      - p4a create --requirements python3 --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
-
-      # package
-      - BUNDLE_NAME=libpythonbundle.so
-
-      # arm64-v8a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/arm64-v8a
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # armeabi-v7a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/armeabi-v7a
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # armeabi-v7a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/x86_64
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # package all .so files
-      - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      - cd ~/.local/share/python-for-android/dists/serious_python/libs
-      - tar -czvf $DIST_FILE_NAME *
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
-      - cd $APPVEYOR_BUILD_FOLDER
-
-    deploy:
-      provider: GitHub
-      auth_token: $(GITHUB_TOKEN)
-      release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist-android
-      on:
-        APPVEYOR_REPO_TAG: true
 
   # ======================================
   #      Test on macOS
