@@ -64,6 +64,7 @@ environment:
 stack:
 - python $PYTHON_VERSION
 
+for:
   # ======================================
   #      Build Python for Android
   # ======================================
@@ -103,7 +104,6 @@ stack:
       on:
         APPVEYOR_REPO_TAG: true
 
-for:
   # ======================================
   #      Build Python for iOS
   # ======================================
