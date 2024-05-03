@@ -93,11 +93,9 @@ for:
       - git clone -q --branch=main https://github.com/flet-dev/python-mobile.git
       - ./python-mobile/build.sh $PYTHON_VERSION $ANDROID_ABI
       - ./ci/package-python-for-android.sh python-mobile/install $PYTHON_VERSION $ANDROID_ABI
+      - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact {} \;
 
     test: off
-
-    artifacts:
-      - path: dist/*.tar.gz
 
     deploy:
       provider: GitHub
