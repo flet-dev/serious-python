@@ -21,10 +21,6 @@ environment:
       job_group: build_python_android
       ANDROID_ABI: x86_64
 
-    - job_name: Build Python for Android - x86
-      job_group: build_python_android
-      ANDROID_ABI: x86
-
     # - job_name: Build Python for iOS
     #   job_group: build_python_darwin
     #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
