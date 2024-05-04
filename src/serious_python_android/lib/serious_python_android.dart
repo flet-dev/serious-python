@@ -62,7 +62,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       ...?modulePaths,
       "$pythonLibPath/modules",
       "$pythonLibPath/site-packages",
-      "$pythonLibPath/stdlib.zip"
+      "$pythonLibPath/stdlib"
     ];
 
     setenv("PYTHONINSPECT", "1");
