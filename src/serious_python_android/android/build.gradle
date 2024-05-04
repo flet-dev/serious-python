@@ -71,16 +71,6 @@ android {
 
 import de.undercouch.gradle.tasks.download.Download
 
-task downloadDistArchive(type: Download) {
-    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.tar.gz"
-    dest new File(buildDir, "python-android-dist-v${version}.tar.gz")
-}
-
-task untarFile(dependsOn: downloadDistArchive, type: Copy) {
-    from tarTree(downloadDistArchive.dest)
-    into 'src/main/jniLibs'
-}
-
 task copyCustomDist(type: Exec) {
     workingDir '.'
     commandLine 'sh', 'bundle.sh'
@@ -94,12 +84,29 @@ task copyBuildDist(type: Copy) {
     }
 }
 
-if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
-    task copyOrUntar(dependsOn: 'copyCustomDist')
-} else if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
+// Loop through abiFilters
+def untarTasks = []
+android.defaultConfig.ndk.abiFilters.each { abi ->
+    def downloadTask = "downloadDistArchive_$abi"
+    untarTasks.add(downloadTask)
+
+    tasks.register(downloadTask, Download) {
+        src "https://github.com/flet-dev/serious-python/releases/download/v0.1.0/python-3.12-android-${abi}.tar.gz"
+        dest new File(buildDir, "python-android-v${abi}.tar.gz")
+    }
+    tasks.register("untarFile_$abi", Copy) {
+        from tarTree(downloadDistArchive.dest)
+        into 'src/main/jniLibs'
+    }
+    tasks.named("untarFile_$abi") {
+        dependsOn "downloadDistArchive_$abi"
+    }
+}
+
+if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
     task copyOrUntar(dependsOn: 'copyBuildDist')
 } else {
-    task copyOrUntar(dependsOn: 'untarFile')
+    task copyOrUntar(dependsOn: untarTasks)
 }
 
 preBuild.dependsOn copyOrUntar
