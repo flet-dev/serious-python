@@ -38,14 +38,15 @@ class _MyAppState extends State<MyApp> {
     String resultValue = getRandomString(20);
 
     await SeriousPython.run("app/simple.py",
-        environmentVariables: {
-          "RESULT_FILENAME": resultFileName,
-          "RESULT_VALUE": resultValue
-        },
-        sync: false);
+            environmentVariables: {
+              "RESULT_FILENAME": resultFileName,
+              "RESULT_VALUE": resultValue
+            },
+            sync: false)
+        .then((result) => pyResult = result);
 
     // try reading out.txt in a loop
-    var i = 30;
+    var i = 10;
     while (i-- > 0) {
       var out = File(resultFileName);
       if (await out.exists()) {
