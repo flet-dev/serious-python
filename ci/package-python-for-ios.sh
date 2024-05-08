@@ -109,4 +109,4 @@ done
 rm -rf $stdlib_dir/lib-dynload
 
 # final archive
-#tar -czf dist/python-$python_version_short-ios.tar.gz -C $dist_dir .
+tar -czf $dist_dir/python-$python_version_short-ios.tar.gz -C $dist_dir .

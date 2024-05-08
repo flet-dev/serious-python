@@ -47,4 +47,4 @@ cp $dist_dir/lib/*.so $dist_dir
 rm -rf $dist_dir/lib
 
 # final archive
-tar -czf dist/python-$python_version_short-android-$abi.tar.gz -C $dist_dir .
+tar -czf $dist_dir/python-$python_version_short-android-$abi.tar.gz -C $dist_dir .

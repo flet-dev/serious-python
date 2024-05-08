@@ -9,21 +9,21 @@ environment:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
   matrix:
-    - job_name: Build Python for Android - arm64-v8a
-      job_group: build_python_android
-      ANDROID_ABI: arm64-v8a
+    # - job_name: Build Python for Android - arm64-v8a
+    #   job_group: build_python_android
+    #   ANDROID_ABI: arm64-v8a
 
-    - job_name: Build Python for Android - armeabi-v7a
-      job_group: build_python_android
-      ANDROID_ABI: armeabi-v7a
+    # - job_name: Build Python for Android - armeabi-v7a
+    #   job_group: build_python_android
+    #   ANDROID_ABI: armeabi-v7a
 
-    - job_name: Build Python for Android - x86_64
-      job_group: build_python_android
-      ANDROID_ABI: x86_64
+    # - job_name: Build Python for Android - x86_64
+    #   job_group: build_python_android
+    #   ANDROID_ABI: x86_64
 
-    # - job_name: Build Python for iOS
-    #   job_group: build_python_darwin
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Build Python for iOS
+      job_group: build_python_darwin
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
 
     # - job_name: Test on macOS
     #   job_group: test_serious_python
@@ -89,7 +89,7 @@ for:
       - git clone -q --branch=main https://github.com/flet-dev/python-mobile.git
       - ./python-mobile/build.sh $PYTHON_VERSION $ANDROID_ABI
       - ./ci/package-python-for-android.sh python-mobile/install $PYTHON_VERSION $ANDROID_ABI
-      - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact {} \;
+      - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-android {} \;
 
     test: off
 
@@ -120,21 +120,15 @@ for:
           }
           Update-AppveyorBuild -Version $v
 
-      # install Kivy toolchain
-      - pip3 list
-      - pip3 install git+https://github.com/flet-dev/python-for-ios.git
-      - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
-      - brew link libtool
-
     build_script:
-      # build Python 3
-      - toolchain build python3
-      - ls dist
-
-      # package dist
-      - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      - tar -czvf $DIST_FILE_NAME dist/*
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-macos
+      # use python-mobile repo to build Python for Android
+      - git clone -q --branch=3.12.3 https://github.com/flet-dev/Python-Apple-support
+      - sh: |
+          cd Python-Apple-support
+          make iOS
+          cd -
+      - ./ci/package-python-for-is.sh Python-Apple-support $PYTHON_VERSION
+      - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-macos {} \;
 
     deploy:
       provider: GitHub
