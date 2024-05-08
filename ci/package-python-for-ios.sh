@@ -100,20 +100,22 @@ find "$stdlib_dir/${archs[0]}/lib-dynload" -name "*.dylib" | while read full_dyl
     #break # run for one lib only - for tests
 done
 
-# compile, clean stdlib
-cd $stdlib_dir/${archs[0]}
+mv $stdlib_dir/${archs[0]}/* $stdlib_dir
+
+# cleanup
+for arch in "${archs[@]}"; do
+    find $stdlib_dir/$arch -name _sysconfigdata__*.py -exec cp {} $stdlib_dir \;
+    rm -rf $stdlib_dir/$arch
+done
+rm -rf $stdlib_dir/lib-dynload
+
+# compile stdlib
+cd $stdlib_dir
 python -m compileall -b .
 find . \( -name '*.so' -or -name '*.dylib' -or -name '*.py' -or -name '*.typed' \) -type f -delete
 rm -rf __pycache__
 rm -rf **/__pycache__
 cd -
-mv $stdlib_dir/${archs[0]}/* $stdlib_dir
-
-# cleanup
-for arch in "${archs[@]}"; do
-    rm -rf $stdlib_dir/$arch
-done
-rm -rf $stdlib_dir/lib-dynload
 
 # final archive
 tar -czf $dist_dir/python-$python_version_short-ios.tar.gz -C $build_dir .
