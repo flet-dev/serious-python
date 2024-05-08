@@ -1,0 +1,17 @@
+# Files to exclude for Android distro
+#
+lib-dynload/_test*.dylib
+lib-dynload/_ctypes_test*.dylib
+lib-dynload/xxlimited*.dylib
+lib-dynload/_xxtestfuzz*.dylib
+config-*
+curses
+ensurepip
+idlelib
+pydoc_data
+site-packages
+test
+tkinter
+turtle*
+wsgiref
+*/__pycache__
