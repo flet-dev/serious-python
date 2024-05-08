@@ -12,13 +12,20 @@ script_dir=$(dirname $(realpath $0))
 read python_version_major python_version_minor < <(echo $python_version | sed -E 's/^([0-9]+)\.([0-9]+).*/\1 \2/')
 python_version_short=$python_version_major.$python_version_minor
 
+# create build directory
+build_dir=build/python-$python_version_short
+rm -rf $build_dir
+mkdir -p $build_dir
+build_dir=$(realpath $build_dir)
+
 # create dist directory
-dist=dist/python-$python_version_short
-rm -rf $dist
-mkdir -p $dist
-dist_dir=$(realpath $dist)
-frameworks_dir=$dist_dir/xcframeworks
-stdlib_dir=$dist_dir/python-stdlib
+dist_dir=dist/python-$python_version_short
+rm -rf $dist_dir
+mkdir -p $dist_dir
+dist_dir=$(realpath $dist_dir)
+
+frameworks_dir=$build_dir/xcframeworks
+stdlib_dir=$build_dir/python-stdlib
 mkdir -p $frameworks_dir
 mkdir -p $stdlib_dir
 
@@ -109,4 +116,4 @@ done
 rm -rf $stdlib_dir/lib-dynload
 
 # final archive
-tar -czf $dist_dir/python-$python_version_short-ios.tar.gz -C $dist_dir .
+tar -czf $dist_dir/python-$python_version_short-ios.tar.gz -C $build_dir .
