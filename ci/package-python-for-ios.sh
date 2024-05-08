@@ -29,7 +29,7 @@ cp $script_dir/module.modulemap $frameworks_dir/Python.xcframework/ios-arm64_x86
 
 # copy stdlibs
 for arch in "${archs[@]}"; do
-    rsync -av --exclude-from=$script_dir/python-ios-distro.exclude $python_apple_support_root/install/iOS/$arch/python-$python_version/lib/python$python_version_short/* $stdlib_dir/$arch
+    rsync -av --exclude-from=$script_dir/python-ios-distro.exclude $python_apple_support_root/install/iOS/$arch/python-*/lib/python$python_version_short/* $stdlib_dir/$arch
 done
 
 # convert lib-dynloads to xcframeworks
