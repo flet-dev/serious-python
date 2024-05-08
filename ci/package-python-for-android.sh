@@ -24,7 +24,7 @@ mkdir -p $dist_dir
 dist_dir=$(realpath $dist_dir)
 
 # copy files to build
-rsync -av --exclude-from=$script_dir/python-android-distro.exclude $install_root/android/$abi/python-$python_version_short/* $dist_dir
+rsync -av --exclude-from=$script_dir/python-android-distro.exclude $install_root/android/$abi/python-$python_version_short/* $build_dir
 
 # create libpythonbundle.so
 bundle_dir=$build_dir/libpythonbundle
