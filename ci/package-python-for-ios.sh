@@ -39,11 +39,50 @@ for arch in "${archs[@]}"; do
     rsync -av --exclude-from=$script_dir/python-ios-distro.exclude $python_apple_support_root/install/iOS/$arch/python-*/lib/python$python_version_short/* $stdlib_dir/$arch
 done
 
+create_plist() {
+    name=$1
+    identifier=$2
+    plist_file=$3
+
+    cat > $plist_file << PLIST_TEMPLATE
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleName</key>
+	<string>$name</string>
+	<key>CFBundleExecutable</key>
+	<string>$name</string>
+	<key>CFBundleIdentifier</key>
+	<string>$identifier</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneOS</string>
+	</array>
+	<key>MinimumOSVersion</key>
+	<string>12.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+</dict>
+</plist>
+PLIST_TEMPLATE
+}
+
 # convert lib-dynloads to xcframeworks
 create_xcframework_from_dylibs() {
-    dylib_relative_path=$1
-    arch_dir_template=$2
-    out_dir=$3
+    iphone_dir=$1
+    simulator_arm64_dir=$2
+    simulator_x86_64_dir=$3
+    dylib_relative_path=$4
+    out_dir=$5
 
     tmp_dir=$(mktemp -d)
     pushd -- "${tmp_dir}" >/dev/null
@@ -56,28 +95,19 @@ create_xcframework_from_dylibs() {
     # creating "iphoneos" framework
     fd=iphoneos/$framework.framework
     mkdir -p $fd
-    arch_dir=$(echo $arch_dir_template | sed "s#{arch}#iphoneos.arm64#")
-    cp "$arch_dir/$dylib_without_ext".*.dylib $fd/$framework
+    cp "$iphone_dir/$dylib_without_ext".*.dylib $fd/$framework
     install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
-    cp $script_dir/dylib-Info-template.plist $fd/Info.plist
-    plutil -replace CFBundleName -string $framework $fd/Info.plist
-    plutil -replace CFBundleExecutable -string $framework $fd/Info.plist
-    plutil -replace CFBundleIdentifier -string org.python.$framework_identifier $fd/Info.plist
+    create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
 
     # creating "iphonesimulator" framework
     fd=iphonesimulator/$framework.framework
     mkdir -p $fd
-    arch_arm64_dir=$(echo $arch_dir_template | sed "s#{arch}#iphonesimulator.arm64#")
-    arch_x86_64_dir=$(echo $arch_dir_template | sed "s#{arch}#iphonesimulator.x86_64#")
     lipo -create \
-        "$arch_arm64_dir/$dylib_without_ext".*.dylib \
-        "$arch_x86_64_dir/$dylib_without_ext".*.dylib \
+        "$simulator_arm64_dir/$dylib_without_ext".*.dylib \
+        "$simulator_x86_64_dir/$dylib_without_ext".*.dylib \
         -output $fd/$framework
     install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
-    cp $script_dir/dylib-Info-template.plist $fd/Info.plist
-    plutil -replace CFBundleName -string $framework $fd/Info.plist
-    plutil -replace CFBundleExecutable -string $framework $fd/Info.plist
-    plutil -replace CFBundleIdentifier -string org.python.$framework_identifier $fd/Info.plist
+    create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
 
     # merge frameworks info xcframework
     xcodebuild -create-xcframework \
@@ -94,8 +124,10 @@ echo "Converting lib-dynload to xcframeworks..."
 find "$stdlib_dir/${archs[0]}/lib-dynload" -name "*.dylib" | while read full_dylib; do
     dylib_relative_path=${full_dylib#$stdlib_dir/${archs[0]}/lib-dynload/}
     create_xcframework_from_dylibs \
+        "$stdlib_dir/${archs[0]}/lib-dynload" \
+        "$stdlib_dir/${archs[1]}/lib-dynload" \
+        "$stdlib_dir/${archs[2]}/lib-dynload" \
         $dylib_relative_path \
-        "$stdlib_dir/{arch}/lib-dynload" \
         $frameworks_dir
     #break # run for one lib only - for tests
 done
