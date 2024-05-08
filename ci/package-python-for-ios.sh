@@ -51,6 +51,7 @@ create_xcframework_from_dylibs() {
     mkdir -p $fd
     arch_dir=$(echo $arch_dir_template | sed "s#{arch}#iphoneos.arm64#")
     cp "$arch_dir/$dylib_without_ext".*.dylib $fd/$framework
+    install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
     cp $script_dir/dylib-Info-template.plist $fd/Info.plist
     plutil -replace CFBundleName -string $framework $fd/Info.plist
     plutil -replace CFBundleExecutable -string $framework $fd/Info.plist
@@ -65,6 +66,7 @@ create_xcframework_from_dylibs() {
         "$arch_arm64_dir/$dylib_without_ext".*.dylib \
         "$arch_x86_64_dir/$dylib_without_ext".*.dylib \
         -output $fd/$framework
+    install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
     cp $script_dir/dylib-Info-template.plist $fd/Info.plist
     plutil -replace CFBundleName -string $framework $fd/Info.plist
     plutil -replace CFBundleExecutable -string $framework $fd/Info.plist
@@ -88,7 +90,7 @@ find "$stdlib_dir/${archs[0]}/lib-dynload" -name "*.dylib" | while read full_dyl
         $dylib_relative_path \
         "$stdlib_dir/{arch}/lib-dynload" \
         $frameworks_dir
-    break
+    #break # run for one lib only - for tests
 done
 
 # compile, clean stdlib
