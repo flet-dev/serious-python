@@ -127,7 +127,7 @@ for:
           cd Python-Apple-support
           make iOS
           cd -
-      - ./ci/package-python-for-is.sh Python-Apple-support $PYTHON_VERSION
+      - ./ci/package-python-for-ios.sh Python-Apple-support $PYTHON_VERSION
       - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-macos {} \;
 
     deploy:
