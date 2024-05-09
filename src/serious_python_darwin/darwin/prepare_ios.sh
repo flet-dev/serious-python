@@ -1,0 +1,39 @@
+version=${1:?}
+python_version=${2:?}
+dist_ios=${3:?}
+
+python_ios_dist_file="python-$python_version-ios.tar.gz"
+python_ios_dist_url="https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
+#python_ios_dist_url = "https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
+ 
+rm -rf $dist_ios
+mkdir -p $dist_ios
+
+# copy or download iOS dist
+if [ -n "$SERIOUS_PYTHON_IOS_DIST" ]; then
+    cp -R "$SERIOUS_PYTHON_IOS_DIST"/* $dist_ios
+else
+    curl -LO $python_ios_dist_url
+    tar -xzf $python_ios_dist_file -C $dist_ios
+    rm $python_ios_dist_file
+fi
+
+if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
+
+    ls
+    . xcframework_utils.sh
+
+    echo "Converting .dylibs to xcframeworks..."
+    find "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}" -name "*.$dylib_suffix" | while read full_dylib; do
+        dylib_relative_path=${full_dylib#$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}/}
+        create_xcframework_from_dylibs \
+            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}" \
+            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[1]}" \
+            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[2]}" \
+            $dylib_relative_path \
+            $dist_ios/xcframeworks
+    done
+
+    rm -rf $dist_ios/site-packages
+    mkdir -p $dist_ios/site-packages
+fi

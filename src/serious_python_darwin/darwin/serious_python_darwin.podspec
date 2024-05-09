@@ -28,88 +28,75 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_framework = 'dist/xcframework/libpython3.11.xcframework'
+  python_version = "3.12.3"
   python_macos_framework = 'dist_macos/Python.xcframework'
 
+  dist_ios = "dist_ios"
+
   prepare_command = <<-CMD
-    if [ -d "dist" ]; then
-      rm -rf dist
-    fi
-    if [ -d "dist_macos" ]; then
-      rm -rf dist_macos
-    fi
 
-    if [ -n "$SERIOUS_PYTHON_IOS_DIST" ]; then
-      mkdir -p dist
-      cp -R "$SERIOUS_PYTHON_IOS_DIST" .
-    else
-      PYTHON_IOS_DIST_FILE=python-ios-dist-v#{s.version}.tar.gz
-      curl -LO https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
-      tar -xzf $PYTHON_IOS_DIST_FILE
-      rm $PYTHON_IOS_DIST_FILE
-    fi
+    dist_ios=$(realpath #{dist_ios})
+    ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
 
-    PYTHON_MACOS_DIST_FILE=Python-3.11-macOS-support.b3.tar.gz
-    curl -LO https://github.com/beeware/Python-Apple-support/releases/download/3.11-b3/$PYTHON_MACOS_DIST_FILE
-    mkdir -p dist_macos
-    tar -xzf $PYTHON_MACOS_DIST_FILE -C dist_macos
-    rm $PYTHON_MACOS_DIST_FILE
+    # PYTHON_MACOS_DIST_FILE=Python-3.11-macOS-support.b3.tar.gz
+    # curl -LO https://github.com/beeware/Python-Apple-support/releases/download/3.11-b3/$PYTHON_MACOS_DIST_FILE
+    # mkdir -p dist_macos
+    # tar -xzf $PYTHON_MACOS_DIST_FILE -C dist_macos
+    # rm $PYTHON_MACOS_DIST_FILE
 
-    ROOT=`pwd`
-    cp -R pod_templates/libpython3.11.xcframework dist/xcframework
-    cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-arm64/Headers
-    cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-x86_64-simulator/Headers
-    cp #{python_framework}/ios-arm64/Headers/module.modulemap #{python_macos_framework}/macos-arm64_x86_64/Headers
+    # # compile dist_macos/python-stdlib
+    # cd dist_macos/python-stdlib
+    # $ROOT/dist/hostpython3/bin/python -m compileall -b .
+    # find . \\( -name '*.py' -or -name '*.typed' \\) -type f -delete
+    # rm -rf __pycache__
+    # rm -rf **/__pycache__
+    # cd -
 
-    # compile dist_macos/python-stdlib
-    cd dist_macos/python-stdlib
-    $ROOT/dist/hostpython3/bin/python -m compileall -b .
-    find . \\( -name '*.py' -or -name '*.typed' \\) -type f -delete
-    rm -rf __pycache__
-    rm -rf **/__pycache__
-    cd -
+    # # compile python311.zip
+    # PYTHON311_ZIP=$ROOT/dist/root/python3/lib/python311.zip
+    # unzip $PYTHON311_ZIP -d python311_temp
+    # rm $PYTHON311_ZIP
+    # cd python311_temp
+    # $ROOT/dist/hostpython3/bin/python -m compileall -b .
+    # find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
+    # zip -r $PYTHON311_ZIP .
+    # cd -
+    # rm -rf python311_temp
 
-    # compile python311.zip
-    PYTHON311_ZIP=$ROOT/dist/root/python3/lib/python311.zip
-    unzip $PYTHON311_ZIP -d python311_temp
-    rm $PYTHON311_ZIP
-    cd python311_temp
-    $ROOT/dist/hostpython3/bin/python -m compileall -b .
-    find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
-    zip -r $PYTHON311_ZIP .
-    cd -
-    rm -rf python311_temp
+    # # fix import subprocess, asyncio
+    # cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.11/site-packages
 
-    # fix import subprocess, asyncio
-    cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.11/site-packages
-
-    # zip site-packages
-    cd dist/root/python3/lib/python3.11/site-packages
-    $ROOT/dist/hostpython3/bin/python -m compileall -b .
-    find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
-    zip -r $ROOT/dist/root/python3/lib/site-packages.zip .
-    cd -
+    # # zip site-packages
+    # cd dist/root/python3/lib/python3.11/site-packages
+    # $ROOT/dist/hostpython3/bin/python -m compileall -b .
+    # find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
+    # zip -r $ROOT/dist/root/python3/lib/site-packages.zip .
+    # cd -
   
-    # remove junk
-    rm -rf dist/root/python3/lib/python3.11
+    # # remove junk
+    # rm -rf dist/root/python3/lib/python3.11
 CMD
 
   puts `#{prepare_command}`
 
-  # Directory path
-  dir_path = "dist/xcframework"
+# my_script = <<-SCRIPT_PHASE
+#   mkdir -p ${HOME}/123456
+#   printenv > ${HOME}/123456/env.txt
+#   cp -R $HOME/projects/flet-dev/serious-python/src/serious_python_darwin/darwin/dist/xcframework/yarl.xcframework/ios-arm64/* ${CODESIGNING_FOLDER_PATH}/../
+#   ls -alR ${CODESIGNING_FOLDER_PATH}/../ > ${HOME}/123456/ls.txt
+# SCRIPT_PHASE
 
-  # Get the list of directories
-  dirs = Dir.glob("#{dir_path}/*.xcframework")
+#   s.ios.script_phase = { :name => 'Hello World', :script => my_script, :execution_position => :before_compile }
 
-  # Create an array of directory names without the extension
-  ios_frameworks = dirs.map do |dir|
-    dir_path + '/' + Pathname.new(dir).basename.to_s
+  # scan all frameworks
+  xcframeworks_dir = "#{dist_ios}/xcframeworks"
+  ios_frameworks = Dir.glob("#{xcframeworks_dir}/*.xcframework").map do |dir|
+    xcframeworks_dir + '/' + Pathname.new(dir).basename.to_s
   end
 
   s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
   s.ios.vendored_frameworks = ios_frameworks
-  s.ios.resource = ['dist/root/python3/lib']
+  s.ios.resource = ['dist_ios/python-stdlib']
 
   s.osx.vendored_frameworks = python_macos_framework
   s.osx.resource = ['dist_macos/python-stdlib']
