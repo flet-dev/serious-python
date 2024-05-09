@@ -3,7 +3,7 @@ image: macos-monterey
 skip_branch_with_pr: true
 
 environment:
-  PYTHON_VERSION: 3.12
+  PYTHON_VERSION: 3.12.3
   FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
@@ -58,7 +58,7 @@ environment:
     #   APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
-- python $PYTHON_VERSION
+- python 3.12
 
 for:
   # ======================================

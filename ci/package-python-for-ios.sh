@@ -13,13 +13,13 @@ read python_version_major python_version_minor < <(echo $python_version | sed -E
 python_version_short=$python_version_major.$python_version_minor
 
 # create build directory
-build_dir=build/python-$python_version_short
+build_dir=build/python-$python_version
 rm -rf $build_dir
 mkdir -p $build_dir
 build_dir=$(realpath $build_dir)
 
 # create dist directory
-dist_dir=dist/python-$python_version_short
+dist_dir=dist/python-$python_version
 rm -rf $dist_dir
 mkdir -p $dist_dir
 dist_dir=$(realpath $dist_dir)
@@ -89,7 +89,7 @@ create_xcframework_from_dylibs() {
 
     echo "Creating framework for $dylib_relative_path"
     dylib_without_ext=$(echo $dylib_relative_path | cut -d "." -f 1)
-    framework=$(echo $dylib_without_ext | tr "/" "_")
+    framework=$(echo $dylib_without_ext | tr "/" ".")
     framework_identifier=${framework//_/-}
 
     # creating "iphoneos" framework
@@ -100,6 +100,7 @@ create_xcframework_from_dylibs() {
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
 
     # creating "iphonesimulator" framework
+    # MOVE ORIGINAL
     fd=iphonesimulator/$framework.framework
     mkdir -p $fd
     lipo -create \
@@ -150,4 +151,4 @@ rm -rf **/__pycache__
 cd -
 
 # final archive
-tar -czf $dist_dir/python-$python_version_short-ios.tar.gz -C $build_dir .
+tar -czf $dist_dir/python-$python_version-ios.tar.gz -C $build_dir .

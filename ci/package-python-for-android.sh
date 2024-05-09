@@ -12,19 +12,19 @@ read python_version_major python_version_minor < <(echo $python_version | sed -E
 python_version_short=$python_version_major.$python_version_minor
 
 # create build dir
-build_dir=build/python-$python_version_short/$abi
+build_dir=build/python-$python_version/$abi
 rm -rf $build_dir
 mkdir -p $build_dir
 build_dir=$(realpath $build_dir)
 
 # create dist dir
-dist_dir=dist/python-$python_version_short/$abi
+dist_dir=dist/python-$python_version/$abi
 rm -rf $dist_dir
 mkdir -p $dist_dir
 dist_dir=$(realpath $dist_dir)
 
 # copy files to build
-rsync -av --exclude-from=$script_dir/python-android-distro.exclude $install_root/android/$abi/python-$python_version_short/* $build_dir
+rsync -av --exclude-from=$script_dir/python-android-distro.exclude $install_root/android/$abi/python-$python_version/* $build_dir
 
 # create libpythonbundle.so
 bundle_dir=$build_dir/libpythonbundle
@@ -55,4 +55,4 @@ cp $build_dir/lib/*.so $build_dir
 rm -rf $build_dir/lib
 
 # final archive
-tar -czf $dist_dir/python-$python_version_short-android-$abi.tar.gz -C $build_dir .
+tar -czf $dist_dir/python-$python_version-android-$abi.tar.gz -C $build_dir .
