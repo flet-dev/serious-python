@@ -7,7 +7,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - serious_python_darwin (0.6.0):
+  - serious_python_darwin (0.7.0):
     - Flutter
     - FlutterMacOS
 
@@ -31,12 +31,12 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/serious_python_darwin/darwin"
 
 SPEC CHECKSUMS:
-  Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   integration_test: 13825b8a9334a850581300559b8839134b124670
   package_info_plus: 115f4ad11e0698c8c1c5d8a689390df880f47e85
   path_provider_foundation: 29f094ae23ebbca9d3d0cec13889cd9060c0e943
-  serious_python_darwin: d5c85ae2cd4539b52c71ea8ba8af357aa6311647
+  serious_python_darwin: a0631662a19d1c76a7d0740452529313123fcc9b
 
 PODFILE CHECKSUM: 7be2f5f74864d463a8ad433546ed1de7e0f29aef
 
-COCOAPODS: 1.12.1
+COCOAPODS: 1.14.3
