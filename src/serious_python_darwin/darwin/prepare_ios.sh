@@ -3,7 +3,7 @@ python_version=${2:?}
 dist_ios=${3:?}
 
 python_ios_dist_file="python-$python_version-ios.tar.gz"
-python_ios_dist_url="https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
+python_ios_dist_url="" #"https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
 #python_ios_dist_url = "https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
  
 rm -rf $dist_ios
@@ -22,8 +22,8 @@ if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
 
     . xcframework_utils.sh
 
+    
     tmp_dir=$(mktemp -d)
-    pushd -- "${tmp_dir}" >/dev/null
 
     cp -R $SERIOUS_PYTHON_IOS_SITE_PACKAGES/* $tmp_dir
 
@@ -43,6 +43,5 @@ if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
     cp -R $tmp_dir/${archs[0]}/* $dist_ios/site-packages
 
     # cleanup
-    popd >/dev/null
     rm -rf "${tmp_dir}" >/dev/null
 fi

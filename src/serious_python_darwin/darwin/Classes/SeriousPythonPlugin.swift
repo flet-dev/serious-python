@@ -46,12 +46,9 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             
             let pythonPaths: [String] = modulePaths + [
                 appDir,
-                "\(appDir)/__pypackages__",
                 resourcePath,
-                "\(resourcePath)/lib/site-packages.zip",
-                "\(resourcePath)/lib/python3.11",
-                "\(resourcePath)/python-stdlib",
-                "\(resourcePath)/python-stdlib/lib-dynload"
+                "\(resourcePath)/site-packages",
+                "\(resourcePath)/python-stdlib"
             ]
 
             setenv("PYTHONINSPECT", "1", 1)
