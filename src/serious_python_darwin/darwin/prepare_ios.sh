@@ -20,20 +20,29 @@ fi
 
 if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
 
-    ls
     . xcframework_utils.sh
 
+    tmp_dir=$(mktemp -d)
+    pushd -- "${tmp_dir}" >/dev/null
+
+    cp -R $SERIOUS_PYTHON_IOS_SITE_PACKAGES/* $tmp_dir
+
     echo "Converting .dylibs to xcframeworks..."
-    find "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}" -name "*.$dylib_suffix" | while read full_dylib; do
-        dylib_relative_path=${full_dylib#$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}/}
+    find "$tmp_dir/${archs[0]}" -name "*.$dylib_suffix" | while read full_dylib; do
+        dylib_relative_path=${full_dylib#$tmp_dir/${archs[0]}/}
         create_xcframework_from_dylibs \
-            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[0]}" \
-            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[1]}" \
-            "$SERIOUS_PYTHON_IOS_SITE_PACKAGES/${archs[2]}" \
+            "$tmp_dir/${archs[0]}" \
+            "$tmp_dir/${archs[1]}" \
+            "$tmp_dir/${archs[2]}" \
             $dylib_relative_path \
             $dist_ios/xcframeworks
     done
 
     rm -rf $dist_ios/site-packages
     mkdir -p $dist_ios/site-packages
+    cp -R $tmp_dir/${archs[0]}/* $dist_ios/site-packages
+
+    # cleanup
+    popd >/dev/null
+    rm -rf "${tmp_dir}" >/dev/null
 fi
