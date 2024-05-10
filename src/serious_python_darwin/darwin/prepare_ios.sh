@@ -1,20 +1,20 @@
 version=${1:?}
 python_version=${2:?}
-dist_ios=${3:?}
+dist=${3:?}
 
 python_ios_dist_file="python-$python_version-ios.tar.gz"
-python_ios_dist_url="" #"https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
+python_ios_dist_url="https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
 #python_ios_dist_url = "https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
  
-rm -rf $dist_ios
-mkdir -p $dist_ios
+rm -rf $dist
+mkdir -p $dist
 
 # copy or download iOS dist
 if [ -n "$SERIOUS_PYTHON_IOS_DIST" ]; then
-    cp -R "$SERIOUS_PYTHON_IOS_DIST"/* $dist_ios
+    cp -R "$SERIOUS_PYTHON_IOS_DIST"/* $dist
 else
     curl -LO $python_ios_dist_url
-    tar -xzf $python_ios_dist_file -C $dist_ios
+    tar -xzf $python_ios_dist_file -C $dist
     rm $python_ios_dist_file
 fi
 
@@ -35,12 +35,12 @@ if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
             "$tmp_dir/${archs[1]}" \
             "$tmp_dir/${archs[2]}" \
             $dylib_relative_path \
-            $dist_ios/xcframeworks
+            $dist/xcframeworks
     done
 
-    rm -rf $dist_ios/site-packages
-    mkdir -p $dist_ios/site-packages
-    cp -R $tmp_dir/${archs[0]}/* $dist_ios/site-packages
+    rm -rf $dist/site-packages
+    mkdir -p $dist/site-packages
+    cp -R $tmp_dir/${archs[0]}/* $dist/site-packages
 
     # cleanup
     rm -rf "${tmp_dir}" >/dev/null

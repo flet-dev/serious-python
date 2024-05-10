@@ -29,7 +29,6 @@ Pod::Spec.new do |s|
   s.swift_version = '5.0'
 
   python_version = "3.12.3"
-  python_macos_framework = 'dist_macos/Python.xcframework'
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"
@@ -61,16 +60,22 @@ puts `#{prepare_command}`
 
 #   s.ios.script_phase = { :name => 'Hello World', :script => my_script, :execution_position => :before_compile }
 
-  # scan all frameworks
-  xcframeworks_dir = "#{dist_ios}/xcframeworks"
-  ios_frameworks = Dir.glob("#{xcframeworks_dir}/*.xcframework").map do |dir|
-    xcframeworks_dir + '/' + Pathname.new(dir).basename.to_s
+  s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
+
+  # iOS frameworks
+  ios_xcframeworks_dir = "#{dist_ios}/xcframeworks"
+  ios_frameworks = Dir.glob("#{ios_xcframeworks_dir}/*.xcframework").map do |dir|
+    ios_xcframeworks_dir + '/' + Pathname.new(dir).basename.to_s
   end
 
-  s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
   s.ios.vendored_frameworks = ios_frameworks
   s.ios.resource = ["#{dist_ios}/python-stdlib", "#{dist_ios}/site-packages"]
 
-  s.osx.vendored_frameworks = python_macos_framework
-  s.osx.resource = ['dist_macos/python-stdlib']
+  macos_xcframeworks_dir = "#{dist_macos}/xcframeworks"
+  macos_frameworks = Dir.glob("#{macos_xcframeworks_dir}/*.xcframework").map do |dir|
+    macos_xcframeworks_dir + '/' + Pathname.new(dir).basename.to_s
+  end
+
+  s.osx.vendored_frameworks = macos_frameworks
+  s.osx.resource = ["#{dist_macos}/python-stdlib", "#{dist_macos}/site-packages"]
 end
