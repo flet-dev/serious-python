@@ -50,7 +50,7 @@ Pod::Spec.new do |s|
     
 CMD
 
-  puts `#{prepare_command}`
+puts `#{prepare_command}`
 
 # my_script = <<-SCRIPT_PHASE
 #   mkdir -p ${HOME}/123456
