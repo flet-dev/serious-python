@@ -14,9 +14,9 @@ import sysconfig
 import types
 
 
-# Make platform.system() return "emscripten"
+# Make platform.system() return "Emscripten"
 def custom_system():
-    return "emscripten"
+    return "Emscripten"
 
 
 platform.system = custom_system
