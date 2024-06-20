@@ -1,5 +1,3 @@
-image: macos-monterey
-
 skip_branch_with_pr: true
 
 environment:
@@ -10,7 +8,7 @@ environment:
   matrix:
     - job_name: Build Python for iOS
       job_group: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
 
     - job_name: Build Python for Android
       job_group: build_python_android
@@ -19,12 +17,12 @@ environment:
     - job_name: Test on macOS
       job_group: test_serious_python
       job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
 
     - job_name: Test on iOS
       job_group: test_serious_python
       job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
 
     - job_name: Test on Android
       job_group: test_serious_python
