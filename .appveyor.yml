@@ -22,7 +22,7 @@ environment:
     - job_name: Test on iOS
       job_group: test_serious_python
       job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     - job_name: Test on Android
       job_group: test_serious_python
