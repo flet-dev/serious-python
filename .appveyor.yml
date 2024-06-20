@@ -4,7 +4,6 @@ skip_branch_with_pr: true
 
 environment:
   PYTHON_STACK: python 3.10
-  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
     secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
 
@@ -176,10 +175,6 @@ for:
 
     install:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
-      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
-      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
-      - export PATH="$PATH:$HOME/flutter/bin"
-      - flutter channel stable
       - flutter upgrade
       - flutter config --enable-macos-desktop
       - flutter doctor
@@ -208,10 +203,6 @@ for:
 
     install:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
-      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
-      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
-      - export PATH="$PATH:$HOME/flutter/bin"
-      - flutter channel stable
       - flutter upgrade
       - flutter config --enable-macos-desktop
       - xcrun simctl list runtimes

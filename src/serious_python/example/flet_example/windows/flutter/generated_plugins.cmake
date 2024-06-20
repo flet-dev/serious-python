@@ -3,7 +3,6 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  audioplayers_windows
   screen_retriever
   serious_python_windows
   url_launcher_windows
