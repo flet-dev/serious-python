@@ -375,21 +375,31 @@ for:
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_android
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
+
+            sleep 60
 
             cd src/serious_python_darwin
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_windows
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_linux
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
+
+            sleep 60
 
             cd src/serious_python
             dart pub publish --force || exit 1
