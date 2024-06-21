@@ -1,3 +1,8 @@
+## 0.7.1
+
+* Added `namespace` definition to Android Gradle build.
+* Bump dependencies.
+
 ## 0.6.0
 
 * `--verbose` flag - verbose output.
