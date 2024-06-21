@@ -3,7 +3,7 @@ skip_branch_with_pr: true
 environment:
   PYTHON_STACK: python 3.10
   GITHUB_TOKEN:
-    secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
+    secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
   matrix:
     - job_name: Build Python for iOS
