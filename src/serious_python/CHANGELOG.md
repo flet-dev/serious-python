@@ -1,3 +1,8 @@
+## 0.7.1
+
+* Added `namespace` definition to Android Gradle build.
+* Bump dependencies.
+
 ## 0.7.0
 
 * `runPython()` method to support running Python script.

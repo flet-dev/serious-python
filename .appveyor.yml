@@ -1,12 +1,10 @@
-image: macos-monterey
-
 skip_branch_with_pr: true
 
 environment:
   PYTHON_VERSION: 3.12.3
   FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
   GITHUB_TOKEN:
-    secure: doX0dwjWhBmT56aJqR9NCbtMFJpDpdYxPCIB4vQoHfSR+nTa+pLCo6Yv5qWpD/90
+    secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
   matrix:
     - job_name: Build Python for Android - arm64-v8a
@@ -160,10 +158,6 @@ for:
 
     install:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
-      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
-      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
-      - export PATH="$PATH:$HOME/flutter/bin"
-      - flutter channel stable
       - flutter upgrade
       - flutter config --enable-macos-desktop
       - flutter doctor
@@ -192,17 +186,13 @@ for:
 
     install:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
-      - curl $FLUTTER_MACOS_URL -o "$HOME/flutter_macos_stable.zip"
-      - unzip -qq "$HOME/flutter_macos_stable.zip" -d $HOME
-      - export PATH="$PATH:$HOME/flutter/bin"
-      - flutter channel stable
       - flutter upgrade
       - flutter config --enable-macos-desktop
       - xcrun simctl list runtimes
-      - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-16-1"
+      - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
       - xcrun xctrace list devices
       - |
-          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (16.1)" | awk '{gsub(/[()]/,""); print $NF}')      
+          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
       #- flutter doctor -v
@@ -370,21 +360,31 @@ for:
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_android
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
+
+            sleep 60
 
             cd src/serious_python_darwin
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_windows
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
 
+            sleep 60
+
             cd src/serious_python_linux
             dart pub publish --force || exit 1
             cd $APPVEYOR_BUILD_FOLDER
+
+            sleep 60
 
             cd src/serious_python
             dart pub publish --force || exit 1

@@ -2,7 +2,7 @@ name: serious_python_darwin
 description: iOS and macOS implementations of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.7.0
+version: 0.7.1
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -11,10 +11,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
+  plugin_platform_interface: ^2.1.8
   serious_python_platform_interface:
     path: ../serious_python_platform_interface
-  path: ^1.8.3
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:
