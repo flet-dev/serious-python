@@ -1,8 +1,7 @@
 skip_branch_with_pr: true
 
 environment:
-  PYTHON_VERSION: 3.12.3
-  FLUTTER_MACOS_URL: https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.13.7-stable.zip
+  PYTHON_VERSION: 3.12.4
   GITHUB_TOKEN:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
@@ -73,13 +72,13 @@ for:
 
     environment:
       APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
-      NDK_VERSION: r26d
+      NDK_VERSION: r27-beta2
 
     build_script:
       # use python-mobile repo to build Python for Android
-      - git clone -q --branch=main https://github.com/flet-dev/python-mobile.git
-      - ./python-mobile/build.sh $PYTHON_VERSION $ANDROID_ABI
-      - ./ci/package-python-for-android.sh python-mobile/install $PYTHON_VERSION $ANDROID_ABI
+      - git clone -q --branch=main https://github.com/flet-dev/python-android.git
+      - ./python-android/build.sh $PYTHON_VERSION $ANDROID_ABI
+      - ./ci/package-python-for-android.sh python-android/install $PYTHON_VERSION $ANDROID_ABI
       - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-android {} \;
 
     test: off
@@ -101,13 +100,13 @@ for:
         - job_name: Build Python for iOS
 
     build_script:
-      - git clone -q --branch=$PYTHON_VERSION https://github.com/flet-dev/Python-Apple-support
+      - git clone -q --branch=$PYTHON_VERSION https://github.com/flet-dev/python-ios
       - sh: |
-          pushd Python-Apple-support
+          pushd python-ios
           make iOS
           popd
       - ls
-      - ./ci/package-python-for-ios.sh Python-Apple-support $PYTHON_VERSION
+      - ./ci/package-python-for-ios.sh python-ios $PYTHON_VERSION
       - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-ios {} \;
 
     deploy:
@@ -129,13 +128,13 @@ for:
         - job_name: Build Python for macOS
 
     build_script:
-      - git clone -q --branch=$PYTHON_VERSION https://github.com/flet-dev/Python-Apple-support
+      - git clone -q --branch=$PYTHON_VERSION https://github.com/flet-dev/python-ios
       - sh: |
-          pushd Python-Apple-support
+          pushd python-ios
           make macOS
           popd
       - ls
-      - ./ci/package-python-for-macos.sh Python-Apple-support $PYTHON_VERSION
+      - ./ci/package-python-for-macos.sh python-ios $PYTHON_VERSION
       - find dist -type f -iname *.tar.gz -exec appveyor PushArtifact -DeploymentName python-dist-macos {} \;
 
     deploy:

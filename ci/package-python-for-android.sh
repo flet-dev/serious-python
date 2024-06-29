@@ -55,4 +55,4 @@ cp $build_dir/lib/*.so $build_dir
 rm -rf $build_dir/lib
 
 # final archive
-tar -czf $dist_dir/python-$python_version-android-$abi.tar.gz -C $build_dir .
+tar -czf $dist_dir/python-android-$python_version-$abi.tar.gz -C $build_dir .

@@ -69,4 +69,4 @@ rm -rf **/__pycache__
 cd -
 
 # final archive
-tar -czf $dist_dir/python-$python_version-ios.tar.gz -C $build_dir .
+tar -czf $dist_dir/python-ios-$python_version.tar.gz -C $build_dir .

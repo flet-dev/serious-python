@@ -43,4 +43,4 @@ rm -rf **/__pycache__
 cd -
 
 # final archive
-tar -czf $dist_dir/python-$python_version-macos.tar.gz -C $build_dir .
+tar -czf $dist_dir/python-macos-$python_version.tar.gz -C $build_dir .
