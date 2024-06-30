@@ -1,6 +1,6 @@
 archs=("iphoneos.arm64" "iphonesimulator.arm64" "iphonesimulator.x86_64")
 
-dylib_suffix=dylib
+dylib_suffix=so
 
 create_plist() {
     name=$1
