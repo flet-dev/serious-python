@@ -5,9 +5,14 @@ import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:toml/toml.dart';
 
 import 'sitecustomize.dart';
+
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full";
+const pyodideLockFile = "pyodide-lock.json";
 
 const desktopJunkFileExtensions = [".py", ".c", ".h", ".typed", ".exe"];
 const mobileJunkFileExtensions = [
@@ -93,6 +98,12 @@ class PackageCommand extends Command {
       String? platformArg = argResults?['platform'];
       String? excludeArg = argResults?['exclude'];
       _verbose = argResults?["verbose"];
+
+      var server = await startSimpleServer();
+
+      await Future.delayed(const Duration(seconds: 60));
+
+      //exit(1);
 
       if (mobile && web) {
         stderr.writeln("--mobile and --web cannot be used together.");
@@ -492,6 +503,68 @@ class PackageCommand extends Command {
     // Run the python executable
     verbose([pythonExePath, ...args].join(" "));
     return await runExec(pythonExePath, args, environment: environment);
+  }
+
+  Future<HttpServer> startSimpleServer() async {
+    const htmlHeader = "<!DOCTYPE html><html><body>\n";
+    const htmlFooter = "</body></html>\n";
+
+    var pyodidePackages =
+        await fetchJsonFromUrl("$pyodideRootUrl/$pyodideLockFile");
+
+    var wheels = Map.from(pyodidePackages["packages"])
+      ..removeWhere((k, p) => !p["file_name"].endsWith(".whl"));
+
+    Response echoRequest(Request request) {
+      var path = request.url.path;
+      if (path.endsWith('/')) path = path.substring(0, path.length - 1);
+      var parts = path.split("/");
+      if (parts.length == 1 && parts[0] == "simple") {
+        return Response.ok(
+            htmlHeader +
+                wheels.keys
+                    .map((k) => '<a href="/simple/$k/">$k</a></br>\n')
+                    .join("") +
+                htmlFooter,
+            headers: {"Content-Type": "text/html"});
+      } else if (parts.length == 2 && parts[0] == "simple") {
+        List<String> links = [];
+        wheels.forEach((k, p) {
+          if (k == parts[1].toLowerCase()) {
+            links.add(
+                "<a href=\"$pyodideRootUrl/${p['file_name']}#sha256=${p['sha256']}\">${p['file_name']}</a></br>");
+          }
+        });
+        return Response.ok(htmlHeader + links.join("\n") + htmlFooter,
+            headers: {"Content-Type": "text/html"});
+      } else {
+        return Response.ok('Request for "${request.url}"');
+      }
+    }
+
+    var handler =
+        const Pipeline().addMiddleware(logRequests()).addHandler(echoRequest);
+
+    var server = await shelf_io.serve(handler, 'localhost', 8080);
+
+    // Enable content compression
+    server.autoCompress = true;
+
+    print('Serving at http://${server.address.host}:${server.port}');
+
+    return server;
+  }
+
+  Future<Map<String, dynamic>> fetchJsonFromUrl(String url) async {
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      // Decode the JSON response
+      final Map<String, dynamic> data = json.decode(response.body);
+      return data;
+    } else {
+      throw Exception("Failed to load data from $url");
+    }
   }
 
   void verbose(String text) {
