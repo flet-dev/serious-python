@@ -222,6 +222,10 @@ class PackageCommand extends Command {
       if (reqDepsArg != null) {
         for (var reqDep in reqDepsArg.split(",").map((s) => s.trim())) {
           var depName = depNameRe.allMatches(reqDep).firstOrNull?.group(1);
+          // Skip empty or commented lines
+          if (reqDep.isEmpty || reqDep.startsWith('#')) {
+            continue;
+          }
           if (depName == null) {
             stderr.writeln("Invalid required dependency: $reqDep");
             exit(4);
@@ -229,6 +233,7 @@ class PackageCommand extends Command {
           if (!dependencies
               .any((s) => RegExp(depName + r'(\W{1,}|$)').hasMatch(s))) {
             dependencies.add(reqDep);
+            stdout.writeln("Added dependency: $reqDep");
           }
         }
       }
