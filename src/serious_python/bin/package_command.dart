@@ -233,6 +233,7 @@ class PackageCommand extends Command {
           if (!dependencies
               .any((s) => RegExp(depName + r'(\W{1,}|$)').hasMatch(s))) {
             dependencies.add(reqDep);
+            stdout.writeln("Added dependency: $reqDep");
           }
         }
       }
