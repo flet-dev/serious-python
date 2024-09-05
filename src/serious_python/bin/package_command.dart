@@ -11,8 +11,24 @@ import 'package:toml/toml.dart';
 
 import 'sitecustomize.dart';
 
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full";
+const mobilePyPiUrl = "https://pypi.flet.dev/simple";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.1/full";
 const pyodideLockFile = "pyodide-lock.json";
+
+const platformTags = {
+  "ios": {
+    "ios_12_0_iphoneos_arm64": "iphoneos.arm64",
+    "ios_12_0_iphonesimulator_arm64": "iphonesimulator.arm64",
+    "ios_12_0_iphonesimulator_x86_64": "iphonesimulator.x86_64"
+  },
+  "android": {
+    "android_24_arm64_v8a": "arm64-v8a",
+    "android_24_armeabi_v7a": "armeabi-v7a",
+    "android_24_x86_64": "x86_64",
+    "android_24_x86": "x86",
+  },
+  "web": {"pyodide_2024_0_wasm32": ""}
+};
 
 const desktopJunkFileExtensions = [".py", ".c", ".h", ".typed", ".exe"];
 const mobileJunkFileExtensions = [
@@ -44,28 +60,24 @@ class PackageCommand extends Command {
   final description = "Packages Python app into Flutter asset.";
 
   PackageCommand() {
+    argParser.addOption('platform',
+        allowed: ["ios", "android", "web", "windows", "linux", "macos"],
+        mandatory: true,
+        help:
+            "Make pip to install dependencies for specific platform, e.g. 'android'.");
+    argParser.addOption('requirements',
+        help:
+            "Required pip dependencies in the format 'dep1,dep2==version,...'");
     argParser.addFlag("pre",
         help: "Install pre-release dependencies.", negatable: false);
-    argParser.addFlag("mobile", help: "Package for mobile.", negatable: false);
-    argParser.addFlag("web", help: "Package for web.", negatable: false);
-    argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
     argParser.addOption('asset',
         abbr: 'a',
         help:
             "Asset path, relative to pubspec.yaml, to package Python program into.");
-    argParser.addOption('dep-mappings',
-        help: "Pip dependency mappings in the format 'dep1>dep2,dep3>dep4'.");
-    argParser.addOption('req-deps',
-        help:
-            "Required pip dependencies in the format 'dep1,dep2==version,...'");
-    argParser.addOption('find-links',
-        help: "Path or URL to HTML page with links to wheels.");
-    argParser.addOption('platform',
-        help:
-            "Make pip to install dependencies for this platform, e.g. 'emscripten_3_1_45_wasm32'. An attempt to install native Python modules will raise an error.");
     argParser.addOption('exclude',
         help:
             "List of relative paths to exclude from app package, e.g. \"assets,build\".");
+    argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 
   // [run] may also return a Future.
@@ -88,27 +100,12 @@ class PackageCommand extends Command {
 
       // args
       String? sourceDirPath = argResults!.rest.first;
-      String? assetPath = argResults?['asset'];
-      bool pre = argResults?["pre"];
-      bool mobile = argResults?["mobile"];
-      bool web = argResults?["web"];
-      String? depMappingsArg = argResults?['dep-mappings'];
-      String? reqDepsArg = argResults?['req-deps'];
-      String? findLinksArg = argResults?['find-links'];
       String? platformArg = argResults?['platform'];
+      String? assetPath = argResults?['asset'];
+      String? reqDepsArg = argResults?['requirements'];
+      bool pre = argResults?["pre"];
       String? excludeArg = argResults?['exclude'];
       _verbose = argResults?["verbose"];
-
-      var server = await startSimpleServer();
-
-      await Future.delayed(const Duration(seconds: 60));
-
-      //exit(1);
-
-      if (mobile && web) {
-        stderr.writeln("--mobile and --web cannot be used together.");
-        exit(1);
-      }
 
       if (path.isRelative(sourceDirPath)) {
         sourceDirPath = path.join(currentPath, sourceDirPath);
@@ -125,6 +122,12 @@ class PackageCommand extends Command {
       if (!await pubspecFile.exists()) {
         stderr.writeln("Current directory must contain pubspec.yaml.");
         exit(2);
+      }
+
+      // start PyPI index server
+      HttpServer server;
+      if (platformArg == "web") {
+        server = await startSimpleServer();
       }
 
       // asset path
@@ -210,24 +213,6 @@ class PackageCommand extends Command {
         }
       }
 
-      // apply dependency mappings
-      if (depMappingsArg != null) {
-        for (var depMappingPair
-            in depMappingsArg.split(",").map((s) => s.trim())) {
-          List<String> mapping =
-              depMappingPair.split("=").map((s) => s.trim()).toList();
-          if (mapping.length != 2) {
-            stderr.writeln("Invalid dependency mapping: $depMappingPair");
-            exit(3);
-          }
-          dependencies = dependencies
-              .map((d) => d.replaceAllMapped(
-                  RegExp(mapping[0] + r'([><=]{1,}|$)'),
-                  (match) => '${mapping[1]}${match.group(1)}'))
-              .toList();
-        }
-      }
-
       // add extra dependencies
       var depNameRe = RegExp(r'([A-Za-z0-9_-]+)(\W{1,}|$)');
       if (reqDepsArg != null) {
@@ -274,52 +259,6 @@ class PackageCommand extends Command {
 
       var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
 
-      if (findLinksArg != null) {
-        var findLinksPath = findLinksArg;
-        if (path.isRelative(findLinksPath)) {
-          findLinksPath = path.join(currentPath, findLinksPath);
-        }
-        var findLinksFile = File(findLinksPath);
-        if (!await findLinksFile.exists()) {
-          stderr.writeln('--find-links file does not exist.');
-          exit(2);
-        }
-        var findLinks = await findLinksFile.readAsString();
-        List<String> findLinkDependencies = [];
-        for (var dep in dependencies.toList()) {
-          var depName =
-              depNameRe.allMatches(dep).firstOrNull?.group(1)?.toLowerCase();
-          if (depName == null) {
-            stderr.writeln("Invalid dependency: $dep");
-            exit(4);
-          }
-          if (findLinks.contains(">$depName-")) {
-            findLinkDependencies.add(dep);
-            dependencies.remove(dep);
-          }
-        }
-
-        if (findLinkDependencies.isNotEmpty) {
-          stdout.writeln(
-              "Installing 'find-links' dependencies $findLinkDependencies with pip command to $pyPackagesDir");
-
-          await runPython([
-            '-m',
-            'pip',
-            'install',
-            '--isolated',
-            '--upgrade',
-            ...extraArgs,
-            '--target',
-            pyPackagesDir,
-            '--no-index',
-            '--find-links',
-            findLinksPath,
-            ...findLinkDependencies
-          ], environment: pipEnvVars);
-        }
-      } // --find-links
-
       if (dependencies.isNotEmpty) {
         stdout.writeln(
             "Installing dependencies $dependencies with pip command to $pyPackagesDir");
@@ -341,9 +280,11 @@ class PackageCommand extends Command {
       stdout.writeln("Compiling Python sources at ${tempDir.path}");
       await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
-      List<String> fileExtensions = mobile
+      List<String> fileExtensions = ["ios", "android"].contains(platformArg)
           ? mobileJunkFileExtensions
-          : (web ? webJunkFileExtensions : desktopJunkFileExtensions);
+          : (platformArg == "web"
+              ? webJunkFileExtensions
+              : desktopJunkFileExtensions);
 
       // remove unnecessary files
       stdout
@@ -515,7 +456,7 @@ class PackageCommand extends Command {
     var wheels = Map.from(pyodidePackages["packages"])
       ..removeWhere((k, p) => !p["file_name"].endsWith(".whl"));
 
-    Response echoRequest(Request request) {
+    Response serveRequest(Request request) {
       var path = request.url.path;
       if (path.endsWith('/')) path = path.substring(0, path.length - 1);
       var parts = path.split("/");
@@ -543,9 +484,10 @@ class PackageCommand extends Command {
     }
 
     var handler =
-        const Pipeline().addMiddleware(logRequests()).addHandler(echoRequest);
+        const Pipeline().addMiddleware(logRequests()).addHandler(serveRequest);
 
-    var server = await shelf_io.serve(handler, 'localhost', 8080);
+    var server =
+        await shelf_io.serve(handler, '127.0.0.1', await getUnusedPort());
 
     // Enable content compression
     server.autoCompress = true;
@@ -553,6 +495,14 @@ class PackageCommand extends Command {
     print('Serving at http://${server.address.host}:${server.port}');
 
     return server;
+  }
+
+  Future<int> getUnusedPort() {
+    return ServerSocket.bind("127.0.0.1", 0).then((socket) {
+      var port = socket.port;
+      socket.close();
+      return port;
+    });
   }
 
   Future<Map<String, dynamic>> fetchJsonFromUrl(String url) async {

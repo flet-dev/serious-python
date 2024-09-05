@@ -88,7 +88,7 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     packageTasks.add("zipSitePackages_$abi")
 
     tasks.register("downloadDistArchive_$abi", Download) {
-        src "https://github.com/flet-dev/serious-python/releases/download/v0.1.0/python-3.12-android-${abi}.tar.gz"
+        src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-3.12.4-android-${abi}.tar.gz"
         dest new File(buildDir, "python-android-v${abi}.tar.gz")
     }
     tasks.register("untarFile_$abi", Copy) {
