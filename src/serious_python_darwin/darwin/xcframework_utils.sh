@@ -1,6 +1,6 @@
 archs=("iphoneos.arm64" "iphonesimulator.arm64" "iphonesimulator.x86_64")
 
-dylib_suffix=so
+dylib_ext=so
 
 create_plist() {
     name=$1
@@ -45,7 +45,8 @@ create_xcframework_from_dylibs() {
     simulator_arm64_dir=$2
     simulator_x86_64_dir=$3
     dylib_relative_path=$4
-    out_dir=$5
+    origin_prefix=$5
+    out_dir=$6
 
     tmp_dir=$(mktemp -d)
     pushd -- "${tmp_dir}" >/dev/null
@@ -58,21 +59,24 @@ create_xcframework_from_dylibs() {
     # creating "iphoneos" framework
     fd=iphoneos/$framework.framework
     mkdir -p $fd
-    mv "$iphone_dir/$dylib_without_ext".*.$dylib_suffix $fd/$framework
+    mv "$iphone_dir/$dylib_relative_path" $fd/$framework
+    echo "Frameworks/$framework.framework/$framework" > "$iphone_dir/$dylib_without_ext.fwork"
     install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
+    echo "$origin_prefix/$dylib_without_ext.fwork" > $fd/$framework.origin
 
     # creating "iphonesimulator" framework
     fd=iphonesimulator/$framework.framework
     mkdir -p $fd
     lipo -create \
-        "$simulator_arm64_dir/$dylib_without_ext".*.$dylib_suffix \
-        "$simulator_x86_64_dir/$dylib_without_ext".*.$dylib_suffix \
+        "$simulator_arm64_dir/$dylib_without_ext".*.$dylib_ext \
+        "$simulator_x86_64_dir/$dylib_without_ext".*.$dylib_ext \
         -output $fd/$framework
-    rm "$simulator_arm64_dir/$dylib_without_ext".*.$dylib_suffix
-    rm "$simulator_x86_64_dir/$dylib_without_ext".*.$dylib_suffix
+    rm "$simulator_arm64_dir/$dylib_without_ext".*.$dylib_ext
+    rm "$simulator_x86_64_dir/$dylib_without_ext".*.$dylib_ext
     install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
+    echo "$origin_prefix/$dylib_without_ext.fwork" > $fd/$framework.origin
 
     # merge frameworks info xcframework
     xcodebuild -create-xcframework \

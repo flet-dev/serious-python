@@ -28,18 +28,18 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_version = "3.12.3"
+  python_version = "3.12"
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
 
-    # rm -rf #{dist_ios}
-    # mkdir -p #{dist_ios}
-    # dist_ios=$(realpath #{dist_ios})
+    rm -rf #{dist_ios}
+    mkdir -p #{dist_ios}
+    dist_ios=$(realpath #{dist_ios})
 
-    # ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
+    ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
 
     # rm -rf #{dist_macos}
     # mkdir -p #{dist_macos}
@@ -50,17 +50,6 @@ Pod::Spec.new do |s|
 CMD
 
 puts `#{prepare_command}`
-
-# my_script = <<-SCRIPT_PHASE
-#   mkdir -p ${HOME}/123456
-#   printenv > ${HOME}/123456/env.txt
-#   cp -R $HOME/projects/flet-dev/serious-python/src/serious_python_darwin/darwin/dist/xcframework/yarl.xcframework/ios-arm64/* ${CODESIGNING_FOLDER_PATH}/../
-#   ls -alR ${CODESIGNING_FOLDER_PATH}/../ > ${HOME}/123456/ls.txt
-# SCRIPT_PHASE
-
-#   s.ios.script_phase = { :name => 'Hello World', :script => my_script, :execution_position => :before_compile }
-
-  #s.libraries = 'z', 'bz2', 'c++'
 
   # iOS frameworks
   ios_xcframeworks_dir = "#{dist_ios}/xcframeworks"
