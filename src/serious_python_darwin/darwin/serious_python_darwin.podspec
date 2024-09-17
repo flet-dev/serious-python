@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
   s.source_files = ['Classes/**/*']
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
-  s.ios.deployment_target = '12.0'
+  s.ios.deployment_target = '13.0'
   s.osx.deployment_target = '10.15'
 
   # Flutter.framework does not contain a i386 slice.
@@ -35,17 +35,17 @@ Pod::Spec.new do |s|
 
   prepare_command = <<-CMD
 
-    rm -rf #{dist_ios}
-    mkdir -p #{dist_ios}
-    dist_ios=$(realpath #{dist_ios})
+    # rm -rf #{dist_ios}
+    # mkdir -p #{dist_ios}
+    # dist_ios=$(realpath #{dist_ios})
 
-    ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
+    # ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
 
-    rm -rf #{dist_macos}
-    mkdir -p #{dist_macos}
-    dist_macos=$(realpath #{dist_macos})
+    # rm -rf #{dist_macos}
+    # mkdir -p #{dist_macos}
+    # dist_macos=$(realpath #{dist_macos})
 
-    ./prepare_macos.sh #{s.version} #{python_version} $dist_macos
+    # ./prepare_macos.sh #{s.version} #{python_version} $dist_macos
     
 CMD
 
@@ -60,7 +60,7 @@ puts `#{prepare_command}`
 
 #   s.ios.script_phase = { :name => 'Hello World', :script => my_script, :execution_position => :before_compile }
 
-  s.libraries = 'z', 'bz2', 'c++', 'sqlite3'
+  #s.libraries = 'z', 'bz2', 'c++'
 
   # iOS frameworks
   ios_xcframeworks_dir = "#{dist_ios}/xcframeworks"

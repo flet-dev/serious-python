@@ -1,7 +1,7 @@
 skip_branch_with_pr: true
 
 environment:
-  PYTHON_VERSION: 3.12.4
+  PYTHON_VERSION: 3.12.6
   GITHUB_TOKEN:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
