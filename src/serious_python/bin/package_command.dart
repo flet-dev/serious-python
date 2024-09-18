@@ -12,7 +12,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev/simple";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.1/full";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full";
 const pyodideLockFile = "pyodide-lock.json";
 
 const buildPythonVersion = "3.12.6";
@@ -38,17 +38,8 @@ const platformTags = {
   "Darwin": {"": ""}
 };
 
-const junkFileExtensions = [
-  ".c",
-  ".h",
-  ".typed",
-  ".exe",
-  ".a",
-  ".pdb",
-  ".pyd",
-  ".dll"
-];
-const junkFilesAndDirectories = ["__pycache__", "bin"];
+const junkFileExtensions = [".c", ".h", ".typed", ".a", ".pdb"];
+const junkFilesAndDirectories = ["__pycache__"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
