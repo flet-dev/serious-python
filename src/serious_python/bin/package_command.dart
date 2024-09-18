@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
@@ -34,7 +35,7 @@ const platformTags = {
   "Pyodide": {"pyodide-2024.0-wasm32": ""},
   "Windows": {"": ""},
   "Linux": {"": ""},
-  "macOS": {"": ""}
+  "Darwin": {"": ""}
 };
 
 const junkFileExtensions = [
@@ -63,7 +64,7 @@ class PackageCommand extends Command {
   PackageCommand() {
     argParser.addOption('platform',
         abbr: "p",
-        allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "macOS"],
+        allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
         mandatory: true,
         help:
             "Make pip to install dependencies for specific platform, e.g. 'Android'.");
@@ -306,6 +307,8 @@ class PackageCommand extends Command {
               } else {
                 stdout.writeln(("Cleanup installed packages"));
               }
+              await cleanupPyPackages(Directory(sitePackagesDir),
+                  junkFileExtensions, junkFilesAndDirectories);
             }
           } finally {
             if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
@@ -322,6 +325,11 @@ class PackageCommand extends Command {
           "Creating app archive at ${dest.path} from a temp directory");
       final encoder = ZipFileEncoder();
       encoder.zipDirectory(tempDir, filename: dest.path);
+
+      // create hash file
+      stdout.writeln("Writing app archive hash to ${dest.path}.hash");
+      await File("${dest.path}.hash")
+          .writeAsString(await calculateFileHash(dest.path));
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {
@@ -525,6 +533,11 @@ class PackageCommand extends Command {
     } else {
       throw Exception("Failed to load data from $url");
     }
+  }
+
+  Future<String> calculateFileHash(String path) async {
+    final digest = sha256.convert(await File(path).readAsBytes());
+    return digest.toString();
   }
 
   void verbose(String text) {

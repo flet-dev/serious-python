@@ -50,6 +50,7 @@ dependencies:
   toml: ^0.15.0
   http: ^1.2.1
   shelf: ^1.4.1
+  crypto: ^3.0.5
 
 dev_dependencies:
   flutter_test:
