@@ -264,7 +264,6 @@ class PackageCommand extends Command {
 
             List<String> pipArgs = [
               "--disable-pip-version-check",
-              "--no-cache-dir",
               "--only-binary",
               ":all:"
             ];
