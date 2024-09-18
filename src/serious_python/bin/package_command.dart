@@ -104,6 +104,7 @@ class PackageCommand extends Command {
     }
 
     Directory? tempDir;
+    HttpServer? pyodidePyPiServer;
 
     try {
       final currentPath = Directory.current.path;
@@ -146,15 +147,9 @@ class PackageCommand extends Command {
       if (platform == "iOS" || platform == "Android") {
         pypiUrl = mobilePyPiUrl;
       } else if (platform == "Pyodide") {
-        var server = await startSimpleServer();
-        pypiUrl = "http://${server.address.host}:${server.port}";
-      }
-
-      // start PyPI index server
-      HttpServer server;
-      if (platform == "Pyodide") {
-        server = await startSimpleServer();
-        pypiUrl = "http://${server.address.host}:${server.port}";
+        pyodidePyPiServer = await startSimpleServer();
+        pypiUrl =
+            "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple";
       }
 
       if (pypiUrl != null) {
@@ -269,6 +264,7 @@ class PackageCommand extends Command {
 
             List<String> pipArgs = [
               "--disable-pip-version-check",
+              "--no-cache-dir",
               "--only-binary",
               ":all:"
             ];
@@ -336,6 +332,10 @@ class PackageCommand extends Command {
       if (tempDir != null && await tempDir.exists()) {
         stdout.writeln("Deleting temp directory");
         await tempDir.delete(recursive: true);
+      }
+      if (pyodidePyPiServer != null) {
+        stdout.writeln("Shutting down Pyodide PyPI server");
+        pyodidePyPiServer.close();
       }
     }
   }
