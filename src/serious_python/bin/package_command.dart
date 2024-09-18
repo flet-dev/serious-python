@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
-import 'package:toml/toml.dart';
 
 import 'sitecustomize.dart';
 
@@ -15,42 +14,44 @@ const mobilePyPiUrl = "https://pypi.flet.dev/simple";
 const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.1/full";
 const pyodideLockFile = "pyodide-lock.json";
 
+const buildPythonVersion = "3.12.6";
+const buildPythonReleaseDate = "20240909";
+const defaultSitePackagesDir = "__pypackages__";
+const sitePackageEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
+
 const platformTags = {
-  "ios": {
-    "ios_12_0_iphoneos_arm64": "iphoneos.arm64",
-    "ios_12_0_iphonesimulator_arm64": "iphonesimulator.arm64",
-    "ios_12_0_iphonesimulator_x86_64": "iphonesimulator.x86_64"
+  "iOS": {
+    "ios-13.0-arm64-iphoneos": "iphoneos.arm64",
+    "ios-13.0-arm64-iphonesimulator": "iphonesimulator.arm64",
+    "ios-13.0-x86_64-iphonesimulator": "iphonesimulator.x86_64"
   },
-  "android": {
-    "android_24_arm64_v8a": "arm64-v8a",
-    "android_24_armeabi_v7a": "armeabi-v7a",
-    "android_24_x86_64": "x86_64",
-    "android_24_x86": "x86",
+  "Android": {
+    "android-24-arm64-v8a": "arm64-v8a",
+    "android-24-armeabi-v7a": "armeabi-v7a",
+    "android-24-x86_64": "x86_64",
+    "android-24-x86": "x86",
   },
-  "web": {"pyodide_2024_0_wasm32": ""}
+  "Pyodide": {"pyodide-2024.0-wasm32": ""},
+  "Windows": {"": ""},
+  "Linux": {"": ""},
+  "macOS": {"": ""}
 };
 
-const desktopJunkFileExtensions = [".py", ".c", ".h", ".typed", ".exe"];
-const mobileJunkFileExtensions = [
-  ...desktopJunkFileExtensions,
-  ".so",
-  ".a",
-  ".pdb",
-  ".pyd",
-  ".dll"
-];
-const webJunkFileExtensions = [
-  ...desktopJunkFileExtensions,
+const junkFileExtensions = [
+  ".c",
+  ".h",
+  ".typed",
+  ".exe",
   ".a",
   ".pdb",
   ".pyd",
   ".dll"
 ];
 const junkFilesAndDirectories = ["__pycache__", "bin"];
-const tomlIgnoredDeps = ["python"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
+  Directory? _buildDir;
   Directory? _pythonDir;
 
   @override
@@ -61,22 +62,31 @@ class PackageCommand extends Command {
 
   PackageCommand() {
     argParser.addOption('platform',
-        allowed: ["ios", "android", "web", "windows", "linux", "macos"],
+        abbr: "p",
+        allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "macOS"],
         mandatory: true,
         help:
-            "Make pip to install dependencies for specific platform, e.g. 'android'.");
-    argParser.addOption('requirements',
+            "Make pip to install dependencies for specific platform, e.g. 'Android'.");
+    argParser.addMultiOption('requirements',
+        abbr: "r",
         help:
             "Required pip dependencies in the format 'dep1,dep2==version,...'");
-    argParser.addFlag("pre",
-        help: "Install pre-release dependencies.", negatable: false);
     argParser.addOption('asset',
         abbr: 'a',
         help:
-            "Asset path, relative to pubspec.yaml, to package Python program into.");
-    argParser.addOption('exclude',
+            "Output asset path, relative to pubspec.yaml, to package Python program into.");
+    argParser.addMultiOption('exclude',
         help:
             "List of relative paths to exclude from app package, e.g. \"assets,build\".");
+    argParser.addFlag("compile-app",
+        help: "Compile Python application before packaging.", negatable: false);
+    argParser.addFlag("compile-packages",
+        help: "Compile application packages before packaging.",
+        negatable: false);
+    argParser.addFlag("cleanup",
+        help:
+            "Cleanup app and packages from unneccessary files and directories.",
+        negatable: false);
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 
@@ -93,18 +103,19 @@ class PackageCommand extends Command {
     }
 
     Directory? tempDir;
-    Directory? sitecustomizeDir;
 
     try {
       final currentPath = Directory.current.path;
 
       // args
       String? sourceDirPath = argResults!.rest.first;
-      String? platformArg = argResults?['platform'];
+      String platform = argResults?['platform'];
+      List<String> requirements = argResults?['requirements'];
       String? assetPath = argResults?['asset'];
-      String? reqDepsArg = argResults?['requirements'];
-      bool pre = argResults?["pre"];
-      String? excludeArg = argResults?['exclude'];
+      List<String> exclude = argResults?['exclude'];
+      bool compileApp = argResults?["compile-app"];
+      bool compilePackages = argResults?["compile-packages"];
+      bool cleanup = argResults?["cleanup"];
       _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
@@ -112,6 +123,11 @@ class PackageCommand extends Command {
       }
 
       final sourceDir = Directory(sourceDirPath);
+
+      if (!platformTags.containsKey(platform)) {
+        stderr.writeln('Unknown platform: $platform');
+        exit(2);
+      }
 
       if (!await sourceDir.exists()) {
         stderr.writeln('Source directory does not exist.');
@@ -124,10 +140,30 @@ class PackageCommand extends Command {
         exit(2);
       }
 
+      // Extra index
+      String? pypiUrl;
+      if (platform == "iOS" || platform == "Android") {
+        pypiUrl = mobilePyPiUrl;
+      } else if (platform == "Pyodide") {
+        var server = await startSimpleServer();
+        pypiUrl = "http://${server.address.host}:${server.port}";
+      }
+
       // start PyPI index server
       HttpServer server;
-      if (platformArg == "web") {
+      if (platform == "Pyodide") {
         server = await startSimpleServer();
+        pypiUrl = "http://${server.address.host}:${server.port}";
+      }
+
+      if (pypiUrl != null) {
+        stdout.writeln("PyPi server URL: $pypiUrl");
+      }
+
+      // ensure standard Dart/Flutter "build" directory exists
+      _buildDir = Directory(path.join(currentPath, "build"));
+      if (!await _buildDir!.exists()) {
+        await _buildDir!.create();
       }
 
       // asset path
@@ -146,192 +182,154 @@ class PackageCommand extends Command {
 
       // create temp dir
       tempDir = await Directory.systemTemp.createTemp('serious_python_temp');
+      stdout.writeln("Created temp directory: ${tempDir.path}");
 
       // copy app to a temp dir
       stdout.writeln(
-          "Copying Python app from ${sourceDir.path} to ${tempDir.path}");
-      await copyDirectory(
-          sourceDir,
-          tempDir,
-          sourceDir.path,
-          excludeArg != null
-              ? excludeArg.split(",").map((s) => s.trim()).toList()
-              : []);
-
-      // discover dependencies
-      List<String> dependencies = [];
-      final requirementsFile =
-          File(path.join(tempDir.path, 'requirements.txt'));
-      final pyprojectFile = File(path.join(tempDir.path, 'pyproject.toml'));
-      if (await requirementsFile.exists()) {
-        dependencies = await requirementsFile.readAsLines();
-      } else if (await pyprojectFile.exists()) {
-        final content = await pyprojectFile.readAsString();
-        final document = TomlDocument.parse(content).toMap();
-        var depSection = findTomlDependencies(document);
-        if (depSection != null) {
-          if (depSection is List) {
-            dependencies = depSection.map((e) => e.toString()).toList();
-          } else {
-            dependencies = List<String>.from(depSection.keys.map((key) {
-              if (tomlIgnoredDeps.contains(key)) {
-                return "";
-              }
-              var value = depSection[key];
-              var version = "";
-              var suffix = "";
-              if (value is Map) {
-                version = value["version"];
-                if (value["python"] != null) {
-                  suffix = ";python_version=='${value["python"]}'"
-                      .replaceAll("=='^", ">='")
-                      .replaceAll("=='~", "~='")
-                      .replaceAll("=='<", "<'")
-                      .replaceAll("=='>", ">'")
-                      .replaceAll("=='<=", "<='")
-                      .replaceAll("=='>=", ">='");
-                } else if (value["markers"] != null) {
-                  suffix = ";${value["markers"]}";
-                }
-              } else if (value is String) {
-                version = value;
-              }
-              var sep = "==";
-              if (version.startsWith("^")) {
-                sep = ">=";
-                version = version.replaceAll("^", "");
-              } else if (version.startsWith("~")) {
-                sep = "~=";
-                version = version.replaceAll("~", "");
-              } else if (version.contains(">") || version.contains("<")) {
-                sep = "";
-                version = version.replaceAll(" ", "");
-              }
-              return "$key$sep$version$suffix";
-            })).where((s) => s != "").toList();
-          }
-        }
-      }
-
-      // add extra dependencies
-      var depNameRe = RegExp(r'([A-Za-z0-9_-]+)(\W{1,}|$)');
-      if (reqDepsArg != null) {
-        for (var reqDep in reqDepsArg.split(",").map((s) => s.trim())) {
-          var depName = depNameRe.allMatches(reqDep).firstOrNull?.group(1);
-          if (depName == null) {
-            stderr.writeln("Invalid required dependency: $reqDep");
-            exit(4);
-          }
-          if (!dependencies
-              .any((s) => RegExp(depName + r'(\W{1,}|$)').hasMatch(s))) {
-            dependencies.add(reqDep);
-          }
-        }
-      }
-
-      // stdout.writeln(dependencies);
-      // exit(1);
-
-      List<String> extraArgs = [];
-      if (pre) {
-        extraArgs.add("--pre");
-      }
-
-      if (platformArg != null) {
-        // create temp dir with sitecustomize.py
-        sitecustomizeDir = await Directory.systemTemp
-            .createTemp('serious_python_sitecustomize');
-        var sitecustomizePath =
-            path.join(sitecustomizeDir.path, "sitecustomize.py");
-        stdout.writeln(
-            "Configured $platformArg platform with sitecustomize.py at $sitecustomizePath");
-        await File(sitecustomizePath).writeAsString(
-            sitecustomizePy.replaceAll('"emscripten"', '"$platformArg"'));
-      }
-
-      var pipEnvVars = {
-        "CC": "/bin/false",
-        "CXX": "/bin/false",
-        "PYTHONPATH": [tempDir.path, sitecustomizeDir?.path]
-            .where((e) => e != null)
-            .join(Platform.isWindows ? ";" : ":"),
-      };
-
-      var pyPackagesDir = path.join(tempDir.path, '__pypackages__');
-
-      if (dependencies.isNotEmpty) {
-        stdout.writeln(
-            "Installing dependencies $dependencies with pip command to $pyPackagesDir");
-
-        await runPython([
-          '-m',
-          'pip',
-          'install',
-          '--isolated',
-          '--upgrade',
-          ...extraArgs,
-          '--target',
-          pyPackagesDir,
-          ...dependencies
-        ], environment: pipEnvVars);
-      }
+          "Copying Python app from ${sourceDir.path} to a temp directory");
+      await copyDirectory(sourceDir, tempDir, sourceDir.path,
+          exclude.map((s) => s.trim()).toList());
 
       // compile all python code
-      stdout.writeln("Compiling Python sources at ${tempDir.path}");
-      await runPython(['-m', 'compileall', '-b', tempDir.path]);
+      if (compileApp) {
+        stdout.writeln("Compiling Python sources in a temp directory");
+        await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
-      List<String> fileExtensions = ["ios", "android"].contains(platformArg)
-          ? mobileJunkFileExtensions
-          : (platformArg == "web"
-              ? webJunkFileExtensions
-              : desktopJunkFileExtensions);
+        verbose("Deleting original .py files");
+        await cleanupPyPackages(tempDir, [".py"], []);
+      }
 
-      // remove unnecessary files
-      stdout
-          .writeln("Delete unnecessary files with extensions: $fileExtensions");
-      stdout.writeln(
-          "Delete unnecessary files and directories: $junkFilesAndDirectories");
-      await cleanupPyPackages(tempDir, fileExtensions, junkFilesAndDirectories);
+      // cleanup
+      if (cleanup) {
+        if (_verbose) {
+          verbose(
+              "Delete unnecessary app files with extensions: $junkFileExtensions");
+          verbose(
+              "Delete unnecessary app files and directories: $junkFilesAndDirectories");
+        } else {
+          stdout.writeln(("Cleanup app"));
+        }
+        await cleanupPyPackages(
+            tempDir, junkFileExtensions, junkFilesAndDirectories);
+      }
+
+      // install requirements
+      if (requirements.isNotEmpty) {
+        // invoke pip for every platform arch
+        for (var tag in platformTags[platform]!.entries) {
+          String? sitePackagesDir;
+          Map<String, String>? pipEnv;
+          Directory? sitecustomizeDir;
+
+          try {
+            // customized pip
+            // create temp dir with sitecustomize.py for mobile and web
+            sitecustomizeDir = await Directory.systemTemp
+                .createTemp('serious_python_sitecustomize');
+            var sitecustomizePath =
+                path.join(sitecustomizeDir.path, "sitecustomize.py");
+            if (_verbose) {
+              verbose(
+                  "Configured $platform/${tag.key} platform with sitecustomize.py at $sitecustomizePath");
+            } else {
+              stdout.writeln(
+                  "Configured $platform/${tag.key} platform with sitecustomize.py");
+            }
+
+            await File(sitecustomizePath).writeAsString(sitecustomizePy
+                .replaceAll("{platform}", tag.key.isNotEmpty ? platform : "")
+                .replaceAll("{tag}", tag.key.isNotEmpty ? tag.key : ""));
+
+            pipEnv = {
+              "PYTHONPATH":
+                  [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
+            };
+
+            sitePackagesDir = path.join(tempDir.path, defaultSitePackagesDir);
+            if (tag.value.isNotEmpty) {
+              if (!Platform.environment
+                  .containsKey(sitePackageEnvironmentVariable)) {
+                throw "Environment variable is not set: $sitePackageEnvironmentVariable";
+              }
+              var sitePackagesRoot =
+                  Platform.environment[sitePackageEnvironmentVariable];
+              if (sitePackagesRoot!.isEmpty) {
+                throw "Environment variable cannot be empty: $sitePackageEnvironmentVariable";
+              }
+              sitePackagesDir = path.join(sitePackagesRoot, tag.value);
+            }
+
+            if (!await Directory(sitePackagesDir).exists()) {
+              await Directory(sitePackagesDir).create(recursive: true);
+            }
+
+            stdout.writeln(
+                "Installing $requirements with pip command to $sitePackagesDir");
+
+            List<String> pipArgs = [
+              "--disable-pip-version-check",
+              "--only-binary",
+              ":all:"
+            ];
+
+            if (pypiUrl != null) {
+              pipArgs.addAll(["--extra-index-url", pypiUrl]);
+            }
+
+            await runPython([
+              '-m',
+              'pip',
+              'install',
+              '--upgrade',
+              ...pipArgs,
+              '--target',
+              sitePackagesDir,
+              ...requirements
+            ], environment: pipEnv);
+
+            // compile packages
+            if (compilePackages) {
+              stdout.writeln("Compiling app packages at $sitePackagesDir");
+              await runPython(['-m', 'compileall', '-b', sitePackagesDir]);
+
+              verbose("Deleting original .py files");
+              await cleanupPyPackages(Directory(sitePackagesDir), [".py"], []);
+            }
+
+            // cleanup packages
+            if (cleanup) {
+              if (_verbose) {
+                verbose(
+                    "Delete unnecessary package files with extensions: $junkFileExtensions");
+                verbose(
+                    "Delete unnecessary package files and directories: $junkFilesAndDirectories");
+              } else {
+                stdout.writeln(("Cleanup installed packages"));
+              }
+            }
+          } finally {
+            if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
+              verbose(
+                  "Deleting sitecustomize directory ${sitecustomizeDir.path}");
+              await sitecustomizeDir.delete(recursive: true);
+            }
+          }
+        }
+      }
 
       // create archive
-      stdout
-          .writeln("Creating app archive at ${dest.path} from ${tempDir.path}");
+      stdout.writeln(
+          "Creating app archive at ${dest.path} from a temp directory");
       final encoder = ZipFileEncoder();
       encoder.zipDirectory(tempDir, filename: dest.path);
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {
       if (tempDir != null && await tempDir.exists()) {
-        stdout.writeln("Deleting temp directory ${tempDir.path}");
+        stdout.writeln("Deleting temp directory");
         await tempDir.delete(recursive: true);
       }
-      if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
-        stdout.writeln(
-            "Deleting sitecustomize directory ${sitecustomizeDir.path}");
-        await sitecustomizeDir.delete(recursive: true);
-      }
-      if (_pythonDir != null && await _pythonDir!.exists()) {
-        stdout.writeln("Deleting Python directory ${_pythonDir!.path}");
-        await _pythonDir!.delete(recursive: true);
-      }
     }
-  }
-
-  dynamic findTomlDependencies(Map<String, dynamic> section) {
-    if (section.containsKey('dependencies')) {
-      return section['dependencies'];
-    }
-
-    for (final value in section.values) {
-      if (value is Map<String, dynamic>) {
-        final dependencies = findTomlDependencies(value);
-        if (dependencies != null) {
-          return dependencies;
-        }
-      }
-    }
-
-    return null;
   }
 
   Future<void> copyDirectory(Directory source, Directory destination,
@@ -395,46 +393,60 @@ class PackageCommand extends Command {
   Future<int> runPython(List<String> args,
       {Map<String, String>? environment}) async {
     if (_pythonDir == null) {
-      _pythonDir = await Directory.systemTemp.createTemp('hostpython3.11_');
+      _pythonDir = Directory(
+          path.join(_buildDir!.path, "build_python_$buildPythonVersion"));
 
-      var isArm64 = Platform.version.contains("arm64");
+      if (!await _pythonDir!.exists()) {
+        await _pythonDir!.create();
 
-      String arch = "";
-      if (Platform.isMacOS && !isArm64) {
-        arch = 'x86_64-apple-darwin';
-      } else if (Platform.isMacOS && isArm64) {
-        arch = 'aarch64-apple-darwin';
-      } else if (Platform.isLinux && !isArm64) {
-        arch = 'x86_64-unknown-linux-gnu';
-      } else if (Platform.isLinux && isArm64) {
-        arch = 'aarch64-unknown-linux-gnu';
-      } else if (Platform.isWindows) {
-        arch = 'x86_64-pc-windows-msvc-shared';
+        var isArm64 = Platform.version.contains("arm64");
+
+        String arch = "";
+        if (Platform.isMacOS && !isArm64) {
+          arch = 'x86_64-apple-darwin';
+        } else if (Platform.isMacOS && isArm64) {
+          arch = 'aarch64-apple-darwin';
+        } else if (Platform.isLinux && !isArm64) {
+          arch = 'x86_64-unknown-linux-gnu';
+        } else if (Platform.isLinux && isArm64) {
+          arch = 'aarch64-unknown-linux-gnu';
+        } else if (Platform.isWindows) {
+          arch = 'x86_64-pc-windows-msvc-shared';
+        }
+
+        var pythonArchiveFilename =
+            "cpython-$buildPythonVersion+$buildPythonReleaseDate-$arch-install_only.tar.gz";
+
+        var pythonArchivePath =
+            path.join(_buildDir!.path, pythonArchiveFilename);
+
+        if (!await File(pythonArchivePath).exists()) {
+          // download Python distr from GitHub
+          final url =
+              "https://github.com/indygreg/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
+
+          if (_verbose) {
+            verbose(
+                "Downloading Python distributive from $url to $pythonArchivePath");
+          } else {
+            stdout.writeln(
+                "Downloading Python distributive from $url to a build directory");
+          }
+
+          var response = await http.get(Uri.parse(url));
+          await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
+        }
+
+        // extract Python from archive
+        if (_verbose) {
+          "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}";
+        } else {
+          stdout.writeln("Extracting Python distributive");
+        }
+
+        await Process.run(
+            'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
       }
-
-      var pythonArchiveFilename =
-          "cpython-3.11.6+20231002-$arch-install_only.tar.gz";
-
-      var pythonArchivePath =
-          path.join(Directory.systemTemp.path, pythonArchiveFilename);
-
-      if (!await File(pythonArchivePath).exists()) {
-        // download Python distr from GitHub
-        final url =
-            "https://github.com/indygreg/python-build-standalone/releases/download/20231002/$pythonArchiveFilename";
-
-        stdout.writeln(
-            "Downloading Python distributive from $url to $pythonArchivePath");
-
-        var response = await http.get(Uri.parse(url));
-        await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
-      }
-
-      // extract Python from archive
-      stdout.writeln(
-          "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}");
-      await Process.run(
-          'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
     }
 
     var pythonExePath = Platform.isWindows
@@ -491,8 +503,6 @@ class PackageCommand extends Command {
 
     // Enable content compression
     server.autoCompress = true;
-
-    print('Serving at http://${server.address.host}:${server.port}');
 
     return server;
   }
