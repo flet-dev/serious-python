@@ -34,17 +34,15 @@ Pod::Spec.new do |s|
 
   prepare_command = <<-CMD
 
-    # rm -rf #{dist_ios}
-    # mkdir -p #{dist_ios}
-    # dist_ios=$(realpath #{dist_ios})
+    rm -rf #{dist_ios}
+    mkdir -p #{dist_ios}
 
-    # ./prepare_ios.sh #{s.version} #{python_version} $dist_ios
+    ./prepare_ios.sh #{s.version} #{python_version} $(realpath #{dist_ios})
 
     # rm -rf #{dist_macos}
     # mkdir -p #{dist_macos}
-    # dist_macos=$(realpath #{dist_macos})
-
-    # ./prepare_macos.sh #{s.version} #{python_version} $dist_macos
+    
+    # ./prepare_macos.sh #{s.version} #{python_version} $(realpath #{dist_macos})
     
 CMD
 
