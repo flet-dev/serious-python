@@ -39,7 +39,7 @@ const platformTags = {
 };
 
 const junkFileExtensions = [".c", ".h", ".typed", ".a", ".pdb"];
-const junkFilesAndDirectories = ["__pycache__"];
+const junkFilesAndDirectories = ["__pycache__", "bin"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
