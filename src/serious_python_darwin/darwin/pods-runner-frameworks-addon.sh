@@ -1,5 +1,8 @@
-#PYTHON_XCFRAMEWORKS_ROOT=/Users/feodor/projects/flet-dev/serious-python/src/serious_python_darwin/darwin/dist_ios/frameworks
-#PLATFORM_NAME="iphonesimulator"
+# -- added by serious_python_darwin plugin --
+# This file is appended to $PODS_ROOT/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh
+
+# PYTHON_XCFRAMEWORKS_ROOT="{path}"
+# PLATFORM_NAME="iphonesimulator"
 
 find $PYTHON_XCFRAMEWORKS_ROOT -name "*.xcframework" | while read full_framework_path; do
     framework_relative_path=${full_framework_path#$PYTHON_XCFRAMEWORKS_ROOT/}
