@@ -13,13 +13,13 @@ curl -LO $python_ios_dist_url
 tar -xzf $python_ios_dist_file -C $dist
 rm $python_ios_dist_file
 
-if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
+if [ -n "$SERIOUS_PYTHON_SITE_PACKAGES" ]; then
 
     . xcframework_utils.sh
 
     tmp_dir=$(mktemp -d)
 
-    cp -R $SERIOUS_PYTHON_IOS_SITE_PACKAGES/* $tmp_dir
+    cp -R $SERIOUS_PYTHON_SITE_PACKAGES/* $tmp_dir
 
     echo "Converting dylibs to xcframeworks..."
     find "$tmp_dir/${archs[0]}" -name "*.$dylib_ext" | while read full_dylib; do
@@ -30,7 +30,7 @@ if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
             "$tmp_dir/${archs[2]}" \
             $dylib_relative_path \
             "Frameworks/serious_python_darwin.framework/site-packages" \
-            $dist/xcframeworks
+            $dist/python-xcframeworks
     done
 
     rm -rf $dist/site-packages

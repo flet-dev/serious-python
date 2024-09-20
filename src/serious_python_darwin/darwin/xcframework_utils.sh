@@ -48,8 +48,8 @@ create_xcframework_from_dylibs() {
     origin_prefix=$5
     out_dir=$6
 
-    tmp_dir=$(mktemp -d)
-    pushd -- "${tmp_dir}" >/dev/null
+    dylib_tmp_dir=$(mktemp -d)
+    pushd -- "${dylib_tmp_dir}" >/dev/null
 
     echo "Creating framework for $dylib_relative_path"
     dylib_without_ext=$(echo $dylib_relative_path | cut -d "." -f 1)
@@ -86,5 +86,5 @@ create_xcframework_from_dylibs() {
 
     # cleanup
     popd >/dev/null
-    rm -rf "${tmp_dir}" >/dev/null
+    rm -rf "${dylib_tmp_dir}" >/dev/null
 }
