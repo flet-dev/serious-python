@@ -1,6 +1,8 @@
 group 'com.flet.serious_python_android'
 version '0.7.1'
 
+def python_version = '3.12'
+
 buildscript {
     repositories {
         google()
@@ -69,11 +71,6 @@ android {
 
 import de.undercouch.gradle.tasks.download.Download
 
-task copyCustomDist(type: Exec) {
-    workingDir '.'
-    commandLine 'sh', 'bundle.sh'
-}
-
 task copyBuildDist(type: Copy) {
     def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
     if (srcDir != null) {
@@ -88,8 +85,8 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     packageTasks.add("zipSitePackages_$abi")
 
     tasks.register("downloadDistArchive_$abi", Download) {
-        src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-3.12.4-android-${abi}.tar.gz"
-        dest new File(buildDir, "python-android-v${abi}.tar.gz")
+        src "https://github.com/flet-dev/python-android/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
+        dest new File(buildDir, "python-android-${abi}.tar.gz")
     }
     tasks.register("untarFile_$abi", Copy) {
         from tarTree(tasks.named("downloadDistArchive_$abi").get().dest)
