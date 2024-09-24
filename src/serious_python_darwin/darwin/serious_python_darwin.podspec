@@ -33,11 +33,9 @@ Pod::Spec.new do |s|
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
-    rm -rf #{dist_ios}
     mkdir -p #{dist_ios}
     ./prepare_ios.sh #{python_version} $(realpath #{dist_ios})
 
-    rm -rf #{dist_macos}
     mkdir -p #{dist_macos}
     ./prepare_macos.sh #{python_version} $(realpath #{dist_macos})
 CMD
