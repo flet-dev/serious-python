@@ -46,6 +46,7 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             
             let pythonPaths: [String] = modulePaths + [
                 appDir,
+                "\(appDir)/__pypackages__",
                 resourcePath,
                 "\(resourcePath)/site-packages",
                 "\(resourcePath)/python-stdlib",

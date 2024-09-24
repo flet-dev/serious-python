@@ -1,47 +1,10 @@
-version=${1:?}
-python_version=${2:?}
-dist=${3:?}
+python_version=${1:?}
+dist=${2:?}
 
-python_ios_dist_file="python-$python_version-macos.tar.gz"
-python_ios_dist_url="" #"https://ci.appveyor.com/api/buildjobs/agifs86hui0ff3uu/artifacts/$python_ios_dist_file"
-#python_ios_dist_url = "https://github.com/flet-dev/serious-python/releases/download/v#{s.version}/$PYTHON_IOS_DIST_FILE
- 
-rm -rf $dist
-mkdir -p $dist
+python_macos_dist_file="python-macos-dart-$python_version.tar.gz"
+python_macos_dist_url="https://github.com/flet-dev/python-darwin/releases/download/v$python_version/$python_macos_dist_file"
 
-# copy or download iOS dist
-if [ -n "$SERIOUS_PYTHON_MACOS_DIST" ]; then
-    cp -R "$SERIOUS_PYTHON_MACOS_DIST"/* $dist
-else
-    curl -LO $python_ios_dist_url
-    tar -xzf $python_ios_dist_file -C $dist
-    rm $python_ios_dist_file
-fi
-
-if [ -n "$SERIOUS_PYTHON_IOS_SITE_PACKAGES" ]; then
-
-    . xcframework_utils.sh
-
-    
-    tmp_dir=$(mktemp -d)
-
-    cp -R $SERIOUS_PYTHON_IOS_SITE_PACKAGES/* $tmp_dir
-
-    echo "Converting .dylibs to xcframeworks..."
-    find "$tmp_dir/${archs[0]}" -name "*.$dylib_suffix" | while read full_dylib; do
-        dylib_relative_path=${full_dylib#$tmp_dir/${archs[0]}/}
-        create_xcframework_from_dylibs \
-            "$tmp_dir/${archs[0]}" \
-            "$tmp_dir/${archs[1]}" \
-            "$tmp_dir/${archs[2]}" \
-            $dylib_relative_path \
-            $dist/xcframeworks
-    done
-
-    rm -rf $dist/site-packages
-    mkdir -p $dist/site-packages
-    cp -R $tmp_dir/${archs[0]}/* $dist/site-packages
-
-    # cleanup
-    rm -rf "${tmp_dir}" >/dev/null
-fi
+# download macos dist
+curl -LO $python_macos_dist_url
+tar -xzf $python_macos_dist_file -C $dist
+rm $python_macos_dist_file
