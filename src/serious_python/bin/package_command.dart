@@ -38,8 +38,11 @@ const platformTags = {
   "Darwin": {"": ""}
 };
 
-const junkFileExtensions = [".c", ".h", ".typed", ".a", ".pdb"];
-const junkFilesAndDirectories = ["__pycache__", "bin"];
+const junkFileExtensionsDesktop = [".c", ".h", ".typed", ".a", ".pdb"];
+const junkFileExtensionsMobile = [...junkFileExtensionsDesktop, ".exe", ".dll"];
+
+const junkFilesDesktop = ["__pycache__"];
+const junkFilesMobile = [...junkFilesDesktop, "bin"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
@@ -133,9 +136,15 @@ class PackageCommand extends Command {
         exit(2);
       }
 
+      bool isMobile = (platform == "iOS" || platform == "Android");
+
+      var junkFileExtensions =
+          isMobile ? junkFileExtensionsMobile : junkFileExtensionsDesktop;
+      var junkFiles = isMobile ? junkFilesMobile : junkFilesDesktop;
+
       // Extra index
       String? pypiUrl;
-      if (platform == "iOS" || platform == "Android") {
+      if (isMobile) {
         pypiUrl = mobilePyPiUrl;
       } else if (platform == "Pyodide") {
         pyodidePyPiServer = await startSimpleServer();
@@ -191,13 +200,11 @@ class PackageCommand extends Command {
         if (_verbose) {
           verbose(
               "Delete unnecessary app files with extensions: $junkFileExtensions");
-          verbose(
-              "Delete unnecessary app files and directories: $junkFilesAndDirectories");
+          verbose("Delete unnecessary app files and directories: $junkFiles");
         } else {
           stdout.writeln(("Cleanup app"));
         }
-        await cleanupPyPackages(
-            tempDir, junkFileExtensions, junkFilesAndDirectories);
+        await cleanupPyPackages(tempDir, junkFileExtensions, junkFiles);
       }
 
       // install requirements
@@ -289,12 +296,12 @@ class PackageCommand extends Command {
                 verbose(
                     "Delete unnecessary package files with extensions: $junkFileExtensions");
                 verbose(
-                    "Delete unnecessary package files and directories: $junkFilesAndDirectories");
+                    "Delete unnecessary package files and directories: $junkFiles");
               } else {
                 stdout.writeln(("Cleanup installed packages"));
               }
-              await cleanupPyPackages(Directory(sitePackagesDir),
-                  junkFileExtensions, junkFilesAndDirectories);
+              await cleanupPyPackages(
+                  Directory(sitePackagesDir), junkFileExtensions, junkFiles);
             }
           } finally {
             if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
