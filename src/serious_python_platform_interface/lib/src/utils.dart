@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:archive/archive.dart';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -54,37 +53,32 @@ Future<String> extractAssetOrFile(String path,
   await destDir.create(recursive: true);
 
   // unpack from asset or file
-  debugPrint("Start unpacking app archive");
-  List<int> data;
+  debugPrint("Start unpacking archive: $path");
+  Stopwatch stopwatch = Stopwatch()..start();
 
   try {
+    Archive archive;
     if (isAsset) {
       final bytes = await rootBundle.load(path);
-      data = bytes.buffer.asUint8List();
+      var data = bytes.buffer.asUint8List();
+      archive = ZipDecoder().decodeBytes(data);
     } else {
-      data = await File(path).readAsBytes();
+      final inputStream = InputFileStream(path);
+      archive = ZipDecoder().decodeBuffer(inputStream);
     }
-  } catch (_) {
+    await extractArchiveToDiskAsync(archive, destDir.path, asyncWrite: true);
+  } catch (e) {
+    debugPrint("Error unpacking archive: $e");
     await destDir.delete(recursive: true);
     rethrow;
   }
 
-  Archive archive = ZipDecoder().decodeBytes(data);
-  for (final file in archive) {
-    final filename = p.join(destDir.path, file.name);
-    if (file.isFile) {
-      final outFile = await File(filename).create(recursive: true);
-      await outFile.writeAsBytes(file.content);
-    } else {
-      await Directory(filename).create(recursive: true);
-    }
-  }
+  debugPrint("Finished unpacking application archive in ${stopwatch.elapsed}");
 
   if (checkHash) {
     await hashFile.writeAsString(assetHash);
   }
 
-  debugPrint("Finished unpacking application archive.");
   return destDir.path;
 }
 
