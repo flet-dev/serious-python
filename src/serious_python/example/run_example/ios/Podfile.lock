@@ -35,7 +35,7 @@ SPEC CHECKSUMS:
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  serious_python_darwin: 8b70ceded7378a7185a2011848fa2fda982d802c
+  serious_python_darwin: 12a622ba316c6e2c04ae203140368f0c9a060110
 
 PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
 
