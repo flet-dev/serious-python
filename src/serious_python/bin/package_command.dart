@@ -9,6 +9,7 @@ import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
+import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev/simple";
@@ -20,22 +21,37 @@ const buildPythonReleaseDate = "20240909";
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackageEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 
-const platformTags = {
+const platforms = {
   "iOS": {
-    "ios-13.0-arm64-iphoneos": "iphoneos.arm64",
-    "ios-13.0-arm64-iphonesimulator": "iphonesimulator.arm64",
-    "ios-13.0-x86_64-iphonesimulator": "iphonesimulator.x86_64"
+    "iphoneos.arm64": {"tag": "ios-13.0-arm64-iphoneos", "mac_ver": ""},
+    "iphonesimulator.arm64": {
+      "tag": "ios-13.0-arm64-iphonesimulator",
+      "mac_ver": ""
+    },
+    "iphonesimulator.x86_64": {
+      "tag": "ios-13.0-x86_64-iphonesimulator",
+      "mac_ver": ""
+    }
   },
   "Android": {
-    "android-24-arm64-v8a": "arm64-v8a",
-    "android-24-armeabi-v7a": "armeabi-v7a",
-    "android-24-x86_64": "x86_64",
-    "android-24-x86": "x86",
+    "arm64-v8a": {"tag": "android-24-arm64-v8a", "mac_ver": ""},
+    "armeabi-v7a": {"tag": "android-24-armeabi-v7a", "mac_ver": ""},
+    "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
+    "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
-  "Pyodide": {"pyodide-2024.0-wasm32": ""},
-  "Windows": {"": ""},
-  "Linux": {"": ""},
-  "Darwin": {"": ""}
+  "Pyodide": {
+    "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""}
+  },
+  "Darwin": {
+    "arm64": {"tag": "", "mac_ver": "arm64"},
+    "x86_64": {"tag": "", "mac_ver": "x86_64"}
+  },
+  "Windows": {
+    "": {"tag": "", "mac_ver": ""}
+  },
+  "Linux": {
+    "": {"tag": "", "mac_ver": ""}
+  }
 };
 
 const junkFileExtensionsDesktop = [".c", ".h", ".typed", ".a", ".pdb"];
@@ -62,6 +78,9 @@ class PackageCommand extends Command {
         mandatory: true,
         help:
             "Make pip to install dependencies for specific platform, e.g. 'Android'.");
+    argParser.addOption('arch',
+        help:
+            "Make pip to install dependencies for specific architecture only. Leave empty to install all architectures.");
     argParser.addMultiOption('requirements',
         abbr: "r",
         help:
@@ -106,6 +125,7 @@ class PackageCommand extends Command {
       // args
       String? sourceDirPath = argResults!.rest.first;
       String platform = argResults?['platform'];
+      String? archArg = argResults?['arch'];
       List<String> requirements = argResults?['requirements'];
       String? assetPath = argResults?['asset'];
       List<String> exclude = argResults?['exclude'];
@@ -120,7 +140,7 @@ class PackageCommand extends Command {
 
       final sourceDir = Directory(sourceDirPath);
 
-      if (!platformTags.containsKey(platform)) {
+      if (!platforms.containsKey(platform)) {
         stderr.writeln('Unknown platform: $platform');
         exit(2);
       }
@@ -209,8 +229,13 @@ class PackageCommand extends Command {
 
       // install requirements
       if (requirements.isNotEmpty) {
+        String? sitePackagesRoot;
+        bool sitePackagesRootCreated = false;
         // invoke pip for every platform arch
-        for (var tag in platformTags[platform]!.entries) {
+        for (var arch in platforms[platform]!.entries) {
+          if (archArg != null && arch.key != archArg) {
+            continue;
+          }
           String? sitePackagesDir;
           Map<String, String>? pipEnv;
           Directory? sitecustomizeDir;
@@ -224,33 +249,42 @@ class PackageCommand extends Command {
                 path.join(sitecustomizeDir.path, "sitecustomize.py");
             if (_verbose) {
               verbose(
-                  "Configured $platform/${tag.key} platform with sitecustomize.py at $sitecustomizePath");
+                  "Configured $platform/${arch.key} platform with sitecustomize.py at $sitecustomizePath");
             } else {
               stdout.writeln(
-                  "Configured $platform/${tag.key} platform with sitecustomize.py");
+                  "Configured $platform/${arch.key} platform with sitecustomize.py");
             }
 
             await File(sitecustomizePath).writeAsString(sitecustomizePy
-                .replaceAll("{platform}", tag.key.isNotEmpty ? platform : "")
-                .replaceAll("{tag}", tag.key.isNotEmpty ? tag.key : ""));
+                .replaceAll("{platform}", arch.key.isNotEmpty ? platform : "")
+                .replaceAll("{tag}", arch.value["tag"]!)
+                .replaceAll("{mac_ver}", arch.value["mac_ver"]!));
 
             pipEnv = {
               "PYTHONPATH":
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
 
-            sitePackagesDir = path.join(tempDir.path, defaultSitePackagesDir);
-            if (tag.value.isNotEmpty) {
+            sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
+            sitePackagesDir = sitePackagesRoot;
+
+            if (arch.key.isNotEmpty) {
               if (!Platform.environment
                   .containsKey(sitePackageEnvironmentVariable)) {
                 throw "Environment variable is not set: $sitePackageEnvironmentVariable";
               }
-              var sitePackagesRoot =
+              sitePackagesRoot =
                   Platform.environment[sitePackageEnvironmentVariable];
               if (sitePackagesRoot!.isEmpty) {
                 throw "Environment variable cannot be empty: $sitePackageEnvironmentVariable";
               }
-              sitePackagesDir = path.join(sitePackagesRoot, tag.value);
+              if (!sitePackagesRootCreated) {
+                if (await Directory(sitePackagesRoot).exists()) {
+                  await Directory(sitePackagesRoot).delete(recursive: true);
+                }
+                sitePackagesRootCreated = true;
+              }
+              sitePackagesDir = path.join(sitePackagesRoot, arch.key);
             }
 
             if (!await Directory(sitePackagesDir).exists()) {
@@ -310,6 +344,14 @@ class PackageCommand extends Command {
               await sitecustomizeDir.delete(recursive: true);
             }
           }
+        } // for each arch
+
+        if (platform == "Darwin") {
+          await macos_utils.mergeMacOsSitePackages(
+              path.join(sitePackagesRoot!, "arm64"),
+              path.join(sitePackagesRoot, "x86_64"),
+              path.join(sitePackagesRoot),
+              _verbose);
         }
       }
 
