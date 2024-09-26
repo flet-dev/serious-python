@@ -31,6 +31,14 @@ Future<void> mergeMacOsSitePackages(String arm64Path, String x86_64Path,
     exit(1);
   }
 
+  if (await arm64Dir.exists()) {
+    await arm64Dir.delete(recursive: true);
+  }
+
+  if (await x86_64Dir.exists()) {
+    await x86_64Dir.delete(recursive: true);
+  }
+
   stdout.writeln('Merging completed successfully.');
 }
 
@@ -80,9 +88,6 @@ Future<void> mergeDirs(Directory arm64Dir, Directory x86_64Dir,
       }
     }
   }
-
-  await arm64Dir.delete(recursive: true);
-  await x86_64Dir.delete(recursive: true);
 }
 
 Future<void> copyDirectory(Directory source, Directory destination) async {

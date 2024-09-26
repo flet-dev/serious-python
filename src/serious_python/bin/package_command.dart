@@ -12,7 +12,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
-const mobilePyPiUrl = "https://pypi.flet.dev/simple";
+const mobilePyPiUrl = "https://pypi.flet.dev";
 const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full";
 const pyodideLockFile = "pyodide-lock.json";
 
@@ -162,19 +162,15 @@ class PackageCommand extends Command {
           isMobile ? junkFileExtensionsMobile : junkFileExtensionsDesktop;
       var junkFiles = isMobile ? junkFilesMobile : junkFilesDesktop;
 
-      // Extra index
-      String? pypiUrl;
-      if (isMobile) {
-        pypiUrl = mobilePyPiUrl;
-      } else if (platform == "Pyodide") {
+      // Extra indexs
+      List<String> extraPyPiIndexes = [mobilePyPiUrl];
+      if (platform == "Pyodide") {
         pyodidePyPiServer = await startSimpleServer();
-        pypiUrl =
-            "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple";
+        extraPyPiIndexes.add(
+            "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple");
       }
 
-      if (pypiUrl != null) {
-        stdout.writeln("PyPi server URL: $pypiUrl");
-      }
+      stdout.writeln("Extra PyPi indexes: $extraPyPiIndexes");
 
       // ensure standard Dart/Flutter "build" directory exists
       _buildDir = Directory(path.join(currentPath, "build"));
@@ -256,9 +252,12 @@ class PackageCommand extends Command {
             }
 
             await File(sitecustomizePath).writeAsString(sitecustomizePy
-                .replaceAll("{platform}", arch.key.isNotEmpty ? platform : "")
+                .replaceAll(
+                    "{platform}", arch.value["tag"]!.isNotEmpty ? platform : "")
                 .replaceAll("{tag}", arch.value["tag"]!)
                 .replaceAll("{mac_ver}", arch.value["mac_ver"]!));
+
+            // print(File(sitecustomizePath).readAsStringSync());
 
             pipEnv = {
               "PYTHONPATH":
@@ -300,8 +299,8 @@ class PackageCommand extends Command {
               ":all:"
             ];
 
-            if (pypiUrl != null) {
-              pipArgs.addAll(["--extra-index-url", pypiUrl]);
+            for (var index in extraPyPiIndexes) {
+              pipArgs.addAll(["--extra-index-url", index]);
             }
 
             await runPython([
