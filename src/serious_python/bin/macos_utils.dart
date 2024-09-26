@@ -14,20 +14,18 @@ Future<void> mergeMacOsSitePackages(String arm64Path, String x86_64Path,
     await targetDir.create(recursive: true);
   }
 
-  stdout.writeln("Merging macOS packages");
-
   // Merge the directories
   if (await x86_64Dir.exists() && !(await arm64Dir.exists())) {
-    stdout.writeln('Copying x86_64 dir to target');
+    stdout.writeln('Copying macOS x86_64 site-packages');
     await copyDirectory(x86_64Dir, targetDir);
   } else if (await arm64Dir.exists() && !(await x86_64Dir.exists())) {
-    stdout.writeln('Copying arm64 dir to target');
+    stdout.writeln('Copying macOS arm64 site-packages');
     await copyDirectory(arm64Dir, targetDir);
   } else if (await arm64Dir.exists() && await x86_64Dir.exists()) {
-    stdout.writeln('Merging arm64 and x86_64');
+    stdout.writeln('Merging macOS arm64 and x86_64 site-packages');
     await mergeDirs(arm64Dir, x86_64Dir, targetDir, verbose);
   } else {
-    stdout.writeln('No arch directories found.');
+    stdout.writeln('Cannot merge macOS packages. No arch directories found.');
     exit(1);
   }
 

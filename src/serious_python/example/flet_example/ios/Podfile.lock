@@ -46,7 +46,7 @@ PODS:
   - SDWebImage/Core (5.18.5)
   - sensors_plus (0.0.1):
     - Flutter
-  - serious_python_darwin (0.7.0):
+  - serious_python_darwin (1.0.0):
     - Flutter
     - FlutterMacOS
   - shared_preferences_foundation (0.0.1):
@@ -99,12 +99,12 @@ SPEC CHECKSUMS:
   DKPhotoGallery: fdfad5125a9fdda9cc57df834d49df790dbb4179
   file_picker: 09aa5ec1ab24135ccd7a1621c46c84134bfd6655
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
-  integration_test: ce0a3ffa1de96d1a89ca0ac26fca7ea18a749ef4
+  integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
   SDWebImage: 7ac2b7ddc5e8484c79aa90fc4e30b149d6a2c88f
   sensors_plus: 42b9de1b8237675fa8d8121e4bb93be0f79fa61d
-  serious_python_darwin: b6c89fe44504ee8331ce4d47c823b30f68554039
+  serious_python_darwin: 88a6e7f9e803319fcf89c05ead4567f72d61ff62
   shared_preferences_foundation: e2dae3258e06f44cc55f49d42024fd8dd03c590c
   SwiftyGif: 93a1cc87bf3a51916001cf8f3d63835fb64c819f
   url_launcher_ios: 08a3dfac5fb39e8759aeb0abbd5d9480f30fc8b4

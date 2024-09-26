@@ -76,15 +76,14 @@ class PackageCommand extends Command {
         abbr: "p",
         allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
         mandatory: true,
-        help:
-            "Make pip to install dependencies for specific platform, e.g. 'Android'.");
+        help: "Install dependencies for specific platform, e.g. 'Android'.");
     argParser.addOption('arch',
         help:
-            "Make pip to install dependencies for specific architecture only. Leave empty to install all architectures.");
+            "Install dependencies for specific architecture only. Leave empty to install all supported architectures.");
     argParser.addMultiOption('requirements',
         abbr: "r",
         help:
-            "Required pip dependencies in the format 'dep1,dep2==version,...'");
+            "Pip dependencies in the format 'dep1,dep2==version,... Allows any pip options.'");
     argParser.addOption('asset',
         abbr: 'a',
         help:
@@ -226,7 +225,7 @@ class PackageCommand extends Command {
       // install requirements
       if (requirements.isNotEmpty) {
         String? sitePackagesRoot;
-        bool sitePackagesRootCreated = false;
+        bool sitePackagesRootDeleted = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
           if (archArg != null && arch.key != archArg) {
@@ -264,10 +263,7 @@ class PackageCommand extends Command {
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
 
-            sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
-            sitePackagesDir = sitePackagesRoot;
-
-            if (arch.key.isNotEmpty) {
+            if (isMobile) {
               if (!Platform.environment
                   .containsKey(sitePackageEnvironmentVariable)) {
                 throw "Environment variable is not set: $sitePackageEnvironmentVariable";
@@ -277,15 +273,21 @@ class PackageCommand extends Command {
               if (sitePackagesRoot!.isEmpty) {
                 throw "Environment variable cannot be empty: $sitePackageEnvironmentVariable";
               }
-              if (!sitePackagesRootCreated) {
-                if (await Directory(sitePackagesRoot).exists()) {
-                  await Directory(sitePackagesRoot).delete(recursive: true);
-                }
-                sitePackagesRootCreated = true;
-              }
-              sitePackagesDir = path.join(sitePackagesRoot, arch.key);
+            } else {
+              sitePackagesRoot =
+                  path.join(tempDir.path, defaultSitePackagesDir);
             }
 
+            if (!sitePackagesRootDeleted) {
+              if (await Directory(sitePackagesRoot).exists()) {
+                await Directory(sitePackagesRoot).delete(recursive: true);
+              }
+              sitePackagesRootDeleted = true;
+            }
+
+            sitePackagesDir = arch.key.isNotEmpty
+                ? path.join(sitePackagesRoot, arch.key)
+                : sitePackagesRoot;
             if (!await Directory(sitePackagesDir).exists()) {
               await Directory(sitePackagesDir).create(recursive: true);
             }
