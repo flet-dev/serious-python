@@ -131,7 +131,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p iOS -r flet,--pre
+      - dart run serious_python:main package app/src -p Android -r flet,--pre
       - flutter test integration_test -d emulator-5554
 
 
