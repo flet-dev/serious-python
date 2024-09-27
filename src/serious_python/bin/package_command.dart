@@ -443,7 +443,7 @@ class PackageCommand extends Command {
   Future<int> runPython(List<String> args,
       {Map<String, String>? environment}) async {
     if (_pythonDir == null) {
-      _pythonDir = await Directory.systemTemp.createTemp('hostpython3.11_');
+      _pythonDir = await Directory.systemTemp.createTemp('hostpython3.12_');
 
       var isArm64 = Platform.version.contains("arm64");
 
@@ -461,7 +461,7 @@ class PackageCommand extends Command {
       }
 
       var pythonArchiveFilename =
-          "cpython-3.11.6+20231002-$arch-install_only.tar.gz";
+          "cpython-3.12.6+20240909-$arch-install_only.tar.gz";
 
       var pythonArchivePath =
           path.join(Directory.systemTemp.path, pythonArchiveFilename);

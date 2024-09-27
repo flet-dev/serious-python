@@ -16,11 +16,11 @@ Serious Python is part of [Flet](https://flet.dev) project - the fastest way to 
 
 ### Python versions
 
-* iOS: Python 3.11.6 - based on [Kivy toolchain](https://github.com/kivy/kivy-ios).
-* Android: Python 3.11.6 - based on [Kivy python-for-android](https://github.com/kivy/python-for-android).
-* macOS: Python 3.11.6 - based on [Beeware's Python Apple Support](https://github.com/beeware/Python-Apple-support).
-* Linux: Python 3.11.6 - based on [indygreg/python-build-standalone](https://github.com/indygreg/python-build-standalone).
-* Windows: Python 3.11.6 - based on [CPython](https://www.python.org/downloads/release/python-3116/).
+* iOS: Python 3.12.6 - based on [Kivy toolchain](https://github.com/kivy/kivy-ios).
+* Android: Python 3.12.6 - based on [Kivy python-for-android](https://github.com/kivy/python-for-android).
+* macOS: Python 3.12.6 - based on [Beeware's Python Apple Support](https://github.com/beeware/Python-Apple-support).
+* Linux: Python 3.12.6 - based on [indygreg/python-build-standalone](https://github.com/indygreg/python-build-standalone).
+* Windows: Python 3.12.6 - based on [CPython](https://www.python.org/downloads/release/python-3126/).
 
 ## Usage
 

@@ -24677,7 +24677,7 @@ const int PY_RELEASE_LEVEL = 15;
 
 const int PY_RELEASE_SERIAL = 0;
 
-const String PY_VERSION = '3.11.6';
+const String PY_VERSION = '3.12.6';
 
 const int PY_VERSION_HEX = 51054320;
 

@@ -28,7 +28,7 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_framework = 'dist/xcframework/libpython3.11.xcframework'
+  python_framework = 'dist/xcframework/libpython3.12.xcframework'
   python_macos_framework = 'dist_macos/Python.xcframework'
 
   prepare_command = <<-CMD
@@ -49,16 +49,16 @@ Pod::Spec.new do |s|
       rm $PYTHON_IOS_DIST_FILE
     fi
 
-    PYTHON_MACOS_DIST_FILE=Python-3.11-macOS-support.b3.tar.gz
-    curl -LO https://github.com/beeware/Python-Apple-support/releases/download/3.11-b3/$PYTHON_MACOS_DIST_FILE
+    PYTHON_MACOS_DIST_FILE=Python-3.12-macOS-support.b4.tar.gz
+    curl -LO https://github.com/beeware/Python-Apple-support/releases/download/3.12-b4/$PYTHON_MACOS_DIST_FILE
     mkdir -p dist_macos
     tar -xzf $PYTHON_MACOS_DIST_FILE -C dist_macos
     rm $PYTHON_MACOS_DIST_FILE
 
     ROOT=`pwd`
-    cp -R pod_templates/libpython3.11.xcframework dist/xcframework
-    cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-arm64/Headers
-    cp -R dist/root/python3/include/python3.11/* #{python_framework}/ios-x86_64-simulator/Headers
+    cp -R pod_templates/libpython3.12.xcframework dist/xcframework
+    cp -R dist/root/python3/include/python3.12/* #{python_framework}/ios-arm64/Headers
+    cp -R dist/root/python3/include/python3.12/* #{python_framework}/ios-x86_64-simulator/Headers
     cp #{python_framework}/ios-arm64/Headers/module.modulemap #{python_macos_framework}/macos-arm64_x86_64/Headers
 
     # compile dist_macos/python-stdlib
@@ -81,17 +81,17 @@ Pod::Spec.new do |s|
     rm -rf python311_temp
 
     # fix import subprocess, asyncio
-    cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.11/site-packages
+    cp -R pod_templates/site-packages/* dist/root/python3/lib/python3.12/site-packages
 
     # zip site-packages
-    cd dist/root/python3/lib/python3.11/site-packages
+    cd dist/root/python3/lib/python3.12/site-packages
     $ROOT/dist/hostpython3/bin/python -m compileall -b .
     find . \\( -name '*.so' -or -name '*.py' -or -name '*.typed' \\) -type f -delete
     zip -r $ROOT/dist/root/python3/lib/site-packages.zip .
     cd -
   
     # remove junk
-    rm -rf dist/root/python3/lib/python3.11
+    rm -rf dist/root/python3/lib/python3.12
 CMD
 
   puts `#{prepare_command}`

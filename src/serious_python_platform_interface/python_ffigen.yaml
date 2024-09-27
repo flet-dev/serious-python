@@ -14,11 +14,11 @@ globals:
     "^class (\\w+) extends ffi.Union": "final class $1 extends ffi.Union"
 headers:
   entry-points:
-    - "/Users/feodor/Downloads/python/include/python3.11/Python.h"
+    - "/Users/feodor/Downloads/python/include/python3.12/Python.h"
   include-directives:
-    - "/Users/feodor/Downloads/python/include/python3.11/*"
-    - "/Users/feodor/Downloads/python/include/python3.11/internal/*"
-    - "/Users/feodor/Downloads/python/include/python3.11/cpython/*"
+    - "/Users/feodor/Downloads/python/include/python3.12/*"
+    - "/Users/feodor/Downloads/python/include/python3.12/internal/*"
+    - "/Users/feodor/Downloads/python/include/python3.12/cpython/*"
 name: "CPython"
 llvm-path:
   - /opt/homebrew/opt/llvm
