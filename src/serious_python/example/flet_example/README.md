@@ -1,9 +1,17 @@
 # flet_example
 
-Before running the app run the following command to package Python app to an asset:
+Before running the app run the following command to package Python app to an asset.
+
+For macOS:
 
 ```
 dart run serious_python:main package app/src -p Darwin -r flet==0.25.0.dev3422,lru-dict
+```
+
+For Windows:
+
+```
+dart run serious_python:main package app/src -p Windows -r flet==0.25.0.dev3422,lru-dict
 ```
 
 when packaging for a desktop app:
