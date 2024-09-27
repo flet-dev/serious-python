@@ -85,7 +85,7 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     packageTasks.add("zipSitePackages_$abi")
 
     tasks.register("downloadDistArchive_$abi", Download) {
-        src "https://github.com/flet-dev/python-android/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
+        src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
         dest new File(buildDir, "python-android-${abi}.tar.gz")
     }
     tasks.register("untarFile_$abi", Copy) {
