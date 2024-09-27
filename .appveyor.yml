@@ -101,7 +101,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p iOS -r flet,--pre
       - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
