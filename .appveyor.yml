@@ -89,13 +89,7 @@ for:
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
       #- flutter doctor -v
-
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
-          fi
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
 
     build: off
 
