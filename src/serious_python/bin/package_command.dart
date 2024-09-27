@@ -463,7 +463,7 @@ class PackageCommand extends Command {
         }
 
         var pythonArchiveFilename =
-            "cpython-$buildPythonVersion+$buildPythonReleaseDate-$arch-install_only.tar.gz";
+            "cpython-$buildPythonVersion+$buildPythonReleaseDate-$arch-install_only_stripped.tar.gz";
 
         var pythonArchivePath =
             path.join(_buildDir!.path, pythonArchiveFilename);
