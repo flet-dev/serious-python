@@ -8,8 +8,7 @@ cmake_minimum_required(VERSION 3.10)
 
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_linux")
-set(GITHUB_RELEASE_DATE "20231002")
-set(PYTHON_VERSION "3.11.6")
+set(PYTHON_VERSION "3.12")
 set(PYTHON_ARCH ${CMAKE_HOST_SYSTEM_PROCESSOR})
 project(${PROJECT_NAME} LANGUAGES CXX)
 
@@ -18,20 +17,12 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 set(PLUGIN_NAME "serious_python_linux_plugin")
 
 set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
-set(PYTHON_URL https://github.com/indygreg/python-build-standalone/releases/download/${GITHUB_RELEASE_DATE}/cpython-${PYTHON_VERSION}+${GITHUB_RELEASE_DATE}-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz)
-set(PYTHON_FILE ${CMAKE_BINARY_DIR}/cpython-${PYTHON_VERSION}+${GITHUB_RELEASE_DATE}-${PYTHON_ARCH}-unknown-linux-gnu-install_only.tar.gz)
+set(PYTHON_URL https://github.com/flet-dev/python-build/releases/download/v${PYTHON_VERSION}/python-linux-dart-${PYTHON_VERSION}-${PYTHON_ARCH}.tar.gz)
+set(PYTHON_FILE ${CMAKE_BINARY_DIR}/python-linux-dart-${PYTHON_VERSION}-${PYTHON_ARCH}.tar.gz)
 if (NOT EXISTS ${PYTHON_FILE})
   file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
-  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR})
+  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR}/python)
 endif()
-
-add_custom_target(OPTIMIZE_PYTHON_DIST ALL)
-add_custom_command(TARGET OPTIMIZE_PYTHON_DIST PRE_BUILD
-  COMMAND "${PYTHON_PACKAGE}/bin/python3" -m compileall -b .
-  COMMAND rm -rf `find . -type d -name __pycache__`
-  COMMAND find . -name \"*.py\" -type f -delete
-  WORKING_DIRECTORY "${PYTHON_PACKAGE}/lib/python3.11"
-)
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
@@ -62,7 +53,7 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 include_directories(
-  "${PYTHON_PACKAGE}/include/python3.11"
+  "${PYTHON_PACKAGE}/include/python3.12"
 )
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
@@ -76,9 +67,9 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 # external build triggered from this build file.
 set(serious_python_linux_bundled_libraries
   "${PYTHON_PACKAGE}/lib/libpython3.so"
-  "${PYTHON_PACKAGE}/lib/libpython3.11.so.1.0"
+  "${PYTHON_PACKAGE}/lib/libpython3.12.so.1.0"
   PARENT_SCOPE
 )
 
-install(DIRECTORY "${PYTHON_PACKAGE}/lib/python3.11"
+install(DIRECTORY "${PYTHON_PACKAGE}/lib/python3.12"
   DESTINATION "${CMAKE_BINARY_DIR}/bundle")
