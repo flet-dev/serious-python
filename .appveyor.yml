@@ -5,10 +5,10 @@ environment:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
   matrix:
-    # - job_name: Test on macOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python_darwin
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+    - job_name: Test on macOS
+      job_group: test_serious_python
+      job_depends_on: build_python_darwin
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
     # - job_name: Test on iOS
     #   job_group: test_serious_python
@@ -20,17 +20,17 @@ environment:
       job_depends_on: build_python_android
       APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    # - job_name: Test on Windows
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    - job_name: Test on Windows
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
-    # - job_name: Test on Linux
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - job_name: Test on Linux
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
-    # - job_name: Test on Linux ARM64
-    #   job_group: test_serious_python
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+    - job_name: Test on Linux ARM64
+      job_group: test_serious_python
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
 
     # - job_name: Publish serious_python package to pub.dev
     #   job_group: publish_package
@@ -55,18 +55,11 @@ for:
       - flutter config --enable-macos-desktop
       - flutter doctor
 
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
-          fi
-
     build: off
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Darwin -r flet,--pre
       - flutter test integration_test -d macos
 
   # ======================================
@@ -153,7 +146,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Windows -r flet,--pre
       - flutter test integration_test -d windows
 
   # ======================================
@@ -173,7 +166,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
 
   # ======================================
@@ -197,7 +190,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
 
   # =========================================
