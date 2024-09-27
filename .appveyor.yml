@@ -10,15 +10,15 @@ environment:
     #   job_depends_on: build_python_darwin
     #   APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
 
-    - job_name: Test on iOS
-      job_group: test_serious_python
-      job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
-
-    # - job_name: Test on Android
+    # - job_name: Test on iOS
     #   job_group: test_serious_python
-    #   job_depends_on: build_python_android
-    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+
+    - job_name: Test on Android
+      job_group: test_serious_python
+      job_depends_on: build_python_android
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
     # - job_name: Test on Windows
     #   job_group: test_serious_python
@@ -89,11 +89,11 @@ for:
           echo $UDID
           xcrun simctl boot "${UDID:?No Simulator with this name found}"
       #- flutter doctor -v
-      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
 
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p iOS -r flet,--pre
       - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
@@ -126,18 +126,12 @@ for:
       - flutter upgrade --force
       - flutter doctor -v
 
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for Android" "python-android-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_BUILD_DIST=$APPVEYOR_BUILD_FOLDER/python_dist
-          fi
-
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p iOS -r flet,--pre
       - flutter test integration_test -d emulator-5554
 
 
