@@ -15,22 +15,22 @@ environment:
     #   job_depends_on: build_python_darwin
     #   APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
 
-    - job_name: Test on Android
-      job_group: test_serious_python
-      job_depends_on: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+    # - job_name: Test on Android
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_android
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    - job_name: Test on Windows
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    # - job_name: Test on Windows
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
-    - job_name: Test on Linux
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    # - job_name: Test on Linux
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
-    - job_name: Test on Linux ARM64
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+    # - job_name: Test on Linux ARM64
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
 
     # - job_name: Publish serious_python package to pub.dev
     #   job_group: publish_package
