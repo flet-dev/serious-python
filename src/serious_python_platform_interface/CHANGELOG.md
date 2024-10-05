@@ -1,3 +1,7 @@
+## 0.8.0
+
+* New packaging, not based on Kivy and with pre-built binary packages.
+
 ## 0.7.1
 
 * Added `namespace` definition to Android Gradle build.
