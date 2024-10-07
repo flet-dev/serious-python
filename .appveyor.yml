@@ -1,28 +1,19 @@
 skip_branch_with_pr: true
 
 environment:
-  PYTHON_STACK: python 3.10
   GITHUB_TOKEN:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
   matrix:
-    - job_name: Build Python for iOS
-      job_group: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-
-    - job_name: Build Python for Android
-      job_group: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-
     - job_name: Test on macOS
       job_group: test_serious_python
       job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
 
-    # - job_name: Test on iOS
-    #   job_group: test_serious_python
-    #   job_depends_on: build_python_darwin
-    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
+    - job_name: Test on iOS
+      job_group: test_serious_python
+      job_depends_on: build_python_darwin
+      APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
 
     - job_name: Test on Android
       job_group: test_serious_python
@@ -39,7 +30,7 @@ environment:
 
     - job_name: Test on Linux ARM64
       job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004-arm
+      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2204-arm
 
     - job_name: Publish serious_python package to pub.dev
       job_group: publish_package
@@ -47,122 +38,9 @@ environment:
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
-- $PYTHON_STACK
+- python 3.12
 
 for:
-  # ======================================
-  #      Build Python for iOS
-  # ======================================
-
-  - matrix:
-      only:
-        - job_name: Build Python for iOS
-
-    install:
-      # update build version
-      - ps: |
-          if ($env:APPVEYOR_REPO_TAG_NAME) {
-            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
-          } else {
-            $cv = [version](git describe --abbrev=0).substring(1)
-            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
-          }
-          Update-AppveyorBuild -Version $v
-
-      # install Kivy toolchain
-      - pip3 list
-      - pip3 install git+https://github.com/flet-dev/python-for-ios.git
-      - HOMEBREW_NO_AUTO_UPDATE=1 brew install autoconf automake libtool pkg-config
-      - brew link libtool
-
-    build_script:
-      # build Python 3
-      - toolchain build python3
-      - ls dist
-
-      # package dist
-      - DIST_FILE_NAME=dist/python-ios-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      - tar -czvf $DIST_FILE_NAME dist/*
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-macos
-
-    deploy:
-      provider: GitHub
-      auth_token: $(GITHUB_TOKEN)
-      release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist-macos
-      on:
-        APPVEYOR_REPO_TAG: true
-
-    test: off
-
-  # ======================================
-  #      Build Python for Android
-  # ======================================
-
-  - matrix:
-      only:
-        - job_name: Build Python for Android
-
-    install:
-      # update build version
-      - ps: |
-          if ($env:APPVEYOR_REPO_TAG_NAME) {
-            $v = $env:APPVEYOR_REPO_TAG_NAME.replace("v", "")
-          } else {
-            $cv = [version](git describe --abbrev=0).substring(1)
-            $v = "$($cv.major).$($cv.minor+1).0+$($env:APPVEYOR_BUILD_NUMBER)"
-          }
-          Update-AppveyorBuild -Version $v
-
-      # install NDK
-      - export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
-      - export NDK_VERSION=25.2.9519653
-      - export SDK_VERSION=android-33
-      - echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3 > /dev/null
-      - echo "y" | sdkmanager --install "platforms;$SDK_VERSION" > /dev/null
-
-      # install Kivy for Android
-      - pip3 install git+https://github.com/flet-dev/python-for-android.git@3.11.6
-      - pip3 install --upgrade cython
-      - p4a --help
-      - p4a create --requirements python3 --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
-
-      # package
-      - BUNDLE_NAME=libpythonbundle.so
-
-      # arm64-v8a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__arm64-v8a/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/arm64-v8a
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # armeabi-v7a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__armeabi-v7a/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/armeabi-v7a
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # armeabi-v7a
-      - cd ~/.local/share/python-for-android/dists/serious_python/_python_bundle__x86_64/_python_bundle
-      - zip -r $BUNDLE_NAME .
-      - mv $BUNDLE_NAME ../../libs/x86_64
-      - cd $APPVEYOR_BUILD_FOLDER
-
-      # package all .so files
-      - DIST_FILE_NAME=python-android-dist-v$APPVEYOR_BUILD_VERSION.tar.gz
-      - cd ~/.local/share/python-for-android/dists/serious_python/libs
-      - tar -czvf $DIST_FILE_NAME *
-      - appveyor PushArtifact $DIST_FILE_NAME -DeploymentName python-dist-android
-      - cd $APPVEYOR_BUILD_FOLDER
-
-    deploy:
-      provider: GitHub
-      auth_token: $(GITHUB_TOKEN)
-      release: $(APPVEYOR_REPO_TAG_NAME)
-      artifact: python-dist-android
-      on:
-        APPVEYOR_REPO_TAG: true
-
   # ======================================
   #      Test on macOS
   # ======================================
@@ -177,18 +55,11 @@ for:
       - flutter config --enable-macos-desktop
       - flutter doctor
 
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
-          fi
-
     build: off
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Darwin -r flet,--pre
       - flutter test integration_test -d macos
 
   # ======================================
@@ -203,28 +74,23 @@ for:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
       - flutter upgrade
       - flutter config --enable-macos-desktop
-      - xcrun simctl list runtimes
-      - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
-      - xcrun xctrace list devices
-      - |
-          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
-          echo $UDID
-          xcrun simctl boot "${UDID:?No Simulator with this name found}"
+      # - xcrun simctl list runtimes
+      # - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
+      # - xcrun xctrace list devices
+      # - |
+      #     UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
+      #     echo $UDID
+      #     xcrun simctl boot "${UDID:?No Simulator with this name found}"
       #- flutter doctor -v
-
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for iOS" "python-ios-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_IOS_DIST=$APPVEYOR_BUILD_FOLDER/python_dist/dist
-          fi
 
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
-      - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+      - dart run serious_python:main package app/src -p iOS -r flet,--pre
+      - flutter build ios --no-codesign
+      # - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
   #      Test on Android
@@ -254,18 +120,12 @@ for:
       - flutter upgrade --force
       - flutter doctor -v
 
-      # download dist for non-releases
-      - |
-          if [[ "$APPVEYOR_REPO_TAG_NAME" == "" ]]; then
-            python3 ci/download_artifact.py "Build Python for Android" "python-android-dist-v{version}.tar.gz"
-            export SERIOUS_PYTHON_BUILD_DIST=$APPVEYOR_BUILD_FOLDER/python_dist
-          fi
-
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Android -r flet,--pre
       - flutter test integration_test -d emulator-5554
 
 
@@ -287,7 +147,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Windows -r flet,--pre
       - flutter test integration_test -d windows
 
   # ======================================
@@ -307,7 +167,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
 
   # ======================================
@@ -321,7 +181,7 @@ for:
     install:
       # Flutter SDK
       - sudo apt update --allow-releaseinfo-change
-      - sudo apt install -y clang xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+      - sudo apt install -y clang ninja-build xvfb libgtk-3-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
       - git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
       - export PATH="$PATH:$HOME/flutter/bin"
       - flutter upgrade
@@ -331,7 +191,7 @@ for:
 
     test_script:
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
+      - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
 
   # =========================================

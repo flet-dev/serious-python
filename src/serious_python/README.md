@@ -6,7 +6,7 @@ Serious Python embeds Python runtime into a mobile or desktop Flutter app to run
 
 Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environmnent via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
 
-Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build Flutter apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
+Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build multi-platform apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
 
 ## Platform Support
 
@@ -16,11 +16,7 @@ Serious Python is part of [Flet](https://flet.dev) project - the fastest way to 
 
 ### Python versions
 
-* iOS: Python 3.11.6 - based on [Kivy toolchain](https://github.com/kivy/kivy-ios).
-* Android: Python 3.11.6 - based on [Kivy python-for-android](https://github.com/kivy/python-for-android).
-* macOS: Python 3.11.6 - based on [Beeware's Python Apple Support](https://github.com/beeware/Python-Apple-support).
-* Linux: Python 3.11.6 - based on [indygreg/python-build-standalone](https://github.com/indygreg/python-build-standalone).
-* Windows: Python 3.11.6 - based on [CPython](https://www.python.org/downloads/release/python-3116/).
+* Python 3.12.6 on all platforms.
 
 ## Usage
 
@@ -83,25 +79,32 @@ dart run serious_python:main
 
 There is `package` command which takes a directory with Python app as the first argument. The command must be run in Flutter app root directory, where `pubspec.yaml` is located. The path could be either relative or an absolute.
 
-To package Python files for a mobile app run: 
+To package Python files for the specific platform:
 
 ```
-dart run serious_python:main package app/src --mobile
+dart run serious_python:main package app/src -p {platform}
 ```
 
-To package for a desktop app run:
-
-```
-dart run serious_python:main package app/src
-```
+where `{platform}` can be one of the following: `Android`, `iOS`, `macOS`, `Windows`, `Linux` or `Pyodide`.
 
 By default, the command creates `app/app.zip` asset, but you can change its path/name with `--asset` argument:
 
 ```
-dart run serious_python:main package --asset assets/myapp.zip app/src
+dart run serious_python:main package --asset assets/myapp.zip app/src -p {platform}
 ```
 
-If there is `requirements.txt` or `pyproject.toml` in the root of source directory `package` command will try to install dependencies to `__pypackages__` in the root of destination archive.
+Python app dependencies can be installed with `--requirements` option. The value of `--requirements` option is passed "as is" to `pip` command. For example, `--requirements flet,numpy==2.1.1` will install two requirements directly, or `--requirements -r,requirements.txt` installs deps from `requirements.txt` file.
+
+To package for `iOS` and `Android` platforms developer should set `SERIOUS_PYTHON_SITE_PACKAGES` environment variable with a path to a temp directory for installed app packages. The contents of that directory is embedded into app bundle during app compilation.
+
+For example:
+
+```
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+```
+
+For macOS, Linux and Windows app packages are installed into `__pypackages__` inside app package asset zip.
 
 Make sure generated asset is added to `pubspec.yaml`.
 
@@ -117,9 +120,16 @@ Synchronous execution of Python program is also supported with `sync: true` para
 
 All "pure" Python packages are supported. These are packages that implemented in Python only, without native extensions written in C, Rust or other low-level language.
 
-For iOS: packages with native extensions having a [recipe](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes) are supported. To use these packages you need to build a custom Python distributive for iOS (see below).
+The following **iOS** and **Android** packages are supported: https://pypi.flet.dev
+
+The following **Pyodide** packages are supported: https://pyodide.org/en/stable/usage/packages-in-pyodide.html
+
+Additional Python binary packages for iOS and Android can be built with adding a new recipe to [Mobile Forge](https://github.com/flet-dev/mobile-forge) project.
+
+Request additional packages for iOS and Android on [Flet Discussions - Packages](https://github.com/flet-dev/flet/discussions/categories/packages).
 
 ## Platform notes
+
 ### Build matrix
 
 The following matrix shows which platform you should build on to target specific platforms:
@@ -147,161 +157,19 @@ Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
 MACOSX_DEPLOYMENT_TARGET = 10.15;
 ```
 
-## Adding custom Python libraries
-
-### iOS
-
-`serious_python` uses [Kivy for iOS](https://github.com/kivy/kivy-ios) to build Python and native Python packages for iOS.
-
-Python static library and its dependencies are downloaded and installed during project pod installation from [`serious_python` releases](https://github.com/flet-dev/serious-python/releases).
-
-To build your own Python distributive with custom native packages and use it with `serious_python` you need to use `toolchain` tool provided by Kivy for iOS.
-
-`toolchain` command-line tool can be run on macOS only.
-
-Start with creating a new Python virtual environment and installing `kivy-ios` package as described [here](https://github.com/kivy/kivy-ios#installation--requirements).
-
-Run `toolchain` command with the list of packages you need to build, for example to build `numpy`:
-
-```
-toolchain build numpy
-```
-
-**NOTE:** The library you want to build with `toolchain` command should have a recipe in [this folder](https://github.com/kivy/kivy-ios/tree/master/kivy_ios/recipes). You can [submit a request](https://github.com/kivy/kivy-ios/issues) to make a recipe for the library you need.
-
-You can also install package that don't require compilation with `pip`:
-
-```
-toolchain pip install flask
-```
-
-This case you don't need to include that package into `requirements.txt` of your Python app.
-
-When `toolchain` command is finished you should have everything you need in `dist` directory.
-
-Get the full path to `dist` directory by running `realpath dist` command.
-
-In the terminal where you run `flutter` commands to build your Flet iOS app run the following command to
-store `dist` full path in `SERIOUS_PYTHON_IOS_DIST` environment variable:
-
-```bash
-export SERIOUS_PYTHON_IOS_DIST="<full-path-to-dist-directory>"
-```
-
-Clean up old `build` directory by running:
-
-```
-flutter clean
-```
-
-Build your app by running `flutter ios` command.
-
-You app's bundle now includes custom Python libraries.
-
 ### Android
 
-`serious_python` uses [Kivy for Android](https://github.com/kivy/python-for-android) to build Python and native Python packages for Android.
+To make `serious_python` work in your own Android app:
 
-Python static library and its dependencies are downloaded and installed on pre-build step of Gradle project from [`serious_python` releases](https://github.com/flet-dev/serious-python/releases).
-
-To build your own Python distributive with custom native packages and use it with `serious_python` you need to use `p4a` tool provided by Kivy for Android.
-
-`p4a` command-line tool can be run on macOS and Linux.
-
-To get Android SDK install Android Studio.
-
-On macOS Android SDK will be located at `$HOME/Library/Android/sdk`.
-
-Install Temurin8 to get JRE 1.8 required by `sdkmanager` tool:
-
-```bash
-brew install --cask temurin8
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-8.jdk/Contents/Home
-```
-
-Set the following environment variables:
-
-```bash
-export ANDROID_SDK_ROOT="$HOME/Library/Android/sdk"
-export NDK_VERSION=25.2.9519653
-export SDK_VERSION=android-33
-```
-
-Add path to `sdkmanager` to `PATH`:
-
-```bash
-export PATH=$ANDROID_SDK_ROOT/tools/bin:$PATH
-```
-
-Install Android SDK and NDK from https://developer.android.com/ndk/downloads/ or with Android SDK Manager:
-
-```bash
-echo "y" | sdkmanager --install "ndk;$NDK_VERSION" --channel=3
-echo "y" | sdkmanager --install "platforms;$SDK_VERSION"
-```
-
-Create new Python virtual environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-Install `p4a`:
+If you build an App Bundle Edit `android/gradle.properties` and add the flag:
 
 ```
-pip install python-for-android
+android.bundle.enableUncompressedNativeLibs=false
 ```
 
-Install `cython`:
+If you build an APK Make sure `android/app/src/AndroidManifest.xml` has `android:extractNativeLibs="true"` in the `<application>` tag.
 
-```
-pip install --upgrade cython
-```
-
-Run `p4a` with `--requirements` including your custom Python libraries separated with comma, like `numpy` in the following example:
-
-```
-p4a create --requirements numpy --arch arm64-v8a --arch armeabi-v7a --arch x86_64 --sdk-dir $ANDROID_SDK_ROOT --ndk-dir $ANDROID_SDK_ROOT/ndk/$NDK_VERSION --dist-name serious_python
-```
-
-*Choose No to "Do you want automatically install prerequisite JDK? [y/N]".*
-
-**NOTE:** The library you want to build with `p4a` command should have a recipe in [this folder](https://github.com/kivy/python-for-android/tree/develop/pythonforandroid/recipes). You can [submit a request](https://github.com/kivy/python-for-android/issues) to make a recipe for the library you need.
-
-When `p4a` command completes a Python distributive with your custom libraries will be located at:
-
-```
-$HOME/.python-for-android/dists/serious_python
-```
-
-In the terminal where you run `flutter` commands to build your Flet Android app run the following command to store distributive full path in `SERIOUS_PYTHON_P4A_DIST` environment variable:
-
-```bash
-export SERIOUS_PYTHON_P4A_DIST=$HOME/.python-for-android/dists/serious_python
-```
-
-Clean up old `build` directory by running:
-
-```
-flutter clean
-```
-
-Build your app by running `flutter appbundle` command to build `.apk`.
-
-You app's bundle now includes custom Python libraries.
-
-### macOS
-
-List libraries and their versions in `requirements.txt` in the root of your Python app directory.
-
-### Windows
-
-List libraries and their versions in `requirements.txt` in the root of your Python app directory.
-
-### Linux
-
-List libraries and their versions in `requirements.txt` in the root of your Python app directory.
+For more information, see the [public issue](https://issuetracker.google.com/issues/147096055).
 
 ## Troubleshooting
 
@@ -310,7 +178,7 @@ List libraries and their versions in `requirements.txt` in the root of your Pyth
 Use `--verbose` flag to enabled detailed logging:
 
 ```
-dart run serious_python:main package app/src --mobile --verbose
+dart run serious_python:main package app/src -p Darwin --verbose
 ```
 
 ## Examples

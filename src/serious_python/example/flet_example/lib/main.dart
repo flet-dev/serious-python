@@ -5,7 +5,9 @@ import 'package:flet/flet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:serious_python/serious_python.dart';
 import 'package:url_strategy/url_strategy.dart';
 
@@ -141,6 +143,26 @@ Future prepareApp() async {
     Directory.current = appDir;
 
     assetsDir = path.join(appDir, "assets");
+
+    // configure apps DATA and TEMP directories
+    WidgetsFlutterBinding.ensureInitialized();
+
+    var appTempPath = (await path_provider.getApplicationCacheDirectory()).path;
+    var appDataPath =
+        (await path_provider.getApplicationDocumentsDirectory()).path;
+
+    if (defaultTargetPlatform != TargetPlatform.iOS &&
+        defaultTargetPlatform != TargetPlatform.android) {
+      // append app name to the path and create dir
+      PackageInfo packageInfo = await PackageInfo.fromPlatform();
+      appDataPath = path.join(appDataPath, "flet", packageInfo.packageName);
+      if (!await Directory(appDataPath).exists()) {
+        await Directory(appDataPath).create(recursive: true);
+      }
+    }
+
+    environmentVariables["FLET_APP_DATA"] = appDataPath;
+    environmentVariables["FLET_APP_TEMP"] = appTempPath;
 
     environmentVariables["FLET_PLATFORM"] =
         defaultTargetPlatform.name.toLowerCase();

@@ -44,26 +44,30 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     debugPrint("getNativeLibraryDir: $nativeLibraryDir");
 
     var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
+    var sitePackagesZipPath = "$nativeLibraryDir/libpythonsitepackages.so";
 
     if (!await File(bundlePath).exists()) {
       throw Exception("Python bundle not found: $bundlePath");
     }
-
     var pythonLibPath =
         await extractFileZip(bundlePath, targetPath: "python_bundle");
-
     debugPrint("pythonLibPath: $pythonLibPath");
 
     var programDirPath = p.dirname(appPath);
 
     var moduleSearchPaths = [
       programDirPath,
-      "$programDirPath/__pypackages__",
       ...?modulePaths,
       "$pythonLibPath/modules",
-      "$pythonLibPath/site-packages",
-      "$pythonLibPath/stdlib.zip"
+      "$pythonLibPath/stdlib"
     ];
+
+    if (await File(sitePackagesZipPath).exists()) {
+      var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
+          targetPath: "python_site_packages");
+      debugPrint("sitePackagesPath: $sitePackagesPath");
+      moduleSearchPaths.add(sitePackagesPath);
+    }
 
     setenv("PYTHONINSPECT", "1");
     setenv("PYTHONOPTIMIZE", "2");
@@ -82,6 +86,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     }
 
     return runPythonProgramFFI(
-        sync ?? false, "libpython3.11.so", appPath, script ?? "");
+        sync ?? false, "libpython3.12.so", appPath, script ?? "");
   }
 }

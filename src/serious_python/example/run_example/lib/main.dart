@@ -37,15 +37,16 @@ class _MyAppState extends State<MyApp> {
     String resultFileName = p.join(tempDir.path, "out.txt");
     String resultValue = getRandomString(20);
 
-    await SeriousPython.run("app/simple.py",
-        environmentVariables: {
-          "RESULT_FILENAME": resultFileName,
-          "RESULT_VALUE": resultValue
-        },
-        sync: false);
+    await SeriousPython.run("app/app.zip",
+            environmentVariables: {
+              "RESULT_FILENAME": resultFileName,
+              "RESULT_VALUE": resultValue
+            },
+            sync: false)
+        .then((result) => pyResult = result);
 
     // try reading out.txt in a loop
-    var i = 30;
+    var i = 10;
     while (i-- > 0) {
       var out = File(resultFileName);
       if (await out.exists()) {

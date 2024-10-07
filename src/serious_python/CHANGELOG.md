@@ -1,3 +1,17 @@
+## 0.8.0
+
+* Not based on Kivy!
+* Fast packaging uses pre-built Python binary packages hosted on https://pypi.flet.dev and https://pypi.org. If a binary package for specific platform/arch is not found the packaging process does not make an attempt to compile it, but just exits with a meaningful error.
+* To package for iOS and Android developer should set `SERIOUS_PYTHON_SITE_PACKAGES` environment variable with a path to a temp directory for installed app packages. The contents of that directory is embedded into app bundle during app compilation. For macOS, Linux and Windows app packages are installed into `__pypackages__` inside app package asset zip.
+* Packaging command is not looking for `requirements.txt` or `pyproject.toml` anymore, but all requirements should be passed explicitly via `--requirements` option. The value of `--requirements` option is passed "as is" to `pip` command. For example, `--requirements flet,numpy==2.1.1` install two requirements directly, or `--requirements -r,requirements.txt` installs deps from a file.
+* MacOS packaging includes Python binaries for both `arm64` and `x86_64` architectures. Can limit to only one architecture with `--arch` option.
+* New options to enable compilation and cleanup of app and packages .py files: `--compile-app`, `--compile-packages` and `--cleanup`.
+* Packaging for `web` is no longer relied on a HTML document with links, but spawns its own PyPI-compatible server with links to Pyodide packages. 
+* Build python distributive is cached in Flutter's `build` directory, not temp, to avoid re-downloading on consequent re-packages.
+* Web builds updated to Pyodide 0.26.2.
+* Packages for iOS and Android are built with [Mobile Forge](https://github.com/flet-dev/mobile-forge).
+* Python for all platforms is built with [flet-dev/python-build](https://github.com/flet-dev/python-build/) and [this CI job](https://ci.appveyor.com/project/flet-dev/python-build). Python distros for Dart and Mobile Forge uploaded to [releases](https://github.com/flet-dev/python-build/releases).
+
 ## 0.7.1
 
 * Added `namespace` definition to Android Gradle build.

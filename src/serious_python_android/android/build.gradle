@@ -1,5 +1,7 @@
 group 'com.flet.serious_python_android'
-version '0.7.1'
+version '0.8.0'
+
+def python_version = '3.12'
 
 buildscript {
     repositories {
@@ -58,24 +60,16 @@ android {
             abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
         }
     }
+
+    packagingOptions {
+        doNotStrip "*/arm64-v8a/libpython*.so"
+        doNotStrip "*/armeabi-v7a/libpython*.so"
+        doNotStrip "*/x86/libpython*.so"
+        doNotStrip "*/x86_64/libpython*.so"
+    }
 }
 
 import de.undercouch.gradle.tasks.download.Download
-
-task downloadDistArchive(type: Download) {
-    src "https://github.com/flet-dev/serious-python/releases/download/v${version}/python-android-dist-v${version}.tar.gz"
-    dest new File(buildDir, "python-android-dist-v${version}.tar.gz")
-}
-
-task untarFile(dependsOn: downloadDistArchive, type: Copy) {
-    from tarTree(downloadDistArchive.dest)
-    into 'src/main/jniLibs'
-}
-
-task copyCustomDist(type: Exec) {
-    workingDir '.'
-    commandLine 'sh', 'bundle.sh'
-}
 
 task copyBuildDist(type: Copy) {
     def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
@@ -85,12 +79,40 @@ task copyBuildDist(type: Copy) {
     }
 }
 
-if (System.getenv('SERIOUS_PYTHON_P4A_DIST')) {
-    task copyOrUntar(dependsOn: 'copyCustomDist')
-} else if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
+// Loop through abiFilters
+def packageTasks = []
+android.defaultConfig.ndk.abiFilters.each { abi ->
+    packageTasks.add("zipSitePackages_$abi")
+
+    tasks.register("downloadDistArchive_$abi", Download) {
+        src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
+        dest new File(buildDir, "python-android-${abi}.tar.gz")
+    }
+    tasks.register("untarFile_$abi", Copy) {
+        from tarTree(tasks.named("downloadDistArchive_$abi").get().dest)
+        into "src/main/jniLibs/$abi"
+    }
+    tasks.named("untarFile_$abi") {
+        dependsOn "downloadDistArchive_$abi"
+    }
+
+    tasks.register("zipSitePackages_$abi", Zip) {
+        def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
+        if (srcDir != null) {
+            from fileTree(dir: "$srcDir/$abi")
+            archiveFileName = "libpythonsitepackages.so"
+            destinationDirectory = file("src/main/jniLibs/$abi")
+        }
+    }
+    tasks.named("zipSitePackages_$abi") {
+        dependsOn "untarFile_$abi"
+    }
+}
+
+if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {
     task copyOrUntar(dependsOn: 'copyBuildDist')
 } else {
-    task copyOrUntar(dependsOn: 'untarFile')
+    task copyOrUntar(dependsOn: packageTasks)
 }
 
 preBuild.dependsOn copyOrUntar
