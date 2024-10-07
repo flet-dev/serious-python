@@ -2,34 +2,36 @@
 
 Before running the app run the following command to package Python app to an asset.
 
+For Android:
+
+```
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Android --requirements -r,app/src/requirements.txt
+```
+
+For iOS:
+
+```
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+```
+
 For macOS:
 
 ```
-dart run serious_python:main package app/src -p Darwin -r flet==0.25.0.dev3422,lru-dict
+dart run serious_python:main package app/src -p Darwin --requirements -r,app/src/requirements.txt
 ```
 
 For Windows:
 
 ```
-dart run serious_python:main package app/src -p Windows -r flet==0.25.0.dev3422,lru-dict
+dart run serious_python:main package app/src -p Windows --requirements -r,app/src/requirements.txt
 ```
 
-when packaging for a desktop app:
+For Linux:
 
 ```
-dart run serious_python:main package app/src --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
-```
-
-when packaging for a mobile app:
-
-```
-dart run serious_python:main package app/src --mobile --dep-mappings "flet=flet-embed" --req-deps "flet-embed"
-```
-
-when packaging for a web app:
-
-```
-dart run serious_python:main package app/src --web --dep-mappings "flet=flet-pyodide" --req-deps "flet-pyodide" --platform emscripten_3_1_45_wasm32
+dart run serious_python:main package app/src -p Linux --requirements -r,app/src/requirements.txt
 ```
 
 Important: to make `serious_python` work in your own Android app:

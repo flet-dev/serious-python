@@ -1,11 +1,37 @@
 # run_example
 
-Before running the app run the following command to package Python app to an asset:
+Before running the app run the following command to package Python app to an asset.
 
-when packaging for iOS:
+For Android:
 
 ```
-dart run serious_python:main package app/src -p iOS -r lru-dict,yarl,numpy
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Android --requirements -r,app/src/requirements.txt
+```
+
+For iOS:
+
+```
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+```
+
+For macOS:
+
+```
+dart run serious_python:main package app/src -p Darwin --requirements -r,app/src/requirements.txt
+```
+
+For Windows:
+
+```
+dart run serious_python:main package app/src -p Windows --requirements -r,app/src/requirements.txt
+```
+
+For Linux:
+
+```
+dart run serious_python:main package app/src -p Linux --requirements -r,app/src/requirements.txt
 ```
 
 For Android:

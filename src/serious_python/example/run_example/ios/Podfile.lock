@@ -2,19 +2,16 @@ PODS:
   - Flutter (1.0.0)
   - integration_test (0.0.1):
     - Flutter
-  - package_info_plus (0.4.5):
-    - Flutter
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - serious_python_darwin (1.0.0):
+  - serious_python_darwin (0.8.0):
     - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - integration_test (from `.symlinks/plugins/integration_test/ios`)
-  - package_info_plus (from `.symlinks/plugins/package_info_plus/ios`)
   - path_provider_foundation (from `.symlinks/plugins/path_provider_foundation/darwin`)
   - serious_python_darwin (from `.symlinks/plugins/serious_python_darwin/darwin`)
 
@@ -23,8 +20,6 @@ EXTERNAL SOURCES:
     :path: Flutter
   integration_test:
     :path: ".symlinks/plugins/integration_test/ios"
-  package_info_plus:
-    :path: ".symlinks/plugins/package_info_plus/ios"
   path_provider_foundation:
     :path: ".symlinks/plugins/path_provider_foundation/darwin"
   serious_python_darwin:
@@ -33,9 +28,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
-  package_info_plus: 58f0028419748fad15bf008b270aaa8e54380b1c
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  serious_python_darwin: 88a6e7f9e803319fcf89c05ead4567f72d61ff62
+  serious_python_darwin: 351e50099cb9e34f344f75af29b1d36d3c0922f2
 
 PODFILE CHECKSUM: a57f30d18f102dd3ce366b1d62a55ecbef2158e5
 
