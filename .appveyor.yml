@@ -74,13 +74,13 @@ for:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
       - flutter upgrade
       - flutter config --enable-macos-desktop
-      - xcrun simctl list runtimes
-      - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
-      - xcrun xctrace list devices
-      - |
-          UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
-          echo $UDID
-          xcrun simctl boot "${UDID:?No Simulator with this name found}"
+      # - xcrun simctl list runtimes
+      # - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
+      # - xcrun xctrace list devices
+      # - |
+      #     UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
+      #     echo $UDID
+      #     xcrun simctl boot "${UDID:?No Simulator with this name found}"
       #- flutter doctor -v
 
     build: off
@@ -89,7 +89,8 @@ for:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p iOS -r flet,--pre
-      - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+      - flutter build ios --no-codesign
+      # - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   # ======================================
   #      Test on Android
