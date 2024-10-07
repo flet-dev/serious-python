@@ -4,17 +4,15 @@ import 'package:archive/archive_io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 Future<String> extractAssetOrFile(String path,
     {bool isAsset = true, String? targetPath, bool checkHash = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  final documentsDir = await getApplicationDocumentsDirectory();
-  final destDir = Directory(p.join(documentsDir.path, "flet",
-      "app-${packageInfo.packageName}", targetPath ?? p.dirname(path)));
+  final supportDir = await getApplicationSupportDirectory();
+  final destDir =
+      Directory(p.join(supportDir.path, "flet", targetPath ?? p.dirname(path)));
 
   String assetHash = "";
   String destHash = "";
@@ -94,17 +92,11 @@ Future<String> extractFileZip(String filePath,
 
 Future<String> extractAsset(String assetPath) async {
   WidgetsFlutterBinding.ensureInitialized();
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android)
-      ? await getApplicationDocumentsDirectory()
-      : await getTemporaryDirectory();
 
   // (re-)create destination directory
-  var destDir = Directory(p.join(
-      documentsOrTempDir.path,
-      "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
-      p.dirname(assetPath)));
+  final supportDir = await getApplicationSupportDirectory();
+  final destDir =
+      Directory(p.join(supportDir.path, "flet", p.dirname(assetPath)));
 
   await destDir.create(recursive: true);
 

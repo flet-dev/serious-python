@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 import urllib.request
 
@@ -11,6 +12,8 @@ print("Hello from Python!")
 print(__name__)
 
 # import aaa
+app_data = os.environ["FLET_APP_DATA"]
+app_temp = os.environ["FLET_APP_TEMP"]
 
 
 def main(page: ft.Page):
@@ -58,6 +61,8 @@ def main(page: ft.Page):
             wrap=True,
             alignment=ft.MainAxisAlignment.CENTER,
         ),
+        ft.Text(f"App data dir: {app_data}"),
+        ft.Text(f"App temp dir: {app_temp}"),
     )
 
     print("This is inside main() method!")
