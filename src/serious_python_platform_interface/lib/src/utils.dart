@@ -12,14 +12,9 @@ Future<String> extractAssetOrFile(String path,
     {bool isAsset = true, String? targetPath, bool checkHash = false}) async {
   WidgetsFlutterBinding.ensureInitialized();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  final documentsOrTempDir = (defaultTargetPlatform == TargetPlatform.iOS ||
-          defaultTargetPlatform == TargetPlatform.android)
-      ? await getApplicationDocumentsDirectory()
-      : await getTemporaryDirectory();
-  final destDir = Directory(p.join(
-      documentsOrTempDir.path,
-      "${packageInfo.appName}-${packageInfo.version}-${packageInfo.buildNumber}",
-      targetPath ?? p.dirname(path)));
+  final documentsDir = await getApplicationDocumentsDirectory();
+  final destDir = Directory(p.join(documentsDir.path, "flet",
+      "app-${packageInfo.packageName}", targetPath ?? p.dirname(path)));
 
   String assetHash = "";
   String destHash = "";
@@ -42,14 +37,17 @@ Future<String> extractAssetOrFile(String path,
         }
       }
 
-      if (assetHash != destHash) {
+      if (assetHash != destHash ||
+          (checkHash && assetHash == "" && destHash == "")) {
         await destDir.delete(recursive: true);
       } else {
-        debugPrint("Application archive already unpacked.");
+        debugPrint("Application archive already unpacked to ${destDir.path}");
         return destDir.path;
       }
     }
   }
+
+  debugPrint("extractAssetOrFile directory: ${destDir.path}");
   await destDir.create(recursive: true);
 
   // unpack from asset or file
