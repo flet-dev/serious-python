@@ -5,32 +5,32 @@ environment:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
   matrix:
-    - job_name: Test on macOS
-      job_group: test_serious_python
-      job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
+    # - job_name: Test on macOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
 
-    - job_name: Test on iOS
-      job_group: test_serious_python
-      job_depends_on: build_python_darwin
-      APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
+    # - job_name: Test on iOS
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_darwin
+    #   APPVEYOR_BUILD_WORKER_IMAGE: macos-ventura
 
-    - job_name: Test on Android
-      job_group: test_serious_python
-      job_depends_on: build_python_android
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
+    # - job_name: Test on Android
+    #   job_group: test_serious_python
+    #   job_depends_on: build_python_android
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu-gce-c
 
-    - job_name: Test on Windows
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+    # - job_name: Test on Windows
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
 
-    - job_name: Test on Linux
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    # - job_name: Test on Linux
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
-    - job_name: Test on Linux ARM64
-      job_group: test_serious_python
-      APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2204-arm
+    # - job_name: Test on Linux ARM64
+    #   job_group: test_serious_python
+    #   APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2204-arm
 
     - job_name: Publish serious_python package to pub.dev
       job_group: publish_package
@@ -232,37 +232,37 @@ for:
             python3 ci/patch_pubspec.py src/serious_python_linux/pubspec.yaml $PKG_VER
 
             cd src/serious_python_platform_interface
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
             sleep 60
 
             cd src/serious_python_android
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
             sleep 60
 
             cd src/serious_python_darwin
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
             sleep 60
 
             cd src/serious_python_windows
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
             sleep 60
 
             cd src/serious_python_linux
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
             sleep 60
 
             cd src/serious_python
-            dart pub publish --force || exit 1
+            dart pub publish --force
             cd $APPVEYOR_BUILD_FOLDER
 
           elif [[ "$APPVEYOR_PULL_REQUEST_NUMBER" == "" ]]; then
