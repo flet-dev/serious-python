@@ -64,6 +64,7 @@ class SeriousPython {
     return runProgram(appPath,
         modulePaths: modulePaths,
         environmentVariables: environmentVariables,
+        script: Platform.isWindows ? "" : null,
         sync: sync);
   }
 
