@@ -156,6 +156,7 @@ class PackageCommand extends Command {
       }
 
       bool isMobile = (platform == "iOS" || platform == "Android");
+      bool isWeb = platform == "Pyodide";
 
       var junkFileExtensions =
           isMobile ? junkFileExtensionsMobile : junkFileExtensionsDesktop;
@@ -295,11 +296,11 @@ class PackageCommand extends Command {
             stdout.writeln(
                 "Installing $requirements with pip command to $sitePackagesDir");
 
-            List<String> pipArgs = [
-              "--disable-pip-version-check",
-              "--only-binary",
-              ":all:"
-            ];
+            List<String> pipArgs = ["--disable-pip-version-check"];
+
+            if (isMobile || isWeb) {
+              pipArgs.addAll(["--only-binary", ":all:"]);
+            }
 
             for (var index in extraPyPiIndexes) {
               pipArgs.addAll(["--extra-index-url", index]);
