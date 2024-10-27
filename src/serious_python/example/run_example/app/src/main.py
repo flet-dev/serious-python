@@ -1,9 +1,9 @@
 print("Hello from Python program!")
 
-import os
-from time import sleep
-
 import _imp
+import os
+from pathlib import Path
+from time import sleep
 
 _imp.extension_suffixes()
 
@@ -73,21 +73,71 @@ def test_numpy_performance():
     assert duration < 0.7
 
 
-test_lru()
-test_numpy_basic()
-test_numpy_performance()
-
-# result_value = str(_imp.extension_suffixes())
-# result_value = decompressed.decode("utf8")
-
 if not result_filename:
     print("RESULT_FILENAME is not set")
     exit(1)
 
+r = ""
 if result_value:
     r = result_value
 else:
     r = "RESULT_VALUE is not set"
+
+
+def test_sqlite():
+    try:
+        import ctypes
+
+        ctypes.cdll.LoadLibrary("libsqlite3_python.so")
+        import sqlite3
+
+        out_dir = Path(result_filename).parent
+        conn = sqlite3.connect(str(out_dir.joinpath("mydb.db")))
+
+        conn.execute("""CREATE TABLE COMPANY
+                (ID INT PRIMARY KEY     NOT NULL,
+                NAME           TEXT    NOT NULL,
+                AGE            INT     NOT NULL,
+                ADDRESS        CHAR(50),
+                SALARY         REAL);""")
+
+        conn.execute(
+            "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) \
+            VALUES (1, 'Paul', 32, 'California', 20000.00 )"
+        )
+
+        conn.execute(
+            "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) \
+            VALUES (2, 'Allen', 25, 'Texas', 15000.00 )"
+        )
+
+        conn.execute(
+            "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) \
+            VALUES (3, 'Teddy', 23, 'Norway', 20000.00 )"
+        )
+
+        conn.execute(
+            "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) \
+            VALUES (4, 'Mark', 25, 'Rich-Mond ', 65000.00 )"
+        )
+
+        conn.commit()
+        print("Records created successfully")
+
+        conn.close()
+
+        return "\nsqlite: test_basic - OK"
+    except Exception as e:
+        return f"\nsqlite: test_basic - error: {e}"
+
+
+r += test_sqlite()
+# test_lru()
+# test_numpy_basic()
+# test_numpy_performance()
+
+# result_value = str(_imp.extension_suffixes())
+# result_value = decompressed.decode("utf8")
 
 with open(result_filename, "w") as f:
     f.write(r)
