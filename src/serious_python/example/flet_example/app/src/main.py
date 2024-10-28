@@ -4,7 +4,7 @@ import sys
 import urllib.request
 
 import flet as ft
-from flet_core.version import version
+from flet.version import version
 
 # logging.basicConfig(level=logging.DEBUG)
 
