@@ -96,6 +96,20 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
         dependsOn "downloadDistArchive_$abi"
     }
 
+    packageTasks.add("copyOpt_$abi")
+
+    tasks.register("copyOpt_$abi", Copy) {
+        def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
+        if (srcDir != null) {
+            from fileTree(dir: "$srcDir/$abi/opt", include: ["**/*.so"])
+            into "src/main/jniLibs/$abi"
+            eachFile {
+                path = name
+            }
+            includeEmptyDirs = false
+        }   
+    }
+
     tasks.register("zipSitePackages_$abi", Zip) {
         def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
         if (srcDir != null) {
