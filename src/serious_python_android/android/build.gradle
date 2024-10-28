@@ -113,7 +113,7 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     tasks.register("zipSitePackages_$abi", Zip) {
         def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
         if (srcDir != null) {
-            from fileTree(dir: "$srcDir/$abi")
+            from fileTree(dir: "$srcDir/$abi", exclude: ["opt"])
             archiveFileName = "libpythonsitepackages.so"
             destinationDirectory = file("src/main/jniLibs/$abi")
         }
