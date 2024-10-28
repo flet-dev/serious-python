@@ -1,3 +1,7 @@
+## 0.8.2
+
+* Copy `.so` libraries from `{site-packages}/opt` to `jniLibs`.
+
 ## 0.8.1
 
 * Remove `--only-binary` when packaging for desktop platforms ([#112](https://github.com/flet-dev/serious-python/issues/112))

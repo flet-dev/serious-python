@@ -1,5 +1,5 @@
 group 'com.flet.serious_python_android'
-version '0.8.1'
+version '0.8.2'
 
 def python_version = '3.12'
 
@@ -82,7 +82,18 @@ task copyBuildDist(type: Copy) {
 // Loop through abiFilters
 def packageTasks = []
 android.defaultConfig.ndk.abiFilters.each { abi ->
+
+    def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
+    if (srcDir == null || srcDir.allWhitespace) {
+        throw new InvalidUserDataException("SERIOUS_PYTHON_SITE_PACKAGES environment variable is not set.")
+    }
+
     packageTasks.add("zipSitePackages_$abi")
+    packageTasks.add("copyOpt_$abi")
+
+    tasks.register("jniCleanUp_$abi", Delete) {
+        delete "src/main/jniLibs/$abi"
+    }
 
     tasks.register("downloadDistArchive_$abi", Download) {
         src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
@@ -91,21 +102,24 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     tasks.register("untarFile_$abi", Copy) {
         from tarTree(tasks.named("downloadDistArchive_$abi").get().dest)
         into "src/main/jniLibs/$abi"
+        dependsOn "jniCleanUp_$abi", "downloadDistArchive_$abi"
     }
-    tasks.named("untarFile_$abi") {
-        dependsOn "downloadDistArchive_$abi"
+
+    tasks.register("copyOpt_$abi", Copy) {
+        from fileTree(dir: "$srcDir/$abi/opt", include: ["**/*.so"])
+        into "src/main/jniLibs/$abi"
+        eachFile {
+            path = name
+        }
+        includeEmptyDirs = false
+        dependsOn "jniCleanUp_$abi"
     }
 
     tasks.register("zipSitePackages_$abi", Zip) {
-        def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
-        if (srcDir != null) {
-            from fileTree(dir: "$srcDir/$abi")
-            archiveFileName = "libpythonsitepackages.so"
-            destinationDirectory = file("src/main/jniLibs/$abi")
-        }
-    }
-    tasks.named("zipSitePackages_$abi") {
-        dependsOn "untarFile_$abi"
+        from fileTree(dir: "$srcDir/$abi", exclude: ["opt"])
+        archiveFileName = "libpythonsitepackages.so"
+        destinationDirectory = file("src/main/jniLibs/$abi")
+        dependsOn "jniCleanUp_$abi", "untarFile_$abi"
     }
 }
 
