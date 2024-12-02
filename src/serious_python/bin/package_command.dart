@@ -54,7 +54,7 @@ const platforms = {
   }
 };
 
-const junkFileExtensionsDesktop = [".c", ".h", ".typed", ".a", ".pdb"];
+const junkFileExtensionsDesktop = [".c", ".h", ".hpp", ".typed", ".a", ".pdb"];
 const junkFileExtensionsMobile = [...junkFileExtensionsDesktop, ".exe", ".dll"];
 
 const junkFilesDesktop = ["__pycache__"];

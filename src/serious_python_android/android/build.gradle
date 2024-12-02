@@ -116,7 +116,7 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     }
 
     tasks.register("zipSitePackages_$abi", Zip) {
-        from fileTree(dir: "$srcDir/$abi", exclude: ["opt"])
+        from fileTree(dir: "$srcDir/$abi")
         archiveFileName = "libpythonsitepackages.so"
         destinationDirectory = file("src/main/jniLibs/$abi")
         dependsOn "jniCleanUp_$abi", "untarFile_$abi"
