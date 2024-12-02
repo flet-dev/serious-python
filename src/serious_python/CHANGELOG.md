@@ -1,3 +1,7 @@
+## 0.8.3
+
+* Remove `PYTHONOPTIMIZE=2` to make CFFI work.
+
 ## 0.8.2
 
 * Copy `.so` libraries from `{site-packages}/opt` to `jniLibs`.
