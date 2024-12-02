@@ -109,7 +109,6 @@ static void serious_python_linux_plugin_handle_method_call(
 
     // environmentVariables
     g_setenv("PYTHONINSPECT", "1", TRUE);
-    g_setenv("PYTHONOPTIMIZE", "2", TRUE);
     g_setenv("PYTHONDONTWRITEBYTECODE", "1", TRUE);
     g_setenv("PYTHONNOUSERSITE", "1", TRUE);
     g_setenv("PYTHONUNBUFFERED", "1", TRUE);

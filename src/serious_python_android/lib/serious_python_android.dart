@@ -70,7 +70,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     }
 
     setenv("PYTHONINSPECT", "1");
-    setenv("PYTHONOPTIMIZE", "2");
     setenv("PYTHONDONTWRITEBYTECODE", "1");
     setenv("PYTHONNOUSERSITE", "1");
     setenv("PYTHONUNBUFFERED", "1");

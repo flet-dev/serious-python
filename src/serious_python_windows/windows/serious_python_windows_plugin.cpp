@@ -174,7 +174,6 @@ namespace serious_python_windows
 
       // set python-related env vars
       _putenv_s("PYTHONINSPECT", "1");
-      _putenv_s("PYTHONOPTIMIZE", "2");
       _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
       _putenv_s("PYTHONNOUSERSITE", "1");
       _putenv_s("PYTHONUNBUFFERED", "1");
