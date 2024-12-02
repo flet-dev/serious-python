@@ -180,6 +180,7 @@ for:
 
     install:
       # Flutter SDK
+      - sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
       - sudo apt update -y --allow-releaseinfo-change
       - sudo apt install -y clang ninja-build xvfb libgtk-3-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
       - git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
