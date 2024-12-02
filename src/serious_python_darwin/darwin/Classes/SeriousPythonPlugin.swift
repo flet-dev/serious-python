@@ -54,7 +54,6 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             ]
 
             setenv("PYTHONINSPECT", "1", 1)
-            setenv("PYTHONOPTIMIZE", "2", 1)
             setenv("PYTHONDONTWRITEBYTECODE", "1", 1)
             setenv("PYTHONNOUSERSITE", "1", 1)
             setenv("PYTHONUNBUFFERED", "1", 1)
