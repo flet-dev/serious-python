@@ -1,3 +1,7 @@
+## 0.8.4
+
+* Copy `site-packages/flutter` contents to `SERIOUS_PYTHON_FLUTTER_PACKAGES`.
+
 ## 0.8.3
 
 * Remove `PYTHONOPTIMIZE=2` to make CFFI work.
