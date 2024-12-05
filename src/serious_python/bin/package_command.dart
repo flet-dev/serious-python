@@ -19,7 +19,9 @@ const pyodideLockFile = "pyodide-lock.json";
 const buildPythonVersion = "3.12.6";
 const buildPythonReleaseDate = "20240909";
 const defaultSitePackagesDir = "__pypackages__";
-const sitePackageEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
+const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
+const flutterPackagesFlutterEnvironmentVariable =
+    "SERIOUS_PYTHON_FLUTTER_PACKAGES";
 
 const platforms = {
   "iOS": {
@@ -227,6 +229,7 @@ class PackageCommand extends Command {
       if (requirements.isNotEmpty) {
         String? sitePackagesRoot;
         bool sitePackagesRootDeleted = false;
+        bool flutterPackagesCopied = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
           if (archArg != null && arch.key != archArg) {
@@ -266,13 +269,13 @@ class PackageCommand extends Command {
 
             if (isMobile) {
               if (!Platform.environment
-                  .containsKey(sitePackageEnvironmentVariable)) {
-                throw "Environment variable is not set: $sitePackageEnvironmentVariable";
+                  .containsKey(sitePackagesEnvironmentVariable)) {
+                throw "Environment variable is not set: $sitePackagesEnvironmentVariable";
               }
               sitePackagesRoot =
-                  Platform.environment[sitePackageEnvironmentVariable];
+                  Platform.environment[sitePackagesEnvironmentVariable];
               if (sitePackagesRoot!.isEmpty) {
-                throw "Environment variable cannot be empty: $sitePackageEnvironmentVariable";
+                throw "Environment variable cannot be empty: $sitePackagesEnvironmentVariable";
               }
             } else {
               sitePackagesRoot =
@@ -316,6 +319,29 @@ class PackageCommand extends Command {
               sitePackagesDir,
               ...requirements
             ], environment: pipEnv);
+
+            // move $sitePackagesDir/flutter if env var is defined
+            if (Platform.environment
+                .containsKey(flutterPackagesFlutterEnvironmentVariable)) {
+              var flutterPackagesRoot = Platform
+                  .environment[flutterPackagesFlutterEnvironmentVariable];
+              var flutterPackagesRootDir = Directory(flutterPackagesRoot!);
+              var sitePackagesFlutterDir =
+                  Directory(path.join(sitePackagesDir, "flutter"));
+              if (await sitePackagesFlutterDir.exists()) {
+                if (!flutterPackagesCopied) {
+                  stdout.writeln(
+                      "Copying Flutter packages to $flutterPackagesRoot");
+                  if (!await flutterPackagesRootDir.exists()) {
+                    await flutterPackagesRootDir.create(recursive: true);
+                  }
+                  await copyDirectory(sitePackagesFlutterDir,
+                      flutterPackagesRootDir, sitePackagesFlutterDir.path, []);
+                  flutterPackagesCopied = true;
+                }
+                await sitePackagesFlutterDir.delete(recursive: true);
+              }
+            }
 
             // compile packages
             if (compilePackages) {
