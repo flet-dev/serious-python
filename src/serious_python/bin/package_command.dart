@@ -22,6 +22,8 @@ const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
+const allowSourceDistrosEnvironmentVariable =
+    "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
 
 const platforms = {
   "iOS": {
@@ -301,7 +303,9 @@ class PackageCommand extends Command {
 
             List<String> pipArgs = ["--disable-pip-version-check"];
 
-            if (isMobile || isWeb) {
+            if ((isMobile || isWeb) &&
+                !Platform.environment
+                    .containsKey(allowSourceDistrosEnvironmentVariable)) {
               pipArgs.addAll(["--only-binary", ":all:"]);
             }
 

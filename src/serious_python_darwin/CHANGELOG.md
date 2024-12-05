@@ -1,6 +1,7 @@
 ## 0.8.4
 
 * Copy `site-packages/flutter` contents to `SERIOUS_PYTHON_FLUTTER_PACKAGES`.
+* Added `SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS` variable to allow pip installing from source distributions.
 
 ## 0.8.3
 
