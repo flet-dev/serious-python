@@ -38,6 +38,15 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
           'setEnvironmentVariable', {'name': key, 'value': value});
     }
 
+    // load libpyjni.so to get JNI reference
+    try {
+      await methodChannel
+          .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
+      await setenv("FLET_JNI_READY", "1");
+    } catch (e) {
+      debugPrint("Warning: Unable to load libpyjni.so library: $e");
+    }
+
     // unpack python bundle
     final nativeLibraryDir =
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');

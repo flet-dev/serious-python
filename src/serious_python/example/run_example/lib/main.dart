@@ -76,7 +76,7 @@ class _MyAppState extends State<MyApp> {
           title: const Text('Serious Python example app'),
         ),
         body: Center(
-          child: Text(_pyResult),
+          child: SelectableText(_pyResult),
         ),
       ),
     );
