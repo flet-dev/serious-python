@@ -74,8 +74,6 @@ for:
     install:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
       - source ci/install_flutter.sh
-      - which dart
-      - which flutter
       # - xcrun simctl list runtimes
       # - xcrun simctl create "e2e test" "iPhone 12" "com.apple.CoreSimulator.SimRuntime.iOS-17-2"
       # - xcrun xctrace list devices
@@ -83,7 +81,7 @@ for:
       #     UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
       #     echo $UDID
       #     xcrun simctl boot "${UDID:?No Simulator with this name found}"
-      #- flutter doctor -v
+      - flutter doctor -v
 
     build: off
 
