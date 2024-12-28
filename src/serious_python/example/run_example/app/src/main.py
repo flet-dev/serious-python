@@ -139,7 +139,7 @@ def test_pyjnius():
 
     from jnius import autoclass
 
-    activity = autoclass(os.getenv("MAIN_ACTIVITY_JAVA_CLASS_NAME")).mActivity
+    activity = autoclass(os.getenv("MAIN_ACTIVITY_HOST_CLASS_NAME")).mActivity
     Secure = autoclass("android.provider.Settings$Secure")
 
     version = autoclass("android.os.Build$VERSION")
