@@ -139,7 +139,7 @@ def test_pyjnius():
 
     from jnius import autoclass
 
-    activity = autoclass(os.getenv("FLET_ANDROID_PLUGIN_JAVA_CLASS_NAME")).mActivity
+    activity = autoclass(os.getenv("MAIN_ACTIVITY_JAVA_CLASS_NAME")).mActivity
     Secure = autoclass("android.provider.Settings$Secure")
 
     version = autoclass("android.os.Build$VERSION")
@@ -153,6 +153,8 @@ def test_pyjnius():
         str(activity.getClass().getName())
         + " os: "
         + str(os_build)
+        + " FLET_JNI_READY: "
+        + str(os.getenv("FLET_JNI_READY"))
         + " DPI: "
         + str(metrics.getDeviceDensity())
     )
