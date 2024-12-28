@@ -54,7 +54,7 @@ for:
       - HOMEBREW_NO_AUTO_UPDATE=1 brew install cocoapods
       - source ci/install_flutter.sh
       - flutter config --enable-macos-desktop
-      - flutter doctor
+      - flutter doctor -v
 
     build: off
 
@@ -81,7 +81,6 @@ for:
       #     UDID=$(xcrun xctrace list devices | grep "^e2e test Simulator (17.2)" | awk '{gsub(/[()]/,""); print $NF}')      
       #     echo $UDID
       #     xcrun simctl boot "${UDID:?No Simulator with this name found}"
-      - flutter doctor -v
 
     build: off
 
@@ -118,7 +117,6 @@ for:
       - emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -cache-size 1000 -noaudio -no-window -partition-size 8192 &
       - adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
       - source ci/install_flutter.sh
-      - flutter doctor -v
 
     build: off
 
@@ -146,6 +144,7 @@ for:
       - fvm install %FLUTTER_VERSION%
       - fvm global %FLUTTER_VERSION%
       - flutter --version
+      - flutter doctor
 
     build: off
 
@@ -190,7 +189,6 @@ for:
       - git clone https://github.com/flutter/flutter.git -b stable "$HOME/flutter"
       - export PATH="$PATH:$HOME/flutter/bin"
       - source ci/install_flutter.sh
-      - flutter doctor
 
     build: off
 
