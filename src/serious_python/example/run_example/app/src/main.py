@@ -1,9 +1,10 @@
 print("Hello from Python program!")
 
-import _imp
 import os
 from pathlib import Path
 from time import sleep
+
+import _imp
 
 _imp.extension_suffixes()
 
@@ -94,12 +95,14 @@ def test_sqlite():
         out_dir = Path(result_filename).parent
         conn = sqlite3.connect(str(out_dir.joinpath("mydb.db")))
 
-        conn.execute("""CREATE TABLE COMPANY
+        conn.execute(
+            """CREATE TABLE COMPANY
                 (ID INT PRIMARY KEY     NOT NULL,
                 NAME           TEXT    NOT NULL,
                 AGE            INT     NOT NULL,
                 ADDRESS        CHAR(50),
-                SALARY         REAL);""")
+                SALARY         REAL);"""
+        )
 
         conn.execute(
             "INSERT INTO COMPANY (ID,NAME,AGE,ADDRESS,SALARY) \
@@ -131,7 +134,34 @@ def test_sqlite():
         return f"\nsqlite: test_basic - error: {e}"
 
 
+def test_pyjnius():
+    from time import sleep
+
+    from jnius import autoclass
+
+    activity = autoclass(os.getenv("MAIN_ACTIVITY_HOST_CLASS_NAME")).mActivity
+    Secure = autoclass("android.provider.Settings$Secure")
+
+    version = autoclass("android.os.Build$VERSION")
+    os_build = autoclass("android.os.Build")
+    base_os = version.BASE_OS
+
+    DisplayMetrics = autoclass("android.util.DisplayMetrics")
+    metrics = DisplayMetrics()
+
+    return (
+        str(activity.getClass().getName())
+        + " os: "
+        + str(os_build)
+        + " FLET_JNI_READY: "
+        + str(os.getenv("FLET_JNI_READY"))
+        + " DPI: "
+        + str(metrics.getDeviceDensity())
+    )
+
+
 r += test_sqlite()
+r += test_pyjnius()
 # test_lru()
 # test_numpy_basic()
 # test_numpy_performance()
