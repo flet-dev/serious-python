@@ -1,3 +1,7 @@
+## 0.8.5
+
+* Added Java `loadLibrary` to Android plugin to support `pyjnius` ([#128](https://github.com/flet-dev/serious-python/issues/128)).
+
 ## 0.8.4
 
 * Copy `site-packages/flutter` contents to `SERIOUS_PYTHON_FLUTTER_PACKAGES`.
