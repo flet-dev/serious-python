@@ -19,6 +19,8 @@ import io.flutter.plugin.common.MethodChannel.Result;
 public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
 
   public static final String MAIN_ACTIVITY_HOST_CLASS_NAME = "MAIN_ACTIVITY_HOST_CLASS_NAME";
+  public static final String MAIN_ACTIVITY_CLASS_NAME = "MAIN_ACTIVITY_CLASS_NAME";
+  public static final String NATIVE_LIBRARY_DIR = "NATIVE_LIBRARY_DIR";
   public static Activity mActivity = null;
 
   /// The MethodChannel that will the communication between Flutter and native
@@ -36,6 +38,11 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
         "android_plugin");
     channel.setMethodCallHandler(this);
     this.context = flutterPluginBinding.getApplicationContext();
+    try {
+      Os.setenv(NATIVE_LIBRARY_DIR, new ContextWrapper(this.context).getApplicationInfo().nativeLibraryDir, true);
+    } catch (Exception e) {
+      // nothing to do
+    }
   }
 
   @Override
@@ -43,6 +50,7 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
     mActivity = activityPluginBinding.getActivity();
     try {
       Os.setenv(MAIN_ACTIVITY_HOST_CLASS_NAME, this.getClass().getCanonicalName(), true);
+      Os.setenv(MAIN_ACTIVITY_CLASS_NAME, mActivity.getClass().getCanonicalName(), true);
     } catch (Exception e) {
       // nothing to do
     }
