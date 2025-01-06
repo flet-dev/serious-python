@@ -87,9 +87,9 @@ else:
 
 def test_sqlite():
     try:
-        import ctypes
+        # import ctypes
 
-        ctypes.cdll.LoadLibrary("libsqlite3_python.so")
+        # ctypes.cdll.LoadLibrary("libsqlite3_python.so")
         import sqlite3
 
         out_dir = Path(result_filename).parent
@@ -161,8 +161,8 @@ def test_pyjnius():
 
 
 r += test_sqlite()
-r += test_pyjnius()
-# test_lru()
+# r += test_pyjnius()
+test_lru()
 # test_numpy_basic()
 # test_numpy_performance()
 
