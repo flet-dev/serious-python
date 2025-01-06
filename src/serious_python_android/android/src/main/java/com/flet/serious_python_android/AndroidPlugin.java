@@ -5,7 +5,6 @@ import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
 import android.system.Os;
 import android.content.Intent;
-import android.app.Activity;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -15,11 +14,14 @@ import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 
+import com.flet.serious_python_android.PythonActivity;
+
 /** AndroidPlugin */
 public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
 
   public static final String MAIN_ACTIVITY_HOST_CLASS_NAME = "MAIN_ACTIVITY_HOST_CLASS_NAME";
-  public static Activity mActivity = null;
+  public static final String MAIN_ACTIVITY_CLASS_NAME = "MAIN_ACTIVITY_CLASS_NAME";
+  public static final String ANDROID_NATIVE_LIBRARY_DIR = "ANDROID_NATIVE_LIBRARY_DIR";
 
   /// The MethodChannel that will the communication between Flutter and native
   /// Android
@@ -36,13 +38,19 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
         "android_plugin");
     channel.setMethodCallHandler(this);
     this.context = flutterPluginBinding.getApplicationContext();
+    try {
+      Os.setenv(ANDROID_NATIVE_LIBRARY_DIR, new ContextWrapper(this.context).getApplicationInfo().nativeLibraryDir, true);
+    } catch (Exception e) {
+      // nothing to do
+    }
   }
 
   @Override
   public void onAttachedToActivity(@NonNull ActivityPluginBinding activityPluginBinding) {
-    mActivity = activityPluginBinding.getActivity();
+    PythonActivity.mActivity = activityPluginBinding.getActivity();
     try {
-      Os.setenv(MAIN_ACTIVITY_HOST_CLASS_NAME, this.getClass().getCanonicalName(), true);
+      Os.setenv(MAIN_ACTIVITY_HOST_CLASS_NAME, PythonActivity.class.getCanonicalName(), true);
+      Os.setenv(MAIN_ACTIVITY_CLASS_NAME, PythonActivity.mActivity.getClass().getCanonicalName(), true);
     } catch (Exception e) {
       // nothing to do
     }
