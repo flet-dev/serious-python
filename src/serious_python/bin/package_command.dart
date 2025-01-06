@@ -303,10 +303,15 @@ class PackageCommand extends Command {
 
             List<String> pipArgs = ["--disable-pip-version-check"];
 
-            if ((isMobile || isWeb) &&
-                !Platform.environment
-                    .containsKey(allowSourceDistrosEnvironmentVariable)) {
+            if (isMobile || isWeb) {
               pipArgs.addAll(["--only-binary", ":all:"]);
+              if (Platform.environment
+                  .containsKey(allowSourceDistrosEnvironmentVariable)) {
+                pipArgs.addAll([
+                  "--no-binary",
+                  Platform.environment[allowSourceDistrosEnvironmentVariable]!
+                ]);
+              }
             }
 
             for (var index in extraPyPiIndexes) {
