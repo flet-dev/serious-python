@@ -1,3 +1,7 @@
+## 0.8.7
+
+* Fixed: `xcframeworks` migration script didn't work for sub-directories.
+
 ## 0.8.6
 
 * Added `com.flet.serious_python_android.PythonActivity` holder class with `mActivity` holding a reference to an app MainActivity. Needed for `plyer`.
