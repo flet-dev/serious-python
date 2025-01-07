@@ -69,11 +69,11 @@ create_xcframework_from_dylibs() {
     fd=iphonesimulator/$framework.framework
     mkdir -p $fd
     lipo -create \
-        $(find "$simulator_arm64_dir" -name "$dylib_without_ext.*.$dylib_ext" -o -name "$dylib_without_ext.$dylib_ext" -type f) \
-        $(find "$simulator_x86_64_dir" -name "$dylib_without_ext.*.$dylib_ext" -o -name "$dylib_without_ext.$dylib_ext" -type f) \
+        $(find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$dylib_ext") \
+        $(find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$dylib_ext") \
         -output $fd/$framework
-    find "$simulator_arm64_dir" -name "$dylib_without_ext.*.$dylib_ext" -o -name "$dylib_without_ext.$dylib_ext" -type f -delete
-    find "$simulator_x86_64_dir" -name "$dylib_without_ext.*.$dylib_ext" -o -name "$dylib_without_ext.$dylib_ext" -type f -delete
+    find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$dylib_ext" -delete
+    find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$dylib_ext" -delete
     install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
     echo "$origin_prefix/$dylib_without_ext.fwork" > $fd/$framework.origin

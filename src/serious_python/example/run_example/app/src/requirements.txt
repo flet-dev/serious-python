@@ -1,6 +1,7 @@
 #numpy
 lru-dict
 #pyjnius
-flet-libsodium
+#flet-libsodium
 pysodium
-#supabase
+numpy
+Pyrebase4
