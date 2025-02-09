@@ -13,11 +13,11 @@ import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full";
 const pyodideLockFile = "pyodide-lock.json";
 
-const buildPythonVersion = "3.12.6";
-const buildPythonReleaseDate = "20240909";
+const buildPythonVersion = "3.12.9";
+const buildPythonReleaseDate = "20250205";
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
@@ -507,7 +507,7 @@ class PackageCommand extends Command {
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
           final url =
-              "https://github.com/indygreg/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
+              "https://github.com/astral-sh/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
 
           if (_verbose) {
             verbose(
