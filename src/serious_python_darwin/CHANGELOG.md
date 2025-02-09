@@ -1,3 +1,7 @@
+## 0.8.8
+
+* Set `MinimumOSVersion` to `13.0` for generated Python frameworks.
+
 ## 0.8.7
 
 * Fixed: `xcframeworks` migration script didn't work for sub-directories.
