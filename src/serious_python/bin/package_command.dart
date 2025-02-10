@@ -13,11 +13,11 @@ import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full";
 const pyodideLockFile = "pyodide-lock.json";
 
-const buildPythonVersion = "3.12.6";
-const buildPythonReleaseDate = "20240909";
+const buildPythonVersion = "3.12.9";
+const buildPythonReleaseDate = "20250205";
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
@@ -507,7 +507,7 @@ class PackageCommand extends Command {
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
           final url =
-              "https://github.com/indygreg/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
+              "https://github.com/astral-sh/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
 
           if (_verbose) {
             verbose(
@@ -523,13 +523,18 @@ class PackageCommand extends Command {
 
         // extract Python from archive
         if (_verbose) {
-          "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}";
+          verbose(
+              "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}");
         } else {
           stdout.writeln("Extracting Python distributive");
         }
 
         await Process.run(
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
+
+        if (Platform.isMacOS) {
+          copySysconfigFiles(_pythonDir!.path);
+        }
       }
     }
 
@@ -540,6 +545,57 @@ class PackageCommand extends Command {
     // Run the python executable
     verbose([pythonExePath, ...args].join(" "));
     return await runExec(pythonExePath, args, environment: environment);
+  }
+
+  void copySysconfigFiles(String pythonDir) {
+    final libPath = Directory(path.join(pythonDir, "python", "lib"));
+
+    // Find the Python version dynamically (e.g., python3.10, python3.11)
+    if (!libPath.existsSync()) {
+      stderr.writeln('Python lib directory not found: $libPath');
+      exit(1);
+    }
+
+    // Find the actual Python 3.x subdirectory
+    final pythonSubDir = libPath
+        .listSync()
+        .whereType<Directory>()
+        .firstWhere((dir) => RegExp(r'python3\.\d+').hasMatch(dir.path),
+            orElse: () => throw Exception('No Python 3.x directory found'))
+        .path;
+
+    final targetDir = Directory(pythonSubDir);
+
+    // Search for `_sysconfigdata__*.py` files
+    final files = targetDir
+        .listSync()
+        .whereType<File>()
+        .where((file) => RegExp(r'_sysconfigdata__.*\.py$').hasMatch(file.path))
+        .toList();
+
+    if (files.isEmpty) {
+      stderr.writeln('No matching _sysconfigdata__ files found in $targetDir');
+      exit(1);
+    }
+
+    for (final file in files) {
+      final dir = file.parent.path;
+
+      // Define the new filenames
+      final targets = [
+        '_sysconfigdata__darwin_arm64_iphoneos.py',
+        '_sysconfigdata__darwin_arm64_iphonesimulator.py',
+        '_sysconfigdata__darwin_x86_64_iphonesimulator.py',
+      ];
+
+      for (final target in targets) {
+        final targetPath = '$dir/$target';
+        file.copySync(targetPath);
+        if (_verbose) {
+          verbose('Copied ${file.path} -> $targetPath');
+        }
+      }
+    }
   }
 
   Future<HttpServer> startSimpleServer() async {

@@ -1,3 +1,9 @@
+## 0.8.8
+
+* Set `MinimumOSVersion` to `13.0` for generated Python frameworks.
+* Pyodide 0.27.2
+* Python 3.12.9
+
 ## 0.8.7
 
 * Fixed: `xcframeworks` migration script didn't work for sub-directories.
