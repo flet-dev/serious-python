@@ -532,7 +532,9 @@ class PackageCommand extends Command {
         await Process.run(
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
 
-        copySysconfigFiles(_pythonDir!.path);
+        if (Platform.isMacOS) {
+          copySysconfigFiles(_pythonDir!.path);
+        }
       }
     }
 
@@ -546,7 +548,7 @@ class PackageCommand extends Command {
   }
 
   void copySysconfigFiles(String pythonDir) {
-    final libPath = Directory('$pythonDir/python/lib');
+    final libPath = Directory(path.join(pythonDir, "python", "lib"));
 
     // Find the Python version dynamically (e.g., python3.10, python3.11)
     if (!libPath.existsSync()) {
