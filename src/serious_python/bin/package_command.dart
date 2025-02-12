@@ -460,6 +460,7 @@ class PackageCommand extends Command {
   }
 
   Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
+    verbose("Cleanup directory ${directory.path}: $filesGlobs");
     await cleanupDirRecursive(
         directory, filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"))));
   }
