@@ -72,9 +72,16 @@ const junkFilesDesktop = [
   "**.a",
   "**.pdb",
   "**.dist-info",
+  "__pycache__",
   "**/__pycache__",
 ];
-const junkFilesMobile = [...junkFilesDesktop, "**.exe", "**.dll", "**/bin"];
+const junkFilesMobile = [
+  ...junkFilesDesktop,
+  "**.exe",
+  "**.dll",
+  "bin",
+  "**/bin",
+];
 
 class PackageCommand extends Command {
   bool _verbose = false;
