@@ -60,8 +60,6 @@ const platforms = {
   }
 };
 
-final dartFile = Glob("**.dart");
-
 const junkFilesDesktop = [
   "**.c",
   "**.h",
@@ -462,7 +460,9 @@ class PackageCommand extends Command {
   Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
     verbose("Cleanup directory ${directory.path}: $filesGlobs");
     await cleanupDirRecursive(
-        directory, filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"))));
+        directory,
+        filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"),
+            context: path.Context(current: directory.path))));
   }
 
   Future<bool> cleanupDirRecursive(
@@ -576,7 +576,8 @@ class PackageCommand extends Command {
   }
 
   void duplicateSysconfigFile(String pythonDir) {
-    final sysConfigGlob = Glob("python/lib/python3.*/_sysconfigdata__*.py");
+    final sysConfigGlob = Glob("python/lib/python3.*/_sysconfigdata__*.py",
+        context: path.Context(current: pythonDir));
     for (var sysConfig in sysConfigGlob.listSync(root: pythonDir)) {
       // copy the first found sys config and exit
       if (sysConfig is File) {
