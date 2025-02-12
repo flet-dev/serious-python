@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
 import 'package:crypto/crypto.dart';
+import 'package:glob/glob.dart';
+import 'package:glob/list_local_fs.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
@@ -58,11 +60,24 @@ const platforms = {
   }
 };
 
-const junkFileExtensionsDesktop = [".c", ".h", ".hpp", ".typed", ".a", ".pdb"];
-const junkFileExtensionsMobile = [...junkFileExtensionsDesktop, ".exe", ".dll"];
+final dartFile = Glob("**.dart");
 
-const junkFilesDesktop = ["__pycache__"];
-const junkFilesMobile = [...junkFilesDesktop, "bin"];
+const junkFilesDesktop = [
+  "**.c",
+  "**.h",
+  "**.cpp",
+  "**.hpp",
+  "**.typed",
+  "**.a",
+  "**.pdb",
+  "**.pyi",
+  "**.pxd",
+  "**.pyx",
+  "**/LICENSE",
+  "**.dist-info",
+  "**/__pycache__",
+];
+const junkFilesMobile = [...junkFilesDesktop, "**.exe", "**.dll", "**/bin"];
 
 class PackageCommand extends Command {
   bool _verbose = false;
@@ -104,6 +119,16 @@ class PackageCommand extends Command {
         help:
             "Cleanup app and packages from unneccessary files and directories.",
         negatable: false);
+    argParser.addFlag("cleanup-app",
+        help: "Cleanup app from unneccessary files and directories.",
+        negatable: false);
+    argParser.addMultiOption('cleanup-app-files',
+        help: "List of globs to delete extra app files and directories.");
+    argParser.addFlag("cleanup-packages",
+        help: "Cleanup packages from unneccessary files and directories.",
+        negatable: false);
+    argParser.addMultiOption('cleanup-packages-files',
+        help: "List of globs to delete extra packages files and directories.");
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 
@@ -135,6 +160,10 @@ class PackageCommand extends Command {
       bool compileApp = argResults?["compile-app"];
       bool compilePackages = argResults?["compile-packages"];
       bool cleanup = argResults?["cleanup"];
+      bool cleanupApp = argResults?["cleanup-app"];
+      List<String> cleanupAppFiles = argResults?['cleanup-app-files'];
+      bool cleanupPackages = argResults?["cleanup-packages"];
+      List<String> cleanupPackagesFiles = argResults?['cleanup-packages-files'];
       _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
@@ -162,8 +191,6 @@ class PackageCommand extends Command {
       bool isMobile = (platform == "iOS" || platform == "Android");
       bool isWeb = platform == "Pyodide";
 
-      var junkFileExtensions =
-          isMobile ? junkFileExtensionsMobile : junkFileExtensionsDesktop;
       var junkFiles = isMobile ? junkFilesMobile : junkFilesDesktop;
 
       // Extra indexs
@@ -212,19 +239,19 @@ class PackageCommand extends Command {
         await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
         verbose("Deleting original .py files");
-        await cleanupPyPackages(tempDir, [".py"], []);
+        await cleanupDir(tempDir, ["**.py"]);
       }
 
       // cleanup
-      if (cleanup) {
+      if (cleanupApp || cleanup) {
+        var allJunkFiles = [...junkFiles, ...cleanupAppFiles];
         if (_verbose) {
           verbose(
-              "Delete unnecessary app files with extensions: $junkFileExtensions");
-          verbose("Delete unnecessary app files and directories: $junkFiles");
+              "Delete unnecessary app files and directories: $allJunkFiles");
         } else {
           stdout.writeln(("Cleanup app"));
         }
-        await cleanupPyPackages(tempDir, junkFileExtensions, junkFiles);
+        await cleanupDir(tempDir, allJunkFiles);
       }
 
       // install requirements
@@ -358,21 +385,19 @@ class PackageCommand extends Command {
               await runPython(['-m', 'compileall', '-b', sitePackagesDir]);
 
               verbose("Deleting original .py files");
-              await cleanupPyPackages(Directory(sitePackagesDir), [".py"], []);
+              await cleanupDir(Directory(sitePackagesDir), ["**.py"]);
             }
 
             // cleanup packages
-            if (cleanup) {
+            if (cleanupPackages || cleanup) {
+              var allJunkFiles = [...junkFiles, ...cleanupPackagesFiles];
               if (_verbose) {
                 verbose(
-                    "Delete unnecessary package files with extensions: $junkFileExtensions");
-                verbose(
-                    "Delete unnecessary package files and directories: $junkFiles");
+                    "Delete unnecessary package files and directories: $allJunkFiles");
               } else {
                 stdout.writeln(("Cleanup installed packages"));
               }
-              await cleanupPyPackages(
-                  Directory(sitePackagesDir), junkFileExtensions, junkFiles);
+              await cleanupDir(Directory(sitePackagesDir), allJunkFiles);
             }
           } finally {
             if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
@@ -435,26 +460,20 @@ class PackageCommand extends Command {
     }
   }
 
-  Future<void> cleanupPyPackages(Directory directory,
-      List<String> fileExtensions, List<String> filesAndDirectories) async {
-    await for (var entity in directory.list()) {
-      if (entity is Directory) {
-        await cleanupPyPackages(entity, fileExtensions, filesAndDirectories);
-      } else if (entity is File &&
-          (fileExtensions.contains(path.extension(entity.path)) ||
-              filesAndDirectories.contains(path.basename(entity.path)))) {
+  Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
+    return cleanupDirRecursive(
+        directory, filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"))));
+  }
+
+  Future<void> cleanupDirRecursive(
+      Directory directory, Iterable<Glob> globs) async {
+    for (var entity in directory.listSync()) {
+      if (globs.any((g) => g.matches(entity.path.replaceAll("\\", "/"))) &&
+          await entity.exists()) {
         verbose("Deleting ${entity.path}");
-
-        await entity.delete();
-      }
-    }
-
-    await for (var entity in directory.list()) {
-      if (entity is Directory &&
-          filesAndDirectories.contains(path.basename(entity.path))) {
-        verbose("Deleting ${entity.path}");
-
         await entity.delete(recursive: true);
+      } else if (entity is Directory) {
+        await cleanupDirRecursive(entity, globs);
       }
     }
   }
@@ -533,7 +552,7 @@ class PackageCommand extends Command {
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
 
         if (Platform.isMacOS) {
-          copySysconfigFiles(_pythonDir!.path);
+          duplicateSysconfigFile(_pythonDir!.path);
         }
       }
     }
@@ -547,53 +566,23 @@ class PackageCommand extends Command {
     return await runExec(pythonExePath, args, environment: environment);
   }
 
-  void copySysconfigFiles(String pythonDir) {
-    final libPath = Directory(path.join(pythonDir, "python", "lib"));
-
-    // Find the Python version dynamically (e.g., python3.10, python3.11)
-    if (!libPath.existsSync()) {
-      stderr.writeln('Python lib directory not found: $libPath');
-      exit(1);
-    }
-
-    // Find the actual Python 3.x subdirectory
-    final pythonSubDir = libPath
-        .listSync()
-        .whereType<Directory>()
-        .firstWhere((dir) => RegExp(r'python3\.\d+').hasMatch(dir.path),
-            orElse: () => throw Exception('No Python 3.x directory found'))
-        .path;
-
-    final targetDir = Directory(pythonSubDir);
-
-    // Search for `_sysconfigdata__*.py` files
-    final files = targetDir
-        .listSync()
-        .whereType<File>()
-        .where((file) => RegExp(r'_sysconfigdata__.*\.py$').hasMatch(file.path))
-        .toList();
-
-    if (files.isEmpty) {
-      stderr.writeln('No matching _sysconfigdata__ files found in $targetDir');
-      exit(1);
-    }
-
-    for (final file in files) {
-      final dir = file.parent.path;
-
-      // Define the new filenames
-      final targets = [
-        '_sysconfigdata__darwin_arm64_iphoneos.py',
-        '_sysconfigdata__darwin_arm64_iphonesimulator.py',
-        '_sysconfigdata__darwin_x86_64_iphonesimulator.py',
-      ];
-
-      for (final target in targets) {
-        final targetPath = '$dir/$target';
-        file.copySync(targetPath);
-        if (_verbose) {
-          verbose('Copied ${file.path} -> $targetPath');
+  void duplicateSysconfigFile(String pythonDir) {
+    final sysConfigGlob = Glob("python/lib/python3.*/_sysconfigdata__*.py");
+    for (var sysConfig in sysConfigGlob.listSync(root: pythonDir)) {
+      // copy the first found sys config and exit
+      if (sysConfig is File) {
+        for (final target in [
+          '_sysconfigdata__darwin_arm64_iphoneos.py',
+          '_sysconfigdata__darwin_arm64_iphonesimulator.py',
+          '_sysconfigdata__darwin_x86_64_iphonesimulator.py',
+        ]) {
+          var targetPath = path.join(sysConfig.parent.path, target);
+          (sysConfig as File).copySync(targetPath);
+          if (_verbose) {
+            verbose('Copied ${sysConfig.path} -> $targetPath');
+          }
         }
+        break;
       }
     }
   }
