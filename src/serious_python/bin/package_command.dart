@@ -68,12 +68,11 @@ const junkFilesDesktop = [
   "**.cpp",
   "**.hpp",
   "**.typed",
-  "**.a",
-  "**.pdb",
   "**.pyi",
   "**.pxd",
   "**.pyx",
-  "**/LICENSE",
+  "**.a",
+  "**.pdb",
   "**.dist-info",
   "**/__pycache__",
 ];
@@ -461,21 +460,30 @@ class PackageCommand extends Command {
   }
 
   Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
-    return cleanupDirRecursive(
+    await cleanupDirRecursive(
         directory, filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"))));
   }
 
-  Future<void> cleanupDirRecursive(
+  Future<bool> cleanupDirRecursive(
       Directory directory, Iterable<Glob> globs) async {
+    var emptyDir = true;
     for (var entity in directory.listSync()) {
       if (globs.any((g) => g.matches(entity.path.replaceAll("\\", "/"))) &&
           await entity.exists()) {
         verbose("Deleting ${entity.path}");
         await entity.delete(recursive: true);
       } else if (entity is Directory) {
-        await cleanupDirRecursive(entity, globs);
+        if (await cleanupDirRecursive(entity, globs)) {
+          verbose("Deleting empty directory ${entity.path}");
+          await entity.delete(recursive: true);
+        } else {
+          emptyDir = false;
+        }
+      } else {
+        emptyDir = false;
       }
     }
+    return emptyDir;
   }
 
   Future<int> runExec(String execPath, List<String> args,
