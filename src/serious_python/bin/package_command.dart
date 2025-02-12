@@ -71,7 +71,7 @@ const junkFilesDesktop = [
   "**.pyx",
   "**.a",
   "**.pdb",
-  "*.dist-info",
+  "**.dist-info",
   "__pycache__",
   "**/__pycache__",
 ];
