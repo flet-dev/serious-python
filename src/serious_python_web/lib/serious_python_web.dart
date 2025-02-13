@@ -128,7 +128,6 @@ print(f"Python version: {sys.version}")
   }
 
   Future<void> _waitForPyodide() async {
-    // TODO
     var attempts = 0;
     while (attempts < 100) {
       if (js_util.hasProperty(js_util.globalThis, 'loadPyodide')) {
@@ -232,7 +231,6 @@ if '/package' not in sys.path:
   @override
   Future<String?> run(String appPath,
       {String? script, List<String>? modulePaths, Map<String, String>? environmentVariables, bool? sync}) async {
-    print(environmentVariables);
     try {
       await ensureInitialized(appPath);
 
@@ -241,6 +239,8 @@ if '/package' not in sys.path:
 
       // Set environment variables if provided
       if (environmentVariables != null) {
+        print("Running python web command with environment variables: $environmentVariables");
+
         await _runPythonCode('''
 import os
 ${environmentVariables.entries.map((e) => "os.environ['${e.key}'] = '${e.value}'").join('\n')}
@@ -255,17 +255,17 @@ ${environmentVariables.entries.map((e) => "os.environ['${e.key}'] = '${e.value}'
         print("Loaded ${newNModules - oldNModules} new modules!");
       }
 
-      final String debugCode = '''
-import os
-import sys
+//      final String debugCode = '''
+//import os
+//import sys
+//
+//print("Python version:", sys.version)
+//print("Python path:", sys.path)
+//print("Current working directory:", os.getcwd())
+//print("Directory contents:", os.listdir('/package'))
+//''';
 
-print("Python version:", sys.version)
-print("Python path:", sys.path)
-print("Current working directory:", os.getcwd())
-print("Directory contents:", os.listdir('/package'))
-''';
-
-      await _runPythonCode(debugCode + pythonCode);
+      await _runPythonCode(pythonCode);
 
       final result = _pyodide!.globals.get("pyodide_result");
       return result.toString();
@@ -277,7 +277,7 @@ print("Directory contents:", os.listdir('/package'))
 
   Future<void> _runPythonCode(String code) async {
     try {
-      print("Running Python code: \n$code");
+      // print("Running Python code: \n$code");
       final promise = _pyodide!.runPythonAsync(code);
       await js_util.promiseToFuture(promise);
     } catch (e) {
