@@ -48,10 +48,21 @@ puts `#{prepare_command}`
     :name => 'Add Python frameworks into iOS app bundle',
     :script => "$PODS_TARGET_SRCROOT/bundle-python-frameworks-ios.sh #{python_version} $PODS_TARGET_SRCROOT/#{dist_ios}",
     :execution_position => :before_compile
-  }  
-  s.ios.resource = ["#{dist_ios}/python-stdlib", "#{dist_ios}/site-packages"]
+  }
+
+  s.ios.resource_bundles = {
+    'serious_python_ios_resources' => [
+      "#{dist_ios}/python-stdlib",
+      "#{dist_ios}/site-packages"
+    ]
+  }
 
   # macOS frameworks
   s.osx.vendored_frameworks = "#{dist_macos}/xcframeworks/*"
-  s.osx.resource = ["#{dist_macos}/python-stdlib"]
+
+  s.osx.resource_bundles = {
+    'serious_python_macos_resources' => [
+      "#{dist_macos}/python-stdlib"
+    ]
+  }
 end
