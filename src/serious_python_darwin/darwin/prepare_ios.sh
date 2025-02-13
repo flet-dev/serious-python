@@ -10,3 +10,5 @@ tar -xzf $python_ios_dist_file -C $dist
 rm $python_ios_dist_file
 
 mkdir $dist/site-packages
+
+echo "$SERIOUS_PYTHON_SITE_PACKAGES" > $dist/site-packages/readme.txt

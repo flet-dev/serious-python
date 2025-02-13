@@ -34,9 +34,7 @@ Pod::Spec.new do |s|
 
   prepare_command = <<-CMD
     mkdir -p #{dist_ios}
-    dist_ios=$(realpath #{dist_ios})
-    ./prepare_ios.sh #{python_version} $dist_ios
-    echo "$SERIOUS_PYTHON_SITE_PACKAGES" > $dist_ios/readme.txt
+    ./prepare_ios.sh #{python_version} $(realpath #{dist_ios})
 
     mkdir -p #{dist_macos}
     ./prepare_macos.sh #{python_version} $(realpath #{dist_macos})
