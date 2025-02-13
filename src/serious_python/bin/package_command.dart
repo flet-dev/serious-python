@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:args/command_runner.dart';
 import 'package:crypto/crypto.dart';
+import 'package:glob/glob.dart';
+import 'package:glob/list_local_fs.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
@@ -13,11 +15,11 @@ import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full";
 const pyodideLockFile = "pyodide-lock.json";
 
-const buildPythonVersion = "3.12.6";
-const buildPythonReleaseDate = "20240909";
+const buildPythonVersion = "3.12.9";
+const buildPythonReleaseDate = "20250205";
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
@@ -58,11 +60,28 @@ const platforms = {
   }
 };
 
-const junkFileExtensionsDesktop = [".c", ".h", ".hpp", ".typed", ".a", ".pdb"];
-const junkFileExtensionsMobile = [...junkFileExtensionsDesktop, ".exe", ".dll"];
-
-const junkFilesDesktop = ["__pycache__"];
-const junkFilesMobile = [...junkFilesDesktop, "bin"];
+const junkFilesDesktop = [
+  "**.c",
+  "**.h",
+  "**.cpp",
+  "**.hpp",
+  "**.typed",
+  "**.pyi",
+  "**.pxd",
+  "**.pyx",
+  "**.a",
+  "**.pdb",
+  "**.dist-info",
+  "__pycache__",
+  "**/__pycache__",
+];
+const junkFilesMobile = [
+  ...junkFilesDesktop,
+  "**.exe",
+  "**.dll",
+  "bin",
+  "**/bin",
+];
 
 class PackageCommand extends Command {
   bool _verbose = false;
@@ -104,6 +123,16 @@ class PackageCommand extends Command {
         help:
             "Cleanup app and packages from unneccessary files and directories.",
         negatable: false);
+    argParser.addFlag("cleanup-app",
+        help: "Cleanup app from unneccessary files and directories.",
+        negatable: false);
+    argParser.addMultiOption('cleanup-app-files',
+        help: "List of globs to delete extra app files and directories.");
+    argParser.addFlag("cleanup-packages",
+        help: "Cleanup packages from unneccessary files and directories.",
+        negatable: false);
+    argParser.addMultiOption('cleanup-packages-files',
+        help: "List of globs to delete extra packages files and directories.");
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 
@@ -135,6 +164,10 @@ class PackageCommand extends Command {
       bool compileApp = argResults?["compile-app"];
       bool compilePackages = argResults?["compile-packages"];
       bool cleanup = argResults?["cleanup"];
+      bool cleanupApp = argResults?["cleanup-app"];
+      List<String> cleanupAppFiles = argResults?['cleanup-app-files'];
+      bool cleanupPackages = argResults?["cleanup-packages"];
+      List<String> cleanupPackagesFiles = argResults?['cleanup-packages-files'];
       _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
@@ -162,8 +195,6 @@ class PackageCommand extends Command {
       bool isMobile = (platform == "iOS" || platform == "Android");
       bool isWeb = platform == "Pyodide";
 
-      var junkFileExtensions =
-          isMobile ? junkFileExtensionsMobile : junkFileExtensionsDesktop;
       var junkFiles = isMobile ? junkFilesMobile : junkFilesDesktop;
 
       // Extra indexs
@@ -212,19 +243,19 @@ class PackageCommand extends Command {
         await runPython(['-m', 'compileall', '-b', tempDir.path]);
 
         verbose("Deleting original .py files");
-        await cleanupPyPackages(tempDir, [".py"], []);
+        await cleanupDir(tempDir, ["**.py"]);
       }
 
       // cleanup
-      if (cleanup) {
+      if (cleanupApp || cleanup) {
+        var allJunkFiles = [...junkFiles, ...cleanupAppFiles];
         if (_verbose) {
           verbose(
-              "Delete unnecessary app files with extensions: $junkFileExtensions");
-          verbose("Delete unnecessary app files and directories: $junkFiles");
+              "Delete unnecessary app files and directories: $allJunkFiles");
         } else {
           stdout.writeln(("Cleanup app"));
         }
-        await cleanupPyPackages(tempDir, junkFileExtensions, junkFiles);
+        await cleanupDir(tempDir, allJunkFiles);
       }
 
       // install requirements
@@ -358,21 +389,19 @@ class PackageCommand extends Command {
               await runPython(['-m', 'compileall', '-b', sitePackagesDir]);
 
               verbose("Deleting original .py files");
-              await cleanupPyPackages(Directory(sitePackagesDir), [".py"], []);
+              await cleanupDir(Directory(sitePackagesDir), ["**.py"]);
             }
 
             // cleanup packages
-            if (cleanup) {
+            if (cleanupPackages || cleanup) {
+              var allJunkFiles = [...junkFiles, ...cleanupPackagesFiles];
               if (_verbose) {
                 verbose(
-                    "Delete unnecessary package files with extensions: $junkFileExtensions");
-                verbose(
-                    "Delete unnecessary package files and directories: $junkFiles");
+                    "Delete unnecessary package files and directories: $allJunkFiles");
               } else {
                 stdout.writeln(("Cleanup installed packages"));
               }
-              await cleanupPyPackages(
-                  Directory(sitePackagesDir), junkFileExtensions, junkFiles);
+              await cleanupDir(Directory(sitePackagesDir), allJunkFiles);
             }
           } finally {
             if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
@@ -435,28 +464,34 @@ class PackageCommand extends Command {
     }
   }
 
-  Future<void> cleanupPyPackages(Directory directory,
-      List<String> fileExtensions, List<String> filesAndDirectories) async {
-    await for (var entity in directory.list()) {
-      if (entity is Directory) {
-        await cleanupPyPackages(entity, fileExtensions, filesAndDirectories);
-      } else if (entity is File &&
-          (fileExtensions.contains(path.extension(entity.path)) ||
-              filesAndDirectories.contains(path.basename(entity.path)))) {
+  Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
+    verbose("Cleanup directory ${directory.path}: $filesGlobs");
+    await cleanupDirRecursive(
+        directory,
+        filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"),
+            context: path.Context(current: directory.path))));
+  }
+
+  Future<bool> cleanupDirRecursive(
+      Directory directory, Iterable<Glob> globs) async {
+    var emptyDir = true;
+    for (var entity in directory.listSync()) {
+      if (globs.any((g) => g.matches(entity.path.replaceAll("\\", "/"))) &&
+          await entity.exists()) {
         verbose("Deleting ${entity.path}");
-
-        await entity.delete();
-      }
-    }
-
-    await for (var entity in directory.list()) {
-      if (entity is Directory &&
-          filesAndDirectories.contains(path.basename(entity.path))) {
-        verbose("Deleting ${entity.path}");
-
         await entity.delete(recursive: true);
+      } else if (entity is Directory) {
+        if (await cleanupDirRecursive(entity, globs)) {
+          verbose("Deleting empty directory ${entity.path}");
+          await entity.delete(recursive: true);
+        } else {
+          emptyDir = false;
+        }
+      } else {
+        emptyDir = false;
       }
     }
+    return emptyDir;
   }
 
   Future<int> runExec(String execPath, List<String> args,
@@ -507,7 +542,7 @@ class PackageCommand extends Command {
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
           final url =
-              "https://github.com/indygreg/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
+              "https://github.com/astral-sh/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
 
           if (_verbose) {
             verbose(
@@ -523,13 +558,18 @@ class PackageCommand extends Command {
 
         // extract Python from archive
         if (_verbose) {
-          "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}";
+          verbose(
+              "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}");
         } else {
           stdout.writeln("Extracting Python distributive");
         }
 
         await Process.run(
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
+
+        if (Platform.isMacOS) {
+          duplicateSysconfigFile(_pythonDir!.path);
+        }
       }
     }
 
@@ -540,6 +580,28 @@ class PackageCommand extends Command {
     // Run the python executable
     verbose([pythonExePath, ...args].join(" "));
     return await runExec(pythonExePath, args, environment: environment);
+  }
+
+  void duplicateSysconfigFile(String pythonDir) {
+    final sysConfigGlob = Glob("python/lib/python3.*/_sysconfigdata__*.py",
+        context: path.Context(current: pythonDir));
+    for (var sysConfig in sysConfigGlob.listSync(root: pythonDir)) {
+      // copy the first found sys config and exit
+      if (sysConfig is File) {
+        for (final target in [
+          '_sysconfigdata__darwin_arm64_iphoneos.py',
+          '_sysconfigdata__darwin_arm64_iphonesimulator.py',
+          '_sysconfigdata__darwin_x86_64_iphonesimulator.py',
+        ]) {
+          var targetPath = path.join(sysConfig.parent.path, target);
+          (sysConfig as File).copySync(targetPath);
+          if (_verbose) {
+            verbose('Copied ${sysConfig.path} -> $targetPath');
+          }
+        }
+        break;
+      }
+    }
   }
 
   Future<HttpServer> startSimpleServer() async {
