@@ -7,4 +7,5 @@ python_macos_dist_url="https://github.com/flet-dev/python-build/releases/downloa
 # download macos dist
 curl -LO $python_macos_dist_url
 tar -xzf $python_macos_dist_file -C $dist
+mv $dist/python-stdlib $dist/stdlib
 rm $python_macos_dist_file

@@ -1,6 +1,7 @@
 print("Hello from Python program!")
 
 import os
+import traceback
 from pathlib import Path
 from time import sleep
 
@@ -46,13 +47,18 @@ def test_lru():
 
     l[5] = "5"  # Inserting one more item should evict the old item
     print(l.items())
+    return ""
 
 
 def test_numpy_basic():
-    from numpy import array
+    try:
+        print("Testing NUMPY!")
+        from numpy import array
 
-    print("Testing NUMPY!")
-    assert (array([1, 2]) + array([3, 5])).tolist() == [4, 7]
+        assert (array([1, 2]) + array([3, 5])).tolist() == [4, 7]
+        return "numpy basic test - OK"
+    except Exception as e:
+        return f"numpy: test_basic - error: {traceback.format_exc()}"
 
 
 def test_numpy_performance():
@@ -162,8 +168,8 @@ def test_pyjnius():
 
 r += test_sqlite()
 # r += test_pyjnius()
-test_lru()
-# test_numpy_basic()
+# r += test_lru()
+r += test_numpy_basic()
 # test_numpy_performance()
 
 # result_value = str(_imp.extension_suffixes())

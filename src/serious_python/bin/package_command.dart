@@ -261,7 +261,7 @@ class PackageCommand extends Command {
       // install requirements
       if (requirements.isNotEmpty) {
         String? sitePackagesRoot;
-        bool sitePackagesRootDeleted = false;
+        bool sitePackagesRootCleaned = false;
         bool flutterPackagesCopied = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
@@ -315,11 +315,15 @@ class PackageCommand extends Command {
                   path.join(tempDir.path, defaultSitePackagesDir);
             }
 
-            if (!sitePackagesRootDeleted) {
+            if (!sitePackagesRootCleaned) {
               if (await Directory(sitePackagesRoot).exists()) {
-                await Directory(sitePackagesRoot).delete(recursive: true);
+                await for (var f in Directory(sitePackagesRoot)
+                    .list()
+                    .where((f) => !path.basename(f.path).startsWith("."))) {
+                  await f.delete(recursive: true);
+                }
               }
-              sitePackagesRootDeleted = true;
+              sitePackagesRootCleaned = true;
             }
 
             sitePackagesDir = arch.key.isNotEmpty
@@ -418,6 +422,15 @@ class PackageCommand extends Command {
               path.join(sitePackagesRoot, "x86_64"),
               path.join(sitePackagesRoot),
               _verbose);
+        }
+
+        // synchronize pod
+        if (sitePackagesRoot != null) {
+          var syncSh = File(path.join(
+              sitePackagesRoot, ".pod", "sync_${platform.toLowerCase()}.sh"));
+          if (await syncSh.exists()) {
+            await runExec("/bin/sh", [syncSh.path]);
+          }
         }
       }
 
