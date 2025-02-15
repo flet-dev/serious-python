@@ -33,23 +33,22 @@ Pod::Spec.new do |s|
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
-    ./prepare_ios.sh #{python_version}
-    ./sync_ios.sh
-    ./prepare_macos.sh #{python_version}
-    ./sync_darwin.sh
     ./symlink_pod.sh
+    ./prepare_ios.sh #{python_version}
+    ./prepare_macos.sh #{python_version}
+    ./sync_site_packages.sh
 CMD
 
 puts `#{prepare_command}`
 
   # iOS frameworks
-  s.ios.vendored_frameworks = "dist_ios/xcframeworks/*"
   s.ios.script_phase = {
     :name => 'Add Python frameworks into iOS app bundle',
     :script => "$PODS_TARGET_SRCROOT/bundle-python-frameworks-ios.sh",
     :execution_position => :before_compile
   }
 
+  s.ios.vendored_frameworks = "dist_ios/xcframeworks/*"
   s.ios.resource_bundles = {
     'python' => [
       "dist_ios/stdlib",
@@ -59,7 +58,6 @@ puts `#{prepare_command}`
 
   # macOS frameworks
   s.osx.vendored_frameworks = "dist_macos/xcframeworks/*"
-
   s.osx.resource_bundles = {
     'python' => [
       "dist_macos/stdlib",

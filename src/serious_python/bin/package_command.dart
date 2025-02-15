@@ -426,8 +426,8 @@ class PackageCommand extends Command {
 
         // synchronize pod
         if (sitePackagesRoot != null) {
-          var syncSh = File(path.join(
-              sitePackagesRoot, ".pod", "sync_${platform.toLowerCase()}.sh"));
+          var syncSh = File(
+              path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
           if (await syncSh.exists()) {
             await runExec("/bin/sh", [syncSh.path]);
           }
