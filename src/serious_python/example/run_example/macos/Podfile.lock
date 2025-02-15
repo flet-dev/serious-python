@@ -3,7 +3,7 @@ PODS:
   - path_provider_foundation (0.0.1):
     - Flutter
     - FlutterMacOS
-  - serious_python_darwin (0.8.0):
+  - serious_python_darwin (0.8.8):
     - Flutter
     - FlutterMacOS
 
@@ -23,7 +23,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  serious_python_darwin: 351e50099cb9e34f344f75af29b1d36d3c0922f2
+  serious_python_darwin: 78f518f358cb46724a399a04c7c0b2793970f876
 
 PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3
 

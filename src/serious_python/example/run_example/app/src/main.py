@@ -1,6 +1,7 @@
 print("Hello from Python program!")
 
 import os
+import sys
 import traceback
 from pathlib import Path
 from time import sleep
@@ -10,7 +11,7 @@ import _imp
 _imp.extension_suffixes()
 
 print("HELLO!")
-
+print("sys.path:", sys.path)
 
 import binascii
 import bz2

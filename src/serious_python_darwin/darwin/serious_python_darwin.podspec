@@ -33,11 +33,11 @@ Pod::Spec.new do |s|
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
-    mkdir -p dist_ios
     ./prepare_ios.sh #{python_version}
-
-    mkdir -p dist_macos
+    ./sync_ios.sh
     ./prepare_macos.sh #{python_version}
+    ./sync_darwin.sh
+    ./symlink_pod.sh
 CMD
 
 puts `#{prepare_command}`

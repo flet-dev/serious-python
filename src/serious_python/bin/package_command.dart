@@ -300,7 +300,7 @@ class PackageCommand extends Command {
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
 
-            if (isMobile) {
+            if (isMobile || platform == "Darwin") {
               if (!Platform.environment
                   .containsKey(sitePackagesEnvironmentVariable)) {
                 throw "Environment variable is not set: $sitePackagesEnvironmentVariable";
