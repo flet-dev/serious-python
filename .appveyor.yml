@@ -150,6 +150,7 @@ for:
     build: off
 
     test_script:
+      - set SERIOUS_PYTHON_SITE_PACKAGES=%APPVEYOR_BUILD_FOLDER%\site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Windows -r flet,--pre
       - flutter test integration_test -d windows
