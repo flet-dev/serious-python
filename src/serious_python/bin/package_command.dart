@@ -303,15 +303,14 @@ class PackageCommand extends Command {
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
 
-            if (isMobile || platform == "Darwin") {
-              if (!Platform.environment
+            if (isMobile || platform == "Darwin" || platform == "Windows") {
+              if (Platform.environment
                   .containsKey(sitePackagesEnvironmentVariable)) {
-                throw "Environment variable is not set: $sitePackagesEnvironmentVariable";
+                  sitePackagesRoot = Platform.environment[sitePackagesEnvironmentVariable];
               }
-              sitePackagesRoot =
-                  Platform.environment[sitePackagesEnvironmentVariable];
-              if (sitePackagesRoot!.isEmpty) {
-                throw "Environment variable cannot be empty: $sitePackagesEnvironmentVariable";
+              if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
+                sitePackagesRoot =
+                    path.join(currentPath, "build", "site-packages");
               }
             } else {
               sitePackagesRoot =

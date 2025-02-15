@@ -171,7 +171,7 @@ r += test_sqlite()
 # r += test_pyjnius()
 # r += test_lru()
 r += test_numpy_basic()
-# test_numpy_performance()
+test_numpy_performance()
 
 # result_value = str(_imp.extension_suffixes())
 # result_value = decompressed.decode("utf8")
