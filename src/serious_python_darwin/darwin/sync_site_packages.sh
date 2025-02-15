@@ -26,7 +26,7 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
                 "$tmp_dir/${archs[1]}" \
                 "$tmp_dir/${archs[2]}" \
                 $dylib_relative_path \
-                "Frameworks/serious_python_darwin.framework/site-packages" \
+                "Frameworks/serious_python_darwin.framework/python.bundle/site-packages" \
                 $dist/site-xcframeworks
         done
 
