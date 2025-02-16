@@ -113,8 +113,8 @@ class PackageCommand extends Command {
     argParser.addMultiOption('exclude',
         help:
             "List of relative paths to exclude from app package, e.g. \"assets,build\".");
-    argParser.addOption("site-packages-hash",
-        help: "Site packages hash for caching installation.");
+    argParser.addFlag("skip-site-packages",
+        help: "Skip installation of site packages.", negatable: false);
     argParser.addFlag("compile-app",
         help: "Compile Python application before packaging.", negatable: false);
     argParser.addFlag("compile-packages",
@@ -162,7 +162,7 @@ class PackageCommand extends Command {
       List<String> requirements = argResults?['requirements'];
       String? assetPath = argResults?['asset'];
       List<String> exclude = argResults?['exclude'];
-      String? sitePackagesHash = argResults?["site-packages-hash"];
+      bool skipSitePackages = argResults?["skip-site-packages"];
       bool compileApp = argResults?["compile-app"];
       bool compilePackages = argResults?["compile-packages"];
       bool cleanup = argResults?["cleanup"];
@@ -261,7 +261,7 @@ class PackageCommand extends Command {
       }
 
       // install requirements
-      if (requirements.isNotEmpty) {
+      if (requirements.isNotEmpty && !skipSitePackages) {
         String? sitePackagesRoot;
 
         if (Platform.environment.containsKey(sitePackagesEnvironmentVariable)) {
