@@ -132,7 +132,7 @@ class PackageCommand extends Command {
     argParser.addFlag("cleanup-packages",
         help: "Cleanup packages from unneccessary files and directories.",
         negatable: false);
-    argParser.addMultiOption('cleanup-packages-files',
+    argParser.addMultiOption('cleanup-package-files',
         help: "List of globs to delete extra packages files and directories.");
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
@@ -169,7 +169,7 @@ class PackageCommand extends Command {
       bool cleanupApp = argResults?["cleanup-app"];
       List<String> cleanupAppFiles = argResults?['cleanup-app-files'];
       bool cleanupPackages = argResults?["cleanup-packages"];
-      List<String> cleanupPackagesFiles = argResults?['cleanup-packages-files'];
+      List<String> cleanupPackageFiles = argResults?['cleanup-package-files'];
       _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
@@ -390,7 +390,7 @@ class PackageCommand extends Command {
 
             // cleanup packages
             if (cleanupPackages || cleanup) {
-              var allJunkFiles = [...junkFiles, ...cleanupPackagesFiles];
+              var allJunkFiles = [...junkFiles, ...cleanupPackageFiles];
               if (_verbose) {
                 verbose(
                     "Delete unnecessary package files and directories: $allJunkFiles");
