@@ -73,3 +73,9 @@ set(serious_python_linux_bundled_libraries
 
 install(DIRECTORY "${PYTHON_PACKAGE}/lib/python3.12"
   DESTINATION "${CMAKE_BINARY_DIR}/bundle")
+
+install(CODE "
+  file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/bundle/site-packages\")
+  file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/bundle/site-packages\")
+  file(COPY \"$ENV{SERIOUS_PYTHON_SITE_PACKAGES}/\" DESTINATION \"${CMAKE_BINARY_DIR}/bundle/site-packages\")
+")

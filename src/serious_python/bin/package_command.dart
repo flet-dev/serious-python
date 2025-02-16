@@ -303,7 +303,7 @@ class PackageCommand extends Command {
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
 
-            if (isMobile || platform == "Darwin" || platform == "Windows") {
+            if (isMobile || platform == "Darwin" || platform == "Windows" || platform == "Linux") {
               if (Platform.environment
                   .containsKey(sitePackagesEnvironmentVariable)) {
                   sitePackagesRoot = Platform.environment[sitePackagesEnvironmentVariable];

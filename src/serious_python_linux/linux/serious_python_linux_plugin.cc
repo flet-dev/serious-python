@@ -101,6 +101,7 @@ static void serious_python_linux_plugin_handle_method_call(
     // system module paths
     module_paths_str_array[i++] = g_strdup_printf("%s", app_dir);
     module_paths_str_array[i++] = g_strdup_printf("%s/__pypackages__", app_dir);
+    module_paths_str_array[i++] = g_strdup_printf("%s/site-packages", exe_dir);
     module_paths_str_array[i++] = g_strdup_printf("%s/python3.12", exe_dir);
     module_paths_str_array[i++] = NULL;
 
