@@ -20,7 +20,6 @@ const pyodideLockFile = "pyodide-lock.json";
 
 const buildPythonVersion = "3.12.9";
 const buildPythonReleaseDate = "20250205";
-const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
@@ -264,7 +263,23 @@ class PackageCommand extends Command {
       // install requirements
       if (requirements.isNotEmpty) {
         String? sitePackagesRoot;
-        bool sitePackagesRootCleaned = false;
+
+        if (Platform.environment.containsKey(sitePackagesEnvironmentVariable)) {
+          sitePackagesRoot =
+              Platform.environment[sitePackagesEnvironmentVariable];
+        }
+        if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
+          sitePackagesRoot = path.join(currentPath, "build", "site-packages");
+        }
+
+        if (await Directory(sitePackagesRoot).exists()) {
+          await for (var f in Directory(sitePackagesRoot)
+              .list()
+              .where((f) => !path.basename(f.path).startsWith("."))) {
+            await f.delete(recursive: true);
+          }
+        }
+
         bool flutterPackagesCopied = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
@@ -302,31 +317,6 @@ class PackageCommand extends Command {
               "PYTHONPATH":
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
-
-            if (isMobile || platform == "Darwin" || platform == "Windows" || platform == "Linux") {
-              if (Platform.environment
-                  .containsKey(sitePackagesEnvironmentVariable)) {
-                  sitePackagesRoot = Platform.environment[sitePackagesEnvironmentVariable];
-              }
-              if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
-                sitePackagesRoot =
-                    path.join(currentPath, "build", "site-packages");
-              }
-            } else {
-              sitePackagesRoot =
-                  path.join(tempDir.path, defaultSitePackagesDir);
-            }
-
-            if (!sitePackagesRootCleaned) {
-              if (await Directory(sitePackagesRoot).exists()) {
-                await for (var f in Directory(sitePackagesRoot)
-                    .list()
-                    .where((f) => !path.basename(f.path).startsWith("."))) {
-                  await f.delete(recursive: true);
-                }
-              }
-              sitePackagesRootCleaned = true;
-            }
 
             sitePackagesDir = arch.key.isNotEmpty
                 ? path.join(sitePackagesRoot, arch.key)
@@ -420,19 +410,17 @@ class PackageCommand extends Command {
 
         if (platform == "Darwin") {
           await macos_utils.mergeMacOsSitePackages(
-              path.join(sitePackagesRoot!, "arm64"),
+              path.join(sitePackagesRoot, "arm64"),
               path.join(sitePackagesRoot, "x86_64"),
               path.join(sitePackagesRoot),
               _verbose);
         }
 
         // synchronize pod
-        if (sitePackagesRoot != null) {
-          var syncSh = File(
-              path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
-          if (await syncSh.exists()) {
-            await runExec("/bin/sh", [syncSh.path]);
-          }
+        var syncSh =
+            File(path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
+        if (await syncSh.exists()) {
+          await runExec("/bin/sh", [syncSh.path]);
         }
       }
 
