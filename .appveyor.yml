@@ -171,6 +171,7 @@ for:
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
@@ -195,6 +196,7 @@ for:
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
