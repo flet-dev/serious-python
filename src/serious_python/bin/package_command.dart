@@ -99,9 +99,9 @@ class PackageCommand extends Command {
         allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
-    argParser.addOption('arch',
+    argParser.addMultiOption('arch',
         help:
-            "Install dependencies for specific architecture only. Leave empty to install all supported architectures.");
+            "Install dependencies for specific architectures only. Leave empty to install all supported architectures.");
     argParser.addMultiOption('requirements',
         abbr: "r",
         help:
@@ -158,7 +158,7 @@ class PackageCommand extends Command {
       // args
       String? sourceDirPath = argResults!.rest.first;
       String platform = argResults?['platform'];
-      String? archArg = argResults?['arch'];
+      List<String> archArg = argResults?['arch'];
       List<String> requirements = argResults?['requirements'];
       String? assetPath = argResults?['asset'];
       List<String> exclude = argResults?['exclude'];
@@ -283,7 +283,7 @@ class PackageCommand extends Command {
         bool flutterPackagesCopied = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
-          if (archArg != null && arch.key != archArg) {
+          if (archArg.isNotEmpty && !archArg.contains(arch.key)) {
             continue;
           }
           String? sitePackagesDir;
