@@ -156,6 +156,7 @@ namespace serious_python_windows
       // add system paths
       python_paths.push_back(app_dir);
       python_paths.push_back(app_dir + "\\__pypackages__");
+      python_paths.push_back(exe_dir + "\\site-packages");
       python_paths.push_back(exe_dir + "\\DLLs");
       python_paths.push_back(exe_dir + "\\Lib");
       python_paths.push_back(exe_dir + "\\Lib\\site-packages");

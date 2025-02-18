@@ -20,7 +20,6 @@ const pyodideLockFile = "pyodide-lock.json";
 
 const buildPythonVersion = "3.12.9";
 const buildPythonReleaseDate = "20250205";
-const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
@@ -100,9 +99,9 @@ class PackageCommand extends Command {
         allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
-    argParser.addOption('arch',
+    argParser.addMultiOption('arch',
         help:
-            "Install dependencies for specific architecture only. Leave empty to install all supported architectures.");
+            "Install dependencies for specific architectures only. Leave empty to install all supported architectures.");
     argParser.addMultiOption('requirements',
         abbr: "r",
         help:
@@ -114,6 +113,8 @@ class PackageCommand extends Command {
     argParser.addMultiOption('exclude',
         help:
             "List of relative paths to exclude from app package, e.g. \"assets,build\".");
+    argParser.addFlag("skip-site-packages",
+        help: "Skip installation of site packages.", negatable: false);
     argParser.addFlag("compile-app",
         help: "Compile Python application before packaging.", negatable: false);
     argParser.addFlag("compile-packages",
@@ -131,7 +132,7 @@ class PackageCommand extends Command {
     argParser.addFlag("cleanup-packages",
         help: "Cleanup packages from unneccessary files and directories.",
         negatable: false);
-    argParser.addMultiOption('cleanup-packages-files',
+    argParser.addMultiOption('cleanup-package-files',
         help: "List of globs to delete extra packages files and directories.");
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
@@ -157,17 +158,18 @@ class PackageCommand extends Command {
       // args
       String? sourceDirPath = argResults!.rest.first;
       String platform = argResults?['platform'];
-      String? archArg = argResults?['arch'];
+      List<String> archArg = argResults?['arch'];
       List<String> requirements = argResults?['requirements'];
       String? assetPath = argResults?['asset'];
       List<String> exclude = argResults?['exclude'];
+      bool skipSitePackages = argResults?["skip-site-packages"];
       bool compileApp = argResults?["compile-app"];
       bool compilePackages = argResults?["compile-packages"];
       bool cleanup = argResults?["cleanup"];
       bool cleanupApp = argResults?["cleanup-app"];
       List<String> cleanupAppFiles = argResults?['cleanup-app-files'];
       bool cleanupPackages = argResults?["cleanup-packages"];
-      List<String> cleanupPackagesFiles = argResults?['cleanup-packages-files'];
+      List<String> cleanupPackageFiles = argResults?['cleanup-package-files'];
       _verbose = argResults?["verbose"];
 
       if (path.isRelative(sourceDirPath)) {
@@ -259,13 +261,29 @@ class PackageCommand extends Command {
       }
 
       // install requirements
-      if (requirements.isNotEmpty) {
+      if (requirements.isNotEmpty && !skipSitePackages) {
         String? sitePackagesRoot;
-        bool sitePackagesRootDeleted = false;
+
+        if (Platform.environment.containsKey(sitePackagesEnvironmentVariable)) {
+          sitePackagesRoot =
+              Platform.environment[sitePackagesEnvironmentVariable];
+        }
+        if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
+          sitePackagesRoot = path.join(currentPath, "build", "site-packages");
+        }
+
+        if (await Directory(sitePackagesRoot).exists()) {
+          await for (var f in Directory(sitePackagesRoot)
+              .list()
+              .where((f) => !path.basename(f.path).startsWith("."))) {
+            await f.delete(recursive: true);
+          }
+        }
+
         bool flutterPackagesCopied = false;
         // invoke pip for every platform arch
         for (var arch in platforms[platform]!.entries) {
-          if (archArg != null && arch.key != archArg) {
+          if (archArg.isNotEmpty && !archArg.contains(arch.key)) {
             continue;
           }
           String? sitePackagesDir;
@@ -299,28 +317,6 @@ class PackageCommand extends Command {
               "PYTHONPATH":
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
             };
-
-            if (isMobile) {
-              if (!Platform.environment
-                  .containsKey(sitePackagesEnvironmentVariable)) {
-                throw "Environment variable is not set: $sitePackagesEnvironmentVariable";
-              }
-              sitePackagesRoot =
-                  Platform.environment[sitePackagesEnvironmentVariable];
-              if (sitePackagesRoot!.isEmpty) {
-                throw "Environment variable cannot be empty: $sitePackagesEnvironmentVariable";
-              }
-            } else {
-              sitePackagesRoot =
-                  path.join(tempDir.path, defaultSitePackagesDir);
-            }
-
-            if (!sitePackagesRootDeleted) {
-              if (await Directory(sitePackagesRoot).exists()) {
-                await Directory(sitePackagesRoot).delete(recursive: true);
-              }
-              sitePackagesRootDeleted = true;
-            }
 
             sitePackagesDir = arch.key.isNotEmpty
                 ? path.join(sitePackagesRoot, arch.key)
@@ -394,7 +390,7 @@ class PackageCommand extends Command {
 
             // cleanup packages
             if (cleanupPackages || cleanup) {
-              var allJunkFiles = [...junkFiles, ...cleanupPackagesFiles];
+              var allJunkFiles = [...junkFiles, ...cleanupPackageFiles];
               if (_verbose) {
                 verbose(
                     "Delete unnecessary package files and directories: $allJunkFiles");
@@ -414,10 +410,17 @@ class PackageCommand extends Command {
 
         if (platform == "Darwin") {
           await macos_utils.mergeMacOsSitePackages(
-              path.join(sitePackagesRoot!, "arm64"),
+              path.join(sitePackagesRoot, "arm64"),
               path.join(sitePackagesRoot, "x86_64"),
               path.join(sitePackagesRoot),
               _verbose);
+        }
+
+        // synchronize pod
+        var syncSh =
+            File(path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
+        if (await syncSh.exists()) {
+          await runExec("/bin/sh", [syncSh.path]);
         }
       }
 

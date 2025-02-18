@@ -42,15 +42,35 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             let appDir = URL(fileURLWithPath: appPath).deletingLastPathComponent().path
             
             // bundle root path
-            guard let resourcePath = Bundle(for: type(of: self)).resourcePath else { return }
+            guard let frameworkBundle = Bundle(for: type(of: self)).resourceURL else {
+                result(FlutterError(code: "FRAMEWORK_BUNDLE_ERROR", 
+                                    message: "Failed to get framework resource URL", 
+                                    details: nil))
+                return
+            }
+
+            let pythonBundleURL = frameworkBundle.appendingPathComponent("python.bundle")
+
+            guard let pythonBundle = Bundle(url: pythonBundleURL) else {
+                result(FlutterError(code: "PYTHON_BUNDLE_ERROR", 
+                                    message: "Failed to load Python bundle", 
+                                    details: pythonBundleURL.path))
+                return
+            }
+
+            guard let resourcePath = pythonBundle.resourcePath else {
+                result(FlutterError(code: "RESOURCE_PATH_ERROR", 
+                                    message: "Failed to locate Python bundle resources", 
+                                    details: nil))
+                return
+            }
             
             let pythonPaths: [String] = modulePaths + [
                 appDir,
                 "\(appDir)/__pypackages__",
-                resourcePath,
                 "\(resourcePath)/site-packages",
-                "\(resourcePath)/python-stdlib",
-                "\(resourcePath)/python-stdlib/lib-dynload"
+                "\(resourcePath)/stdlib",
+                "\(resourcePath)/stdlib/lib-dynload"
             ]
 
             setenv("PYTHONINSPECT", "1", 1)

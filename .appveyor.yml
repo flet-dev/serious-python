@@ -1,7 +1,7 @@
 skip_branch_with_pr: true
 
 environment:
-  FLUTTER_VERSION: 3.24.5
+  FLUTTER_VERSION: 3.27.4
   GITHUB_TOKEN:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
@@ -59,6 +59,7 @@ for:
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Darwin -r flet,--pre
       - flutter test integration_test -d macos
@@ -149,6 +150,7 @@ for:
     build: off
 
     test_script:
+      - set SERIOUS_PYTHON_SITE_PACKAGES=%APPVEYOR_BUILD_FOLDER%\site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Windows -r flet,--pre
       - flutter test integration_test -d windows
@@ -169,6 +171,7 @@ for:
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux
@@ -193,6 +196,7 @@ for:
     build: off
 
     test_script:
+      - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
       - dart run serious_python:main package app/src -p Linux -r flet,--pre
       - xvfb-run flutter test integration_test -d linux

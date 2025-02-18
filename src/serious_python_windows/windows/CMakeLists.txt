@@ -94,3 +94,15 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\" /Q
 )
+
+if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
+  add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "$ENV{SERIOUS_PYTHON_SITE_PACKAGES}"
+      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
+  )
+endif()

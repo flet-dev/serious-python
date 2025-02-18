@@ -1,8 +1,14 @@
-## 0.8.8
+## 0.9.0
 
 * Set `MinimumOSVersion` to `13.0` for generated Python frameworks.
+* iOS and macOS packaging: Python system libraries are put into `python.bundle` to pass App Store verification.
+* On macOS, Windows, and Linux, application site packages are copied in an unpacked state to the application bundle to speed up the first launch.
 * Pyodide 0.27.2
 * Python 3.12.9
+* Packaging `--cleanup` option replaced with two separate `--cleanup-app` and `--cleanup-packages` options.
+* New packaging options `--cleanup-app-files` and `--cleanup-package-files` to specify a list of globs to exclude files and directories from app and site packages.
+* New packaging `--skip-site-packages` option to skip site packages installation for faster re-builds.
+* Packaging `--arch` option accepts a list now.
 
 ## 0.8.7
 

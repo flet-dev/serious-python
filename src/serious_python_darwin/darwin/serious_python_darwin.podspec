@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '0.8.8'
+  s.version          = '0.9.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -33,25 +33,35 @@ Pod::Spec.new do |s|
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
-    mkdir -p #{dist_ios}
-    ./prepare_ios.sh #{python_version} $(realpath #{dist_ios})
-
-    mkdir -p #{dist_macos}
-    ./prepare_macos.sh #{python_version} $(realpath #{dist_macos})
+    ./symlink_pod.sh
+    ./prepare_ios.sh #{python_version}
+    ./prepare_macos.sh #{python_version}
+    ./sync_site_packages.sh
 CMD
 
 puts `#{prepare_command}`
 
   # iOS frameworks
-  s.ios.vendored_frameworks = "#{dist_ios}/xcframeworks/*"
   s.ios.script_phase = {
     :name => 'Add Python frameworks into iOS app bundle',
-    :script => "$PODS_TARGET_SRCROOT/bundle-python-frameworks-ios.sh #{python_version} $PODS_TARGET_SRCROOT/#{dist_ios}",
+    :script => "$PODS_TARGET_SRCROOT/bundle-python-frameworks-ios.sh",
     :execution_position => :before_compile
-  }  
-  s.ios.resource = ["#{dist_ios}/python-stdlib", "#{dist_ios}/site-packages"]
+  }
+
+  s.ios.vendored_frameworks = "dist_ios/xcframeworks/*"
+  s.ios.resource_bundles = {
+    'python' => [
+      "dist_ios/stdlib",
+      "dist_ios/site-packages"
+    ]
+  }
 
   # macOS frameworks
-  s.osx.vendored_frameworks = "#{dist_macos}/xcframeworks/*"
-  s.osx.resource = ["#{dist_macos}/python-stdlib"]
+  s.osx.vendored_frameworks = "dist_macos/xcframeworks/*"
+  s.osx.resource_bundles = {
+    'python' => [
+      "dist_macos/stdlib",
+      "dist_macos/site-packages"
+    ]
+  }
 end
