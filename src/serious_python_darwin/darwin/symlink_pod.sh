@@ -1,4 +1,4 @@
-script_dir=$(dirname $(realpath $0))
+script_dir=$(cd "$(dirname "$0")" && pwd -P)
 
 # create a symlink to this Pod
 if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]]; then

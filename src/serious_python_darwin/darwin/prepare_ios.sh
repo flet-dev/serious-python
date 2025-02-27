@@ -1,6 +1,6 @@
 python_version=${1:?}
 
-script_dir=$(dirname $(realpath $0))
+script_dir=$(cd "$(dirname "$0")" && pwd -P)
 dist=$script_dir/dist_ios
 
 if [ ! -d "$dist" ]; then
