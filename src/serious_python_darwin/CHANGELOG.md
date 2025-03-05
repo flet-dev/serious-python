@@ -1,3 +1,7 @@
+## 0.9.1
+
+* Fix `serious_python` to work on macOS 12 Monterey and built with Xcode 14.
+
 ## 0.9.0
 
 * Set `MinimumOSVersion` to `13.0` for generated Python frameworks.
