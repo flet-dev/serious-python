@@ -23,7 +23,6 @@ Pod::Spec.new do |s|
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    'BUILD_LIBRARY_FOR_DISTRIBUTION' => 'YES',
     'OTHER_LDFLAGS' => '-ObjC -all_load -lc++'
   }
   s.swift_version = '5.0'
