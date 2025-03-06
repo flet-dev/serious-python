@@ -1,3 +1,7 @@
+## 0.9.2
+
+* Breaking change: multiple `--requirements` options of `package` command must be passed as `--requirements DEP_1 --requirements DEP_2 ...` (or `-r DEP_1 -r DEP_2 ...`) instead of `-r DEP_1,DEP_2,...` to support dependency specifications with commas, e.g. `pandas>=2.2,<3`.
+
 ## 0.9.1
 
 * Fix `serious_python` to work on macOS 12 Monterey and built with Xcode 14.
