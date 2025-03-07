@@ -104,8 +104,8 @@ class PackageCommand extends Command {
             "Install dependencies for specific architectures only. Leave empty to install all supported architectures.");
     argParser.addMultiOption('requirements',
         abbr: "r",
-        help:
-            "Pip dependencies in the format 'dep1,dep2==version,... Allows any pip options.'");
+        help: "The list of dependencies to install. Allows any pip options.'",
+        splitCommas: false);
     argParser.addOption('asset',
         abbr: 'a',
         help:
