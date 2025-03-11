@@ -1,5 +1,5 @@
-#numpy
-lru-dict
+numpy
+#lru-dict
 #pyjnius
 #flet-libsodium
 # pysodium

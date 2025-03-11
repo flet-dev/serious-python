@@ -20,6 +20,7 @@ const pyodideLockFile = "pyodide-lock.json";
 
 const buildPythonVersion = "3.12.9";
 const buildPythonReleaseDate = "20250205";
+const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
@@ -264,12 +265,17 @@ class PackageCommand extends Command {
       if (requirements.isNotEmpty && !skipSitePackages) {
         String? sitePackagesRoot;
 
-        if (Platform.environment.containsKey(sitePackagesEnvironmentVariable)) {
-          sitePackagesRoot =
-              Platform.environment[sitePackagesEnvironmentVariable];
-        }
-        if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
-          sitePackagesRoot = path.join(currentPath, "build", "site-packages");
+        if (platform != "Pyodide") {
+          if (Platform.environment
+              .containsKey(sitePackagesEnvironmentVariable)) {
+            sitePackagesRoot =
+                Platform.environment[sitePackagesEnvironmentVariable];
+          }
+          if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
+            sitePackagesRoot = path.join(currentPath, "build", "site-packages");
+          }
+        } else {
+          sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
         }
 
         if (await Directory(sitePackagesRoot).exists()) {

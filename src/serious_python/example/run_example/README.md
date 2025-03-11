@@ -6,32 +6,41 @@ For Android:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
-dart run serious_python:main package app/src -p Android --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p Android -r -r -r app/src/requirements.txt
 ```
 
 For iOS:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
-dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirements.txt
 ```
 
 For macOS:
 
 ```
-dart run serious_python:main package app/src -p Darwin --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Darwin -r -r -r app/src/requirements.txt
 ```
 
 For Windows:
 
 ```
-dart run serious_python:main package app/src -p Windows --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Windows -r -r -r app/src/requirements.txt
 ```
 
 For Linux:
 
 ```
-dart run serious_python:main package app/src -p Linux --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Linux -r -r -r app/src/requirements.txt
+```
+
+For Pyodide:
+
+```
+dart run serious_python:main package app/src -p Pyodide -r -r -r app/src/requirements.txt
 ```
 
 For Android:
