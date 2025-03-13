@@ -10,9 +10,9 @@ Serious Python is part of [Flet](https://flet.dev) project - the fastest way to 
 
 ## Platform Support
 
-| iOS     |   Android    |   macOS    |   Linux    |   Windows    |
-| :-----: | :----------: | :---------: | :-------: | :----------: |
-|   ✅    |       ✅      |       ✅    |     ✅     |      ✅      |
+| iOS | Android | macOS | Linux | Windows | Web |
+|:---:|:-------:|:-----:|:-----:|:-------:|:---:|
+|  ✅  |    ✅    |   ✅   |   ✅   |    ✅    |  ✅  |
 
 ### Python versions
 
