@@ -21,27 +21,37 @@ Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
-    return await runPythonProgramInIsolate(
+    runPythonProgramInIsolate(
         [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
   } else {
     var completer = Completer<String>();
     // async run
     final isolate = await Isolate.spawn(runPythonProgramInIsolate,
         [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+
     receivePort.listen((message) {
-      receivePort.close();
-      isolate.kill();
-      completer.complete(message);
+      //receivePort.close();
+      //print("Isolate killed!");
+      //isolate.kill();
+      //completer.complete(message);
     });
-    return completer.future;
+    //print("after isolate call");
+    // return completer.future;
   }
+
+  return "";
 }
 
-Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
+dynamic _modulePtr;
+
+Future<void> runPythonProgramInIsolate(List<Object> arguments) async {
   final sendPort = arguments[0] as SendPort;
   final dynamicLibPath = arguments[1] as String;
   final pythonProgramPath = arguments[2] as String;
   final script = arguments[3] as String;
+
+  //final receivePort = ReceivePort(); // ✅ to keep isolate alive
+  //sendPort.send(receivePort.sendPort);
 
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
@@ -68,19 +78,53 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   } else {
     // run program
     final moduleNamePtr = programModuleName.toNativeUtf8();
-    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-    if (modulePtr == nullptr) {
+    _modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+    if (_modulePtr == nullptr) {
       result = getPythonError(cpython);
+      print("result: $result");
     }
     malloc.free(moduleNamePtr);
+
+    // final funcName = 'enqueue_message'.toNativeUtf8();
+    // final enqueueFunc =
+    //     cpython.PyObject_GetAttrString(modulePtr, funcName.cast());
+    // calloc.free(funcName);
+
+    // // send message into python script
+
+    // final bytes = "some message!".codeUnits;
+
+    // final pointer = calloc<Int8>(bytes.length);
+    // for (int i = 0; i < bytes.length; i++) {
+    //   pointer[i] = bytes[i];
+    // }
+
+    // final pyBytes =
+    //     cpython.PyBytes_FromStringAndSize(pointer.cast(), bytes.length);
+    // final args = cpython.PyTuple_New(1);
+    // cpython.PyTuple_SetItem(args, 0, pyBytes);
+    // final r = cpython.PyObject_CallObject(enqueueFunc, args);
+
+    // if (r == nullptr) {
+    //   print('[Dart] Python error occurred');
+    //   cpython.PyErr_Print();
+    // } else {
+    //   print('[Dart] Sent message to Python');
+    // }
   }
 
-  cpython.Py_Finalize();
-  debugPrint("after Py_Finalize()");
+  // cpython.Py_Finalize();
+  // debugPrint("after Py_Finalize()");
 
-  sendPort.send(result);
+  // await Future.delayed(const Duration(seconds: 5));
 
-  return result;
+  //sendPort.send(result);
+
+  // 🧠 Now just wait forever to keep isolate (and Python loop) alive
+  print("Before receivePort.first");
+  //await receivePort.first; // or .listen(...) if needed
+  print("After receivePort.first");
+  //sendPort.send(true);
 }
 
 String getPythonError(CPython cpython) {

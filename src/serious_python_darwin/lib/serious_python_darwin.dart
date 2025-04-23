@@ -1,5 +1,8 @@
+import 'dart:ffi';
 import 'dart:io';
+import 'dart:isolate';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
@@ -44,6 +47,7 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
     var moduleSearchPaths = [
       programDirPath,
       ...?modulePaths,
+      "$programDirPath/__pypackages__",
       "$pythonBundlePath/site-packages",
       "$pythonBundlePath/stdlib",
       "$pythonBundlePath/stdlib/lib-dynload"
@@ -67,10 +71,65 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
     final execPath = Platform.resolvedExecutable;
     final appContents = Directory(execPath).parent.parent;
 
-    return runPythonProgramFFI(
+    var dartBridgeLib = DynamicLibrary.open(
+        '$programDirPath/__pypackages__/dart_bridge.abi3.so');
+
+    /// Dart_InitializeApiDL(void* init_data)
+    final int Function(Pointer<Void>) dartInitializeApiDL = dartBridgeLib
+        .lookup<NativeFunction<IntPtr Function(Pointer<Void>)>>(
+            'DartBridge_InitDartApiDL')
+        .asFunction();
+
+    /// void set_dart_send_port(int64_t port_id)
+    final void Function(int) setDartSendPort = dartBridgeLib
+        .lookup<NativeFunction<Void Function(Int64)>>('DartBridge_SetSendPort')
+        .asFunction();
+
+    final void Function(Pointer<Char>, int) enqueueMessageFromDart =
+        dartBridgeLib
+            .lookup<NativeFunction<Void Function(Pointer<Char>, IntPtr)>>(
+                'DartBridge_EnqueueMessage')
+            .asFunction();
+
+    // 1. Initialize Dart Native API
+    final initResult = dartInitializeApiDL(NativeApi.initializeApiDLData);
+    if (initResult != 0) {
+      throw Exception('Failed to initialize Dart API: error code $initResult');
+    }
+
+    // 2. Set up ReceivePort
+    final receivePort = ReceivePort();
+    final nativePort = receivePort.sendPort.nativePort;
+
+    print('✅ Native port: $nativePort');
+    setDartSendPort(nativePort);
+
+    receivePort.listen((message) {
+      if (message is Uint8List) {
+        print('📥 Received message: ${String.fromCharCodes(message)}');
+      } else {
+        print('⚠️ Unexpected message type: $message');
+      }
+    });
+
+    runPythonProgramFFI(
         sync ?? false,
         "${appContents.path}/Frameworks/Python.framework/Python",
         appPath,
         script ?? "");
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    for (int i = 0; i < 10; i++) {
+      String message = "aaa bbb ccc $i";
+      final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
+      enqueueMessageFromDart(ptr, message.length);
+      calloc.free(ptr);
+
+      print("After calling enqueueMessageFromDart: $i");
+      await Future.delayed(const Duration(milliseconds: 1));
+    }
+
+    return null;
   }
 }

@@ -1,4 +1,4 @@
-numpy
+#numpy
 #lru-dict
 #pyjnius
 #flet-libsodium
