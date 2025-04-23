@@ -1,10 +1,12 @@
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:ui';
 
 import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
@@ -121,6 +123,7 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
     await Future.delayed(const Duration(seconds: 1));
 
     for (int i = 0; i < 10; i++) {
+      if (i == 0) print("🧪 Sending first message from Dart...");
       String message = "aaa bbb ccc $i";
       final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
       enqueueMessageFromDart(ptr, message.length);
@@ -129,6 +132,25 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
       print("After calling enqueueMessageFromDart: $i");
       await Future.delayed(const Duration(milliseconds: 1));
     }
+
+    var appLifecycleListener = AppLifecycleListener(onExitRequested: () async {
+      print('🛑 App exit requested!');
+
+      String message = "\$shutdown";
+      final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
+      enqueueMessageFromDart(ptr, message.length);
+      calloc.free(ptr);
+
+      return AppExitResponse.exit;
+    });
+
+    // ProcessSignal.sigint.watch().listen((signal) {
+    //   print('🚨 SIGINT received — triggering shutdown...');
+    //   String message = "\$shutdown";
+    //   final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
+    //   enqueueMessageFromDart(ptr, message.length);
+    //   calloc.free(ptr);
+    // });
 
     return null;
   }

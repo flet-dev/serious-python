@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
@@ -19,22 +19,33 @@ CPython getCPython(String dynamicLibPath) {
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
+  final startupPort = ReceivePort();
   if (sync) {
     // sync run
     runPythonProgramInIsolate(
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+        [startupPort.sendPort, dynamicLibPath, pythonProgramPath, script]);
   } else {
     var completer = Completer<String>();
     // async run
     final isolate = await Isolate.spawn(runPythonProgramInIsolate,
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+        [startupPort.sendPort, dynamicLibPath, pythonProgramPath, script]);
 
-    receivePort.listen((message) {
-      //receivePort.close();
-      //print("Isolate killed!");
-      //isolate.kill();
-      //completer.complete(message);
-    });
+    SendPort? shutdownSendPort;
+
+    // await for (final msg in startupPort) {
+    //   if (msg is SendPort) {
+    //     shutdownSendPort = msg;
+    //     break;
+    //   }
+    // }
+
+    // receivePort.listen((message) {
+    //   receivePort.close();
+    //   print("Isolate killed!");
+    //   isolate.kill();
+    //   //completer.complete(message);
+    // });
+
     //print("after isolate call");
     // return completer.future;
   }
@@ -49,6 +60,17 @@ Future<void> runPythonProgramInIsolate(List<Object> arguments) async {
   final dynamicLibPath = arguments[1] as String;
   final pythonProgramPath = arguments[2] as String;
   final script = arguments[3] as String;
+
+  final shutdownPort = ReceivePort();
+  sendPort.send(shutdownPort.sendPort); // send back for shutdown control
+
+  shutdownPort.listen((message) {
+    if (message == "shutdown") {
+      print("🛑 Python isolate shutting down...");
+      // Optionally: call Py_Finalize()
+      Isolate.exit();
+    }
+  });
 
   //final receivePort = ReceivePort(); // ✅ to keep isolate alive
   //sendPort.send(receivePort.sendPort);
@@ -120,11 +142,7 @@ Future<void> runPythonProgramInIsolate(List<Object> arguments) async {
 
   //sendPort.send(result);
 
-  // 🧠 Now just wait forever to keep isolate (and Python loop) alive
-  print("Before receivePort.first");
-  //await receivePort.first; // or .listen(...) if needed
-  print("After receivePort.first");
-  //sendPort.send(true);
+  //await shutdownPort.first;
 }
 
 String getPythonError(CPython cpython) {
