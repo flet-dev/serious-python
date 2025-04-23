@@ -14,11 +14,11 @@ globals:
     "^class (\\w+) extends ffi.Union": "final class $1 extends ffi.Union"
 headers:
   entry-points:
-    - "/Users/feodor/Downloads/python/include/python3.11/Python.h"
+    - "/Users/feodor/projects/flet-dev/python-build/darwin/build/python-3.12/xcframeworks/Python.xcframework/ios-arm64/Python.framework/Headers/Python.h"
   include-directives:
-    - "/Users/feodor/Downloads/python/include/python3.11/*"
-    - "/Users/feodor/Downloads/python/include/python3.11/internal/*"
-    - "/Users/feodor/Downloads/python/include/python3.11/cpython/*"
+    - "/Users/feodor/projects/flet-dev/python-build/darwin/build/python-3.12/xcframeworks/Python.xcframework/ios-arm64/Python.framework/Headers/*"
+    - "/Users/feodor/projects/flet-dev/python-build/darwin/build/python-3.12/xcframeworks/Python.xcframework/ios-arm64/Python.framework/Headers/internal/*"
+    - "/Users/feodor/projects/flet-dev/python-build/darwin/build/python-3.12/xcframeworks/Python.xcframework/ios-arm64/Python.framework/Headers/cpython/*"
 name: "CPython"
 llvm-path:
   - /opt/homebrew/opt/llvm

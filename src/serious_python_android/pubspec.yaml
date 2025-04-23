@@ -15,13 +15,13 @@ dependencies:
   serious_python_platform_interface:
     path: ../serious_python_platform_interface
   path: ^1.9.0
-  ffi: ^2.1.2
+  ffi: ^2.1.4
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
-  ffigen: ^9.0.0
+  ffigen: ^18.1.0
   
 flutter:
   plugin:

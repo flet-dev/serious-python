@@ -29,6 +29,36 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             #else
                 result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
             #endif
+        case "getPythonBundlePath":
+            // bundle root path
+            guard let frameworkBundle = Bundle(for: type(of: self)).resourceURL else {
+                result(FlutterError(code: "FRAMEWORK_BUNDLE_ERROR", 
+                                    message: "Failed to get framework resource URL", 
+                                    details: nil))
+                return
+            }
+
+            let pythonBundleURL = frameworkBundle.appendingPathComponent("python.bundle")
+
+            guard let pythonBundle = Bundle(url: pythonBundleURL) else {
+                result(FlutterError(code: "PYTHON_BUNDLE_ERROR", 
+                                    message: "Failed to load Python bundle", 
+                                    details: pythonBundleURL.path))
+                return
+            }
+
+            guard let resourcePath = pythonBundle.resourcePath else {
+                result(FlutterError(code: "RESOURCE_PATH_ERROR", 
+                                    message: "Failed to locate Python bundle resources", 
+                                    details: nil))
+                return
+            }
+            result(resourcePath)
+        case "setEnvironmentVariable":
+            let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
+            let name = args["name"] as! String
+            let value = args["value"] as! String
+            setenv(name, value, 1)
         case "runPython":
             let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
             let appPath = args["appPath"] as! String

@@ -37,7 +37,7 @@ class _MyAppState extends State<MyApp> {
     String resultFileName = p.join(tempDir.path, "out.txt");
     String resultValue = getRandomString(20);
 
-    await SeriousPython.run("app/app.zip",
+    await SeriousPython.run("app/src/main.py",
             environmentVariables: {
               "RESULT_FILENAME": resultFileName,
               "RESULT_VALUE": resultValue
