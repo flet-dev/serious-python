@@ -1,6 +1,6 @@
-# serious_python_ios
+# serious_python_linux
 
-The Windows implementation of `serious_python`.
+The Linux implementation of `serious_python`.
 
 ## Usage
 
