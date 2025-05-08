@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 class SeriousPythonLinux extends SeriousPythonPlatform {
@@ -15,28 +16,28 @@ class SeriousPythonLinux extends SeriousPythonPlatform {
   }
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return "$version ${Platform.resolvedExecutable}";
-  }
-
-  @override
-  Future<String?> run(String appPath,
+  Future<PythonEnvironment> setupPythonEnvironment(String appPath,
       {String? script,
       List<String>? modulePaths,
-      Map<String, String>? environmentVariables,
-      bool? sync}) async {
-    final Map<String, dynamic> arguments = {
-      'exePath': Platform.resolvedExecutable,
-      'appPath': appPath,
-      'modulePaths': modulePaths,
-      'environmentVariables': environmentVariables,
-      'sync': sync
-    };
-    if (script != null) {
-      arguments['script'] = script;
+      Map<String, String>? environmentVariables}) async {
+    var exePath = Platform.resolvedExecutable;
+    var exeDir = Directory(exePath).parent.path;
+    var sitePackagesPath = path.join(exeDir, "site-packages");
+
+    var soFile = Directory(sitePackagesPath)
+        .listSync()
+        .whereType<File>()
+        .where((file) =>
+            path.basename(file.path).startsWith("dart_bridge.") &&
+            path.basename(file.path).endsWith(".so"))
+        .firstOrNull;
+    if (soFile == null) {
+      throw Exception(
+          "dart_bridge.*.so library is not found in $sitePackagesPath");
     }
-    return await methodChannel.invokeMethod<String>('runPython', arguments);
+
+    return PythonEnvironment(
+        dartBridgeLibraryPath: soFile.path,
+        modulePaths: [sitePackagesPath, path.join(exeDir, "python3.12")]);
   }
 }
