@@ -67,8 +67,8 @@ class SeriousPython {
 
     // run python program
     return runProgram(appPath,
-        modulePaths: modulePaths,
-        environmentVariables: environmentVariables,
+        userModulePaths: modulePaths,
+        userEnvironmentVariables: environmentVariables,
         script: Platform.isWindows ? "" : null,
         sync: sync);
   }
@@ -81,41 +81,34 @@ class SeriousPython {
   /// [appPath] is the full path to a .py or .pyc file to run.
   ///
   /// Environment variables that must be available to a Python program could
-  /// be passed in [environmentVariables].
+  /// be passed in [userEnvironmentVariables].
   ///
   /// By default, Serious Python expects Python dependencies installed into
   /// `__pypackages__` directory in the root of app directory. Additional paths
-  /// to look for 3rd-party packages can be specified with [modulePaths] parameter.
+  /// to look for 3rd-party packages can be specified with [userModulePaths] parameter.
   ///
   /// Set [sync] to `true` to sychronously run Python program; otherwise the
   /// program starts in a new thread.
   static Future runProgram(String appPath,
       {String? script,
-      List<String>? modulePaths,
-      Map<String, String>? environmentVariables,
+      List<String>? userModulePaths,
+      Map<String, String>? userEnvironmentVariables,
       bool? sync}) async {
     // run before run python program
-    await SeriousPythonPlatform.instance.run(appPath,
-        script: script,
-        modulePaths: modulePaths,
-        environmentVariables: environmentVariables,
-        sync: sync);
-
-    var dartBridgeLibPath =
-        await SeriousPythonPlatform.instance.getDartBridgePath();
-    debugPrint("dartBridgeLibPath: $dartBridgeLibPath");
-
-    var pythonModulePaths =
-        await SeriousPythonPlatform.instance.getPythonModulePaths();
-    debugPrint("pythonModulePaths: $pythonModulePaths");
+    var pythonEnvironment = await SeriousPythonPlatform.instance
+        .setupPythonEnvironment(appPath,
+            script: script,
+            modulePaths: userModulePaths,
+            environmentVariables: userEnvironmentVariables);
 
     // run python program with FFI
-    _cpython = CPython(DynamicLibrary.open(dartBridgeLibPath!));
+    _cpython =
+        CPython(DynamicLibrary.open(pythonEnvironment.dartBridgeLibraryPath));
 
     var programDirPath = path.dirname(appPath);
 
     // all environment variables
-    Map<String, String> envVars = Map.from(environmentVariables ?? {});
+    Map<String, String> envVars = Map.from(userEnvironmentVariables ?? {});
     envVars["PYTHONINSPECT"] = "1";
     envVars["PYTHONDONTWRITEBYTECODE"] = "1";
     envVars["PYTHONNOUSERSITE"] = "1";
@@ -123,12 +116,18 @@ class SeriousPython {
     envVars["LC_CTYPE"] = "UTF-8";
     envVars["PYTHONHOME"] = programDirPath;
 
+    if (pythonEnvironment.environmentVariables != null) {
+      for (var v in pythonEnvironment.environmentVariables!.entries) {
+        envVars[v.key] = v.value;
+      }
+    }
+
     // all module paths
     List<String> allModulePaths = [
       programDirPath,
       "$programDirPath/__pypackages__",
-      ...?modulePaths,
-      ...?pythonModulePaths,
+      ...?userModulePaths,
+      ...?pythonEnvironment.modulePaths,
     ];
 
     // run Python program or script

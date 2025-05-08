@@ -14,13 +14,14 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
   }
 
   @override
-  Future<String?> getDartBridgePath() {
-    return methodChannel.invokeMethod<String>('getDartBridgePath');
-  }
-
-  @override
-  Future<List<String>?> getPythonModulePaths() async {
-    return (await methodChannel.invokeMethod('getPythonModulePaths'))
-        .cast<String>();
+  Future<PythonEnvironment> setupPythonEnvironment(String appPath,
+      {String? script,
+      List<String>? modulePaths,
+      Map<String, String>? environmentVariables}) async {
+    return PythonEnvironment(
+        dartBridgeLibraryPath:
+            (await methodChannel.invokeMethod<String>('getDartBridgePath'))!,
+        modulePaths: (await methodChannel.invokeMethod('getPythonModulePaths'))
+            .cast<String>());
   }
 }

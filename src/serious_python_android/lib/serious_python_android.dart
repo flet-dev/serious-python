@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 /// An implementation of [SeriousPythonPlatform] that uses method channels.
@@ -17,30 +18,17 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonAndroid();
   }
 
-  String? _dartBridgePath;
-  List<String>? _pythonModulePaths;
-
   @override
-  Future<String?> getDartBridgePath() {
-    return Future.value(_dartBridgePath);
-  }
-
-  @override
-  Future<List<String>?> getPythonModulePaths() async {
-    return Future.value(_pythonModulePaths);
-  }
-
-  @override
-  Future run(String appPath,
+  Future<PythonEnvironment> setupPythonEnvironment(String appPath,
       {String? script,
       List<String>? modulePaths,
-      Map<String, String>? environmentVariables,
-      bool? sync}) async {
+      Map<String, String>? environmentVariables}) async {
+    Map<String, String> envVars = {};
     // load libpyjni.so to get JNI reference
     try {
       await methodChannel
           .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
-      //await setenv("FLET_JNI_READY", "1");
+      envVars["FLET_JNI_READY"] = "1";
     } catch (e) {
       debugPrint("Warning: Unable to load libpyjni.so library: $e");
     }
@@ -60,20 +48,34 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         await extractFileZip(bundlePath, targetPath: "python_bundle");
     debugPrint("pythonLibPath: $pythonLibPath");
 
-    _pythonModulePaths = ["$pythonLibPath/modules", "$pythonLibPath/stdlib"];
+    var pythonModulePaths = ["$pythonLibPath/modules", "$pythonLibPath/stdlib"];
+    String? dartBridgeLibraryPath;
 
     if (await File(sitePackagesZipPath).exists()) {
       var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
           targetPath: "python_site_packages");
       debugPrint("sitePackagesPath: $sitePackagesPath");
-      _pythonModulePaths?.add(sitePackagesPath);
+      pythonModulePaths.add(sitePackagesPath);
 
-      final soFile =
-          Directory(sitePackagesPath).listSync().whereType<File>().firstWhere(
-                (f) => f.path.contains(RegExp(r'dart_bridge.*\.so$')),
-                orElse: () => File(''),
-              );
-      _dartBridgePath = await soFile.exists() ? soFile.path : null;
+      var soFile = Directory(sitePackagesPath)
+          .listSync()
+          .whereType<File>()
+          .where((file) =>
+              path.basename(file.path).startsWith("dart_bridge.") &&
+              path.basename(file.path).endsWith(".so"))
+          .firstOrNull;
+      if (soFile == null) {
+        throw Exception(
+            "dart_bridge.*.so library is not found in $sitePackagesPath");
+      }
+      dartBridgeLibraryPath = soFile.path;
+    } else {
+      throw Exception("App bundle does not contain site-packages.");
     }
+
+    return PythonEnvironment(
+        dartBridgeLibraryPath: dartBridgeLibraryPath,
+        modulePaths: pythonModulePaths,
+        environmentVariables: envVars);
   }
 }

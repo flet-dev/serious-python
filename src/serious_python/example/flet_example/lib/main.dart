@@ -239,7 +239,7 @@ Future<String?> runPythonApp() async {
 
   // run python async
   SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
-      script: script, environmentVariables: environmentVariables);
+      script: script, userEnvironmentVariables: environmentVariables);
 
   // wait for client connection to close
   return completer.future;

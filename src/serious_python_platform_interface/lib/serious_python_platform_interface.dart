@@ -1,8 +1,20 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-import 'src/method_channel_serious_python.dart';
-
 export 'src/utils.dart';
+
+class PythonEnvironment {
+  String dartBridgeLibraryPath;
+  List<String>? modulePaths;
+  Map<String, String>? environmentVariables;
+
+  PythonEnvironment(
+      {required this.dartBridgeLibraryPath,
+      this.modulePaths,
+      this.environmentVariables});
+}
+
+/// An implementation of [SeriousPythonPlatform] that does nothing.
+class UnimplementedSeriousPythonPlatform extends SeriousPythonPlatform {}
 
 abstract class SeriousPythonPlatform extends PlatformInterface {
   /// Constructs a SeriousPythonPlatform.
@@ -10,11 +22,11 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static SeriousPythonPlatform _instance = MethodChannelSeriousPython();
+  static SeriousPythonPlatform _instance = UnimplementedSeriousPythonPlatform();
 
   /// The default instance of [SeriousPythonPlatform] to use.
   ///
-  /// Defaults to [MethodChannelSeriousPython].
+  /// Defaults to [UnimplementedSeriousPythonPlatform].
   static SeriousPythonPlatform get instance => _instance;
 
   /// Platform-specific implementations should set this with their own
@@ -25,21 +37,11 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getDartBridgePath() {
-    throw UnimplementedError('getDartBridgePath() has not been implemented.');
-  }
-
-  Future<List<String>?> getPythonModulePaths() {
-    throw UnimplementedError(
-        'getPythonModulePaths() has not been implemented.');
-  }
-
-  Future run(String appPath,
+  Future<PythonEnvironment> setupPythonEnvironment(String appPath,
       {String? script,
       List<String>? modulePaths,
-      Map<String, String>? environmentVariables,
-      bool? sync}) {
-    // do nothing
-    return Future.value(null);
+      Map<String, String>? environmentVariables}) {
+    throw UnimplementedError(
+        "setupPythonEnvironment() has not been implemented.");
   }
 }
