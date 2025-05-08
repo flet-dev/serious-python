@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
@@ -142,29 +141,12 @@ class SeriousPython {
         modules: allModulePaths,
         envVars: envVars,
         sync: sync ?? false);
+  }
 
-    await Future.delayed(const Duration(seconds: 1));
-
-    for (int i = 0; i < 10; i++) {
-      if (i == 0) print("🧪 Sending first message from Dart...");
-      String message = "aaa bbb ccc $i";
-      Uint8List bytes = Uint8List.fromList(utf8.encode(message));
-
-      _cpython!.sendMessageToPython(bytes);
-
-      print("After calling enqueueMessageFromDart: $i");
-      await Future.delayed(const Duration(milliseconds: 1));
+  static sendMessageToPython(Uint8List message) {
+    if (_cpython == null) {
+      throw Exception("Python program is not running.");
     }
-
-    // ProcessSignal.sigint.watch().listen((signal) {
-    //   print('🚨 SIGINT received — triggering shutdown...');
-    //   String message = "\$shutdown";
-    //   final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
-    //   enqueueMessageFromDart(ptr, message.length);
-    //   calloc.free(ptr);
-    //   exit(0);
-    // });
-
-    print("Run end");
+    _cpython!.sendMessageToPython(message);
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -39,6 +40,15 @@ class _MyAppState extends State<MyApp> {
     String resultFileName = p.join(tempDir.path, "out.txt");
     String resultValue = getRandomString(20);
 
+    // ProcessSignal.sigint.watch().listen((signal) {
+    //   print('🚨 SIGINT received — triggering shutdown...');
+    //   String message = "\$shutdown";
+    //   final Pointer<Char> ptr = message.toNativeUtf8().cast<Char>();
+    //   enqueueMessageFromDart(ptr, message.length);
+    //   calloc.free(ptr);
+    //   exit(0);
+    // });
+
     // Set up ReceivePort
     final receivePort = ReceivePort();
     receivePort.listen((message) {
@@ -57,6 +67,19 @@ class _MyAppState extends State<MyApp> {
             sync: false,
             sendPort: receivePort.sendPort)
         .then((result) => pyResult = result);
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    for (int i = 0; i < 10; i++) {
+      if (i == 0) print("🧪 Sending first message from Dart...");
+      String message = "aaa bbb ccc $i";
+      Uint8List bytes = Uint8List.fromList(utf8.encode(message));
+
+      SeriousPython.sendMessageToPython(bytes);
+
+      print("After calling enqueueMessageFromDart: $i");
+      await Future.delayed(const Duration(milliseconds: 1));
+    }
 
     // try reading out.txt in a loop
     var i = 10;
