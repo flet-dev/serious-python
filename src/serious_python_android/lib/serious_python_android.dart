@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 /// An implementation of [SeriousPythonPlatform] that uses method channels.
@@ -18,29 +17,30 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonAndroid();
   }
 
+  String? _dartBridgePath;
+  List<String>? _pythonModulePaths;
+
   @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
+  Future<String?> getDartBridgePath() {
+    return Future.value(_dartBridgePath);
   }
 
   @override
-  Future<String?> run(String appPath,
+  Future<List<String>?> getPythonModulePaths() async {
+    return Future.value(_pythonModulePaths);
+  }
+
+  @override
+  Future run(String appPath,
       {String? script,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
-    Future setenv(String key, String value) async {
-      await methodChannel.invokeMethod<String>(
-          'setEnvironmentVariable', {'name': key, 'value': value});
-    }
-
     // load libpyjni.so to get JNI reference
     try {
       await methodChannel
           .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
-      await setenv("FLET_JNI_READY", "1");
+      //await setenv("FLET_JNI_READY", "1");
     } catch (e) {
       debugPrint("Warning: Unable to load libpyjni.so library: $e");
     }
@@ -60,39 +60,20 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         await extractFileZip(bundlePath, targetPath: "python_bundle");
     debugPrint("pythonLibPath: $pythonLibPath");
 
-    var programDirPath = p.dirname(appPath);
-
-    var moduleSearchPaths = [
-      programDirPath,
-      ...?modulePaths,
-      "$pythonLibPath/modules",
-      "$pythonLibPath/stdlib"
-    ];
+    _pythonModulePaths = ["$pythonLibPath/modules", "$pythonLibPath/stdlib"];
 
     if (await File(sitePackagesZipPath).exists()) {
       var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
           targetPath: "python_site_packages");
       debugPrint("sitePackagesPath: $sitePackagesPath");
-      moduleSearchPaths.add(sitePackagesPath);
+      _pythonModulePaths?.add(sitePackagesPath);
+
+      final soFile =
+          Directory(sitePackagesPath).listSync().whereType<File>().firstWhere(
+                (f) => f.path.contains(RegExp(r'dart_bridge.*\.so$')),
+                orElse: () => File(''),
+              );
+      _dartBridgePath = await soFile.exists() ? soFile.path : null;
     }
-
-    setenv("PYTHONINSPECT", "1");
-    setenv("PYTHONDONTWRITEBYTECODE", "1");
-    setenv("PYTHONNOUSERSITE", "1");
-    setenv("PYTHONUNBUFFERED", "1");
-    setenv("LC_CTYPE", "UTF-8");
-    setenv("PYTHONHOME", pythonLibPath);
-    setenv("PYTHONPATH", moduleSearchPaths.join(":"));
-
-    // set environment variables
-    if (environmentVariables != null) {
-      for (var v in environmentVariables.entries) {
-        setenv(v.key, v.value);
-      }
-    }
-
-    // return runPythonProgramFFI(
-    //     sync ?? false, "libpython3.12.so", appPath, script ?? "");
-    return null;
   }
 }

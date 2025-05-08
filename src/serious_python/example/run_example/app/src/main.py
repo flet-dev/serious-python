@@ -1,9 +1,12 @@
 import asyncio
+import os
 
 import dart_bridge
 
 loop = None
 message_queue = None
+
+DART_PORT = int(os.getenv("DART_PORT", "0"))
 
 
 def enqueue_from_dart(data: bytes):
@@ -22,7 +25,7 @@ async def receive_loop():
 
     dart_bridge.set_enqueue_handler_func(enqueue_from_dart)
     print("✅ Python registered enqueue handler")
-    dart_bridge.send_bytes(b"Python ready to receive messages!")
+    dart_bridge.send_bytes(DART_PORT, b"Python ready to receive messages!")
 
     try:
         while True:
@@ -31,7 +34,7 @@ async def receive_loop():
                 print("👋 Shutdown message received")
                 break
             print("[Python] Received:", msg)
-            dart_bridge.send_bytes(b"Echo: " + msg)
+            dart_bridge.send_bytes(DART_PORT, b"Echo: " + msg)
     except asyncio.CancelledError:
         print("⚠️ receive_loop() cancelled")
     except Exception as e:

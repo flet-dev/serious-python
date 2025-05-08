@@ -1,6 +1,5 @@
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
@@ -44,8 +43,7 @@ class SeriousPython {
       {String? appFileName,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
-      bool? sync,
-      SendPort? sendPort}) async {
+      bool? sync}) async {
     // unpack app from asset
     String appPath = "";
     if (path.extension(assetPath) == ".zip") {
@@ -72,8 +70,7 @@ class SeriousPython {
         modulePaths: modulePaths,
         environmentVariables: environmentVariables,
         script: Platform.isWindows ? "" : null,
-        sync: sync,
-        sendPort: sendPort);
+        sync: sync);
   }
 
   /// Runs Python program from a path.
@@ -96,8 +93,7 @@ class SeriousPython {
       {String? script,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
-      bool? sync,
-      SendPort? sendPort}) async {
+      bool? sync}) async {
     // run before run python program
     await SeriousPythonPlatform.instance.run(appPath,
         script: script,
@@ -128,11 +124,12 @@ class SeriousPython {
     envVars["PYTHONHOME"] = programDirPath;
 
     // all module paths
-    List<String> allModulePaths = [...?pythonModulePaths, ...?modulePaths];
-
-    if (sendPort != null) {
-      _cpython!.setDartSendPort(sendPort.nativePort);
-    }
+    List<String> allModulePaths = [
+      programDirPath,
+      "$programDirPath/__pypackages__",
+      ...?modulePaths,
+      ...?pythonModulePaths,
+    ];
 
     // run Python program or script
     _cpython!.runPython(

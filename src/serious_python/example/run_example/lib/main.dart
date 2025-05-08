@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
@@ -51,24 +52,17 @@ class _MyAppState extends State<MyApp> {
 
     // Set up ReceivePort
     final receivePort = ReceivePort();
-    receivePort.listen((message) {
-      if (message is Uint8List) {
-        print('📥 Received message: ${String.fromCharCodes(message)}');
-      } else {
-        print('⚠️ Unexpected message type: $message');
-      }
-    });
 
     SeriousPython.run("app/app.zip",
             environmentVariables: {
               "RESULT_FILENAME": resultFileName,
-              "RESULT_VALUE": resultValue
+              "RESULT_VALUE": resultValue,
+              "DART_PORT": receivePort.sendPort.nativePort.toString()
             },
-            sync: false,
-            sendPort: receivePort.sendPort)
+            sync: false)
         .then((result) => pyResult = result);
 
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 5));
 
     for (int i = 0; i < 10; i++) {
       if (i == 0) print("🧪 Sending first message from Dart...");
@@ -80,6 +74,14 @@ class _MyAppState extends State<MyApp> {
       print("After calling enqueueMessageFromDart: $i");
       await Future.delayed(const Duration(milliseconds: 1));
     }
+
+    receivePort.listen((message) {
+      if (message is Uint8List) {
+        print('📥 Received message: ${String.fromCharCodes(message)}');
+      } else {
+        print('⚠️ Unexpected message type: $message');
+      }
+    });
 
     // try reading out.txt in a loop
     var i = 10;

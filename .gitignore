@@ -36,3 +36,4 @@ dist/
 # Python
 .venv/
 __pypackages__/
+/src/serious_python/example/run_example/android/app/.cxx

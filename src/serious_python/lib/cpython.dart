@@ -55,11 +55,6 @@ class CPython {
           'DartBridge_InitDartApiDL')
       .asFunction();
 
-  /// void set_dart_send_port(int64_t port_id)
-  late final void Function(int) _setDartSendPort = _dynamicLibrary
-      .lookup<NativeFunction<Void Function(Int64)>>('DartBridge_SetSendPort')
-      .asFunction();
-
   late final void Function(Pointer<Char>, int) _enqueueMessageFromDart =
       _dynamicLibrary
           .lookup<NativeFunction<Void Function(Pointer<Char>, IntPtr)>>(
@@ -78,11 +73,6 @@ class CPython {
   /// Factory constructor that returns the singleton
   factory CPython(DynamicLibrary dynamicLibrary) {
     return _instance ??= CPython._(dynamicLibrary);
-  }
-
-  void setDartSendPort(int nativePort) {
-    debugPrint("Set Dart native port: $nativePort");
-    _setDartSendPort(nativePort);
   }
 
   void sendMessageToPython(Uint8List message) {
