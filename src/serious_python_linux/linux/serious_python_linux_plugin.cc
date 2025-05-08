@@ -30,7 +30,6 @@ static void serious_python_linux_plugin_handle_method_call(
   g_autoptr(FlMethodResponse) response = nullptr;
 
   const gchar *method = fl_method_call_get_name(method_call);
-  FlValue *args = fl_method_call_get_args(method_call);
 
   if (strcmp(method, "getPlatformVersion") == 0)
   {
