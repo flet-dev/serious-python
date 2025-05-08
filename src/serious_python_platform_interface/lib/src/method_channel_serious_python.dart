@@ -10,23 +10,12 @@ class MethodChannelSeriousPython extends SeriousPythonPlatform {
   final methodChannel = const MethodChannel('serious_python');
 
   @override
-  Future<String?> getPlatformVersion() {
-    return methodChannel.invokeMethod<String>('getPlatformVersion');
+  Future<String?> getDartBridgePath() {
+    return methodChannel.invokeMethod<String>('getDartBridgePath');
   }
 
   @override
-  Future<String?> run(String appPath,
-      {String? script,
-      List<String>? modulePaths,
-      Map<String, String>? environmentVariables,
-      bool? sync}) async {
-    final Map<String, dynamic> arguments = {
-      'appPath': appPath,
-      'script': script,
-      'modulePaths': modulePaths,
-      'environmentVariables': environmentVariables,
-      'sync': sync
-    };
-    return await methodChannel.invokeMethod<String>('runPython', arguments);
+  Future<List<String>?> getPythonModulePaths() {
+    return methodChannel.invokeMethod<List<String>>('getPythonModulePaths');
   }
 }

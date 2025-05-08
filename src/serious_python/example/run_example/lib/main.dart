@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
@@ -37,12 +39,23 @@ class _MyAppState extends State<MyApp> {
     String resultFileName = p.join(tempDir.path, "out.txt");
     String resultValue = getRandomString(20);
 
+    // Set up ReceivePort
+    final receivePort = ReceivePort();
+    receivePort.listen((message) {
+      if (message is Uint8List) {
+        print('📥 Received message: ${String.fromCharCodes(message)}');
+      } else {
+        print('⚠️ Unexpected message type: $message');
+      }
+    });
+
     SeriousPython.run("app/app.zip",
             environmentVariables: {
               "RESULT_FILENAME": resultFileName,
               "RESULT_VALUE": resultValue
             },
-            sync: false)
+            sync: false,
+            sendPort: receivePort.sendPort)
         .then((result) => pyResult = result);
 
     // try reading out.txt in a loop

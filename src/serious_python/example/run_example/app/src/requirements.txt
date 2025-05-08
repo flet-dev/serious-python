@@ -5,3 +5,4 @@
 # pysodium
 # numpy
 # Pyrebase4
+dart-bridge

@@ -2,7 +2,6 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'src/method_channel_serious_python.dart';
 
-export 'src/cpython.dart';
 export 'src/utils.dart';
 
 abstract class SeriousPythonPlatform extends PlatformInterface {
@@ -26,19 +25,21 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
+  Future<String?> getDartBridgePath() {
+    throw UnimplementedError('getDartBridgePath() has not been implemented.');
   }
 
-  Future<String?> run(String appPath,
+  Future<List<String>?> getPythonModulePaths() {
+    throw UnimplementedError(
+        'getPythonModulePaths() has not been implemented.');
+  }
+
+  Future run(String appPath,
       {String? script,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) {
-    throw UnimplementedError('run() has not been implemented.');
-  }
-
-  void terminate() {
-    // nothing to do
+    // do nothing
+    return Future.value(null);
   }
 }
