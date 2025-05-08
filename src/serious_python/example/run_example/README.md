@@ -26,7 +26,7 @@ dart run serious_python:main package app/src -p Darwin -r -r -r app/src/requirem
 For Windows:
 
 ```
-export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+$env:SERIOUS_PYTHON_SITE_PACKAGES="$(pwd)\build\site-packages"
 dart run serious_python:main package app/src -p Windows -r -r -r app/src/requirements.txt
 ```
 

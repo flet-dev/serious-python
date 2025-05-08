@@ -62,26 +62,26 @@ class _MyAppState extends State<MyApp> {
             sync: false)
         .then((result) => pyResult = result);
 
-    await Future.delayed(const Duration(seconds: 5));
+    // await Future.delayed(const Duration(seconds: 5));
 
-    for (int i = 0; i < 10; i++) {
-      if (i == 0) print("🧪 Sending first message from Dart...");
-      String message = "aaa bbb ccc $i";
-      Uint8List bytes = Uint8List.fromList(utf8.encode(message));
+    // for (int i = 0; i < 10; i++) {
+    //   if (i == 0) print("🧪 Sending first message from Dart...");
+    //   String message = "aaa bbb ccc $i";
+    //   Uint8List bytes = Uint8List.fromList(utf8.encode(message));
 
-      SeriousPython.sendMessageToPython(bytes);
+    //   SeriousPython.sendMessageToPython(bytes);
 
-      print("After calling enqueueMessageFromDart: $i");
-      await Future.delayed(const Duration(milliseconds: 1));
-    }
+    //   print("After calling enqueueMessageFromDart: $i");
+    //   await Future.delayed(const Duration(milliseconds: 1));
+    // }
 
-    receivePort.listen((message) {
-      if (message is Uint8List) {
-        print('📥 Received message: ${String.fromCharCodes(message)}');
-      } else {
-        print('⚠️ Unexpected message type: $message');
-      }
-    });
+    // receivePort.listen((message) {
+    //   if (message is Uint8List) {
+    //     print('📥 Received message: ${String.fromCharCodes(message)}');
+    //   } else {
+    //     print('⚠️ Unexpected message type: $message');
+    //   }
+    // });
 
     // try reading out.txt in a loop
     var i = 10;

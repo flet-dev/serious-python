@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 class SeriousPythonWindows extends SeriousPythonPlatform {
@@ -12,27 +15,33 @@ class SeriousPythonWindows extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonWindows();
   }
 
-  // @override
-  // Future<String?> getPlatformVersion() async {
-  //   final version =
-  //       await methodChannel.invokeMethod<String>('getPlatformVersion');
-  //   return "$version ${Platform.resolvedExecutable}";
-  // }
+  @override
+  Future<PythonEnvironment> setupPythonEnvironment(String appPath,
+      {String? script,
+      List<String>? modulePaths,
+      Map<String, String>? environmentVariables}) async {
+    var exePath = Platform.resolvedExecutable;
+    var exeDir = Directory(exePath).parent.path;
+    var sitePackagesPath = path.join(exeDir, "site-packages");
 
-  // @override
-  // Future<String?> run(String appPath,
-  //     {String? script,
-  //     List<String>? modulePaths,
-  //     Map<String, String>? environmentVariables,
-  //     bool? sync}) async {
-  //   final Map<String, dynamic> arguments = {
-  //     'exePath': Platform.resolvedExecutable,
-  //     'appPath': appPath,
-  //     'script': script,
-  //     'modulePaths': modulePaths,
-  //     'environmentVariables': environmentVariables,
-  //     'sync': sync
-  //   };
-  //   return await methodChannel.invokeMethod<String>('runPython', arguments);
-  // }
+    var soFile = Directory(sitePackagesPath)
+        .listSync()
+        .whereType<File>()
+        .where((file) =>
+            path.basename(file.path).startsWith("dart_bridge.") &&
+            path.basename(file.path).endsWith(".pyd"))
+        .firstOrNull;
+    if (soFile == null) {
+      throw Exception(
+          "dart_bridge.*.pyd library is not found in $sitePackagesPath");
+    }
+
+    return PythonEnvironment(
+        dartBridgeLibraryPath: soFile.path,
+        modulePaths: [sitePackagesPath,
+          path.join(exeDir, "DLLs"),
+          path.join(exeDir, "Lib"),
+          path.join(exeDir, "Lib", "site-packages")
+        ]);
+  }
 }

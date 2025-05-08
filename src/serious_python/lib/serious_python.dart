@@ -47,7 +47,7 @@ class SeriousPython {
     // unpack app from asset
     String appPath = "";
     if (path.extension(assetPath) == ".zip") {
-      appPath = await extractAssetZip(assetPath);
+      appPath = await extractAssetZip(assetPath, checkHash: true);
       if (appFileName != null) {
         appPath = path.join(appPath, appFileName);
       } else if (await File(path.join(appPath, "main.pyc")).exists()) {
@@ -114,6 +114,8 @@ class SeriousPython {
     envVars["PYTHONNOUSERSITE"] = "1";
     envVars["PYTHONUNBUFFERED"] = "1";
     envVars["LC_CTYPE"] = "UTF-8";
+    envVars["PYTHONUTF8"] = "1";
+    envVars["PYTHONIOENCODING"] = "utf-8";
     envVars["PYTHONHOME"] = programDirPath;
 
     if (pythonEnvironment.environmentVariables != null) {
