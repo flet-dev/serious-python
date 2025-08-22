@@ -71,7 +71,6 @@ const junkFilesDesktop = [
   "**.pyx",
   "**.a",
   "**.pdb",
-  "**.dist-info",
   "__pycache__",
   "**/__pycache__",
 ];
@@ -217,9 +216,7 @@ class PackageCommand extends Command {
       }
 
       // asset path
-      if (assetPath == null) {
-        assetPath = "app/app.zip";
-      } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
+      if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
         assetPath = assetPath.substring(1);
       }
 
