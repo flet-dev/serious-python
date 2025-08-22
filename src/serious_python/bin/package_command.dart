@@ -216,7 +216,8 @@ class PackageCommand extends Command {
       }
 
       // asset path
-      if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
+      if (assetPath != null &&
+          (assetPath.startsWith("/") || assetPath.startsWith("\\"))) {
         assetPath = assetPath.substring(1);
       }
 
