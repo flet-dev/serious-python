@@ -1,6 +1,7 @@
 ## 0.9.3
 
 * Fix: Hidden files in site-packages are skipped when building macOS app.
+* Fix: Do not delete package metadata in `.dist-info` directories ([#164](https://github.com/flet-dev/serious-python/issues/164)).
 
 ## 0.9.2
 
