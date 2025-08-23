@@ -216,8 +216,9 @@ class PackageCommand extends Command {
       }
 
       // asset path
-      if (assetPath != null &&
-          (assetPath.startsWith("/") || assetPath.startsWith("\\"))) {
+      if (assetPath == null) {
+        assetPath = "app/app.zip";
+      } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
         assetPath = assetPath.substring(1);
       }
 
