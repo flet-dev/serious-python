@@ -49,7 +49,7 @@ In `android/app/build.gradle`:
 
 ```
 android {
-    ndkVersion "25.1.8937393"
+    ndkVersion "28.2.13676358"
 
     packagingOptions {
         jniLibs {
@@ -58,10 +58,10 @@ android {
     }
 
     packagingOptions {
-        doNotStrip "*/arm64-v8a/libpython*.so"
-        doNotStrip "*/armeabi-v7a/libpython*.so"
-        doNotStrip "*/x86/libpython*.so"
-        doNotStrip "*/x86_64/libpython*.so"
+        doNotStrip("*/arm64-v8a/libpython*.so")
+        doNotStrip("*/armeabi-v7a/libpython*.so")
+        doNotStrip("*/x86/libpython*.so")
+        doNotStrip("*/x86_64/libpython*.so")
     }
 }
 ```
