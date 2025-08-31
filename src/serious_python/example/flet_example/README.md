@@ -66,10 +66,10 @@ android {
     }
 
     packagingOptions {
-        doNotStrip "*/arm64-v8a/libpython*.so"
-        doNotStrip "*/armeabi-v7a/libpython*.so"
-        doNotStrip "*/x86/libpython*.so"
-        doNotStrip "*/x86_64/libpython*.so"
+        doNotStrip("*/arm64-v8a/libpython*.so")
+        doNotStrip("*/armeabi-v7a/libpython*.so")
+        doNotStrip("*/x86/libpython*.so")
+        doNotStrip("*/x86_64/libpython*.so")
     }
 }
 ```
