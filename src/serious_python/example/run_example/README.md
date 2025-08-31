@@ -49,7 +49,7 @@ In `android/app/build.gradle`:
 
 ```
 android {
-    ndkVersion "28.2.13676358"
+    ndkVersion "25.1.8937393"
 
     packagingOptions {
         jniLibs {
