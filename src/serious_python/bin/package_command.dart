@@ -46,7 +46,7 @@ const platforms = {
     "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
   "Pyodide": {
-    "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""}
+    "": {"tag": "pyodide-2025.0-wasm32", "mac_ver": ""}
   },
   "Darwin": {
     "arm64": {"tag": "", "mac_ver": "arm64"},
