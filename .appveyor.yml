@@ -39,7 +39,7 @@ environment:
       APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
 
 stack:
-- python 3.12
+- python 3.13
 
 for:
   # ======================================
