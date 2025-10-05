@@ -1,7 +1,7 @@
 skip_branch_with_pr: true
 
 environment:
-  FLUTTER_VERSION: 3.27.4
+  FLUTTER_VERSION: 3.29.3
   GITHUB_TOKEN:
     secure: 9SKIwc3VSfYJ5IChvNR74mEv2nb0ZFftUzn3sGRdXipXEfKSxY50DoodChHvlqZduQNhjg0oyLWAAa3n+iwWvVM2yI7Cgb14lFNClijz/kHI/PibnjDMNvLKaAygcfAc
 
@@ -62,7 +62,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p Darwin -r flet -r --pre
+      - dart run serious_python:main package app/src -p Darwin -r flet
       - flutter test integration_test -d macos
 
   # ======================================
@@ -89,7 +89,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p iOS -r flet -r --pre
+      - dart run serious_python:main package app/src -p iOS -r flet
       - flutter build ios --no-codesign
       # - flutter drive --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
@@ -125,7 +125,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p Android -r flet -r --pre
+      - dart run serious_python:main package app/src -p Android -r flet
       - flutter test integration_test -d emulator-5554
 
 
@@ -153,7 +153,7 @@ for:
     test_script:
       - set SERIOUS_PYTHON_SITE_PACKAGES=%APPVEYOR_BUILD_FOLDER%\site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p Windows -r flet -r --pre
+      - dart run serious_python:main package app/src -p Windows -r flet
       - flutter test integration_test -d windows
 
   # ======================================
@@ -174,7 +174,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p Linux -r flet -r --pre
+      - dart run serious_python:main package app/src -p Linux -r flet
       - xvfb-run flutter test integration_test -d linux
 
   # ======================================
@@ -199,7 +199,7 @@ for:
     test_script:
       - export SERIOUS_PYTHON_SITE_PACKAGES=$APPVEYOR_BUILD_FOLDER/site-packages
       - cd src/serious_python/example/flet_example
-      - dart run serious_python:main package app/src -p Linux -r flet -r --pre
+      - dart run serious_python:main package app/src -p Linux -r flet
       - xvfb-run flutter test integration_test -d linux
 
   # =========================================

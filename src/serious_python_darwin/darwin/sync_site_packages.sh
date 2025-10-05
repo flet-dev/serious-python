@@ -43,7 +43,7 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         dist=$script_dir/dist_macos
 
         mkdir -p $dist/site-packages
-        rsync -av --exclude=".*" --delete "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
+        rsync -av --delete "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
     fi
 else
     echo "SERIOUS_PYTHON_SITE_PACKAGES is not set."
