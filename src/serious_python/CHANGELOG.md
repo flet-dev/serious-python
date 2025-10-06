@@ -1,3 +1,7 @@
+## 0.9.4
+* Fix: Updated compileSdkVersion to pass Android builds
+* Fix: The version of the dependency `archive` was increased to `4.0.7` and code changes were made for migration.
+
 ## 0.9.3
 
 * Fix: Hidden files in site-packages are skipped when building macOS app.
