@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ROOT: "${{ github.workspace }}"
+  SCRIPTS: "${{ github.workspace }}/.github/scripts"
+  UV_PYTHON: "3.12"
+  PYODIDE_VERSION: "0.27.7"
