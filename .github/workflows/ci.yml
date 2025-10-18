@@ -25,7 +25,7 @@ env:
 jobs:
   macos:
     name: Test on macOS
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,15 +38,15 @@ jobs:
 
       - name: Run tests
         shell: bash
+        working-directory: "src/serious_python/example/flet_example"
         run: |
-          export SERIOUS_PYTHON_SITE_PACKAGES=$GITHUB_WORKSPACE/site-packages
-          cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p Darwin -r flet -r --pre
-          flutter test integration_test -d macos
+          flutter test integration_test --device-id macos
 
   ios:
     name: Test on iOS
-    runs-on: macos-latest
+    runs-on: macos-15
+    if: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,19 +57,22 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Build iOS (no codesign)
+      - name: Build iOS
         shell: bash
+        working-directory: "src/serious_python/example/flet_example"
         run: |
-          export SERIOUS_PYTHON_SITE_PACKAGES=$GITHUB_WORKSPACE/site-packages
-          cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p iOS -r flet -r --pre
           flutter build ios --no-codesign
-      # add simulator drive steps later if needed
 
   android:
     name: Test on Android
-    if: false
     runs-on: ubuntu-24.04
+    env:
+      API_LEVEL: "33"
+      TARGET: "google_atd"
+      ARCH: "x86_64"
+      DEVICE_NAME: "android_emulator"
+      DEVICE_TYPE: "pixel_5"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,7 +92,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools'
+          packages: 'tools platform-tools platforms;android-${API_LEVEL}'
 
       - name: Accept SDK licenses
         shell: bash
@@ -99,12 +102,6 @@ jobs:
           echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --licenses || true
 
       - name: Prepare Android emulator
-        env:
-          API_LEVEL: "33"
-          TARGET: "google_atd"
-          ARCH: "x86_64"
-          DEVICE_NAME: "android_emulator"
-          DEVICE_TYPE: "pixel_5"
         shell: bash
         run: |
           export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
