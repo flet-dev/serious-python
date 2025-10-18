@@ -155,14 +155,17 @@ jobs:
           target: google_atd
           arch: x86_64
           profile: pixel_5
-          emulator-options: -no-window -noaudio -no-boot-anim
+          sdcard-path-or-size: "128M"
+          emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -noaudio -no-window -partition-size 8192
           script: |
             adb shell getprop ro.product.model
             ./gradlew connectedCheck
-            sdkmanager --list_installed
-            sdkmanager "platforms;android-33" "system-images;android-33;google_atd;x86_6"
+            echo "XXXXXX Emulator test run completed."
             sdkmanager --list_installed
             sdkmanager --update
+            sdkmanager --list_installed
+            adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
+            echo "XXXXXX END"
 
   windows:
     name: Test on Windows
