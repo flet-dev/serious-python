@@ -130,6 +130,12 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
       - name: Setup SDK for Android
         uses: android-actions/setup-android@v3
 
