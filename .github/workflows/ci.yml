@@ -92,23 +92,28 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'tools platform-tools platforms;android-${API_LEVEL}'
+          packages: 'tools platform-tools'
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: true
 
-      - name: Accept SDK licenses
-        shell: bash
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y unzip
-          echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --licenses || true
+      #- name: Accept SDK licenses
+      #  shell: bash
+      #  run: |
+      #    sudo apt-get update
+      #    sudo apt-get install -y unzip
+      #    echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --licenses || true
 
       - name: Prepare Android emulator
         shell: bash
         run: |
           export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
-          sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
+          sdkmanager "platforms;android-${API_LEVEL}"
           sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
           sdkmanager --update
-          echo "no" | avdmanager -v create avd --force --name "${DEVICE_NAME}" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "${TARGET}" --sdcard 128M --device "${DEVICE_TYPE}"
+          echo "no" | avdmanager -v create avd --force --name "$DEVICE_NAME" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "$TARGET" --sdcard 128M --device "$DEVICE_TYPE"
+          ls -al ~/.android/avd
+          sudo adduser $USER kvm
+          sudo chown $USER /dev/kvm
           ${ANDROID_HOME}/emulator/emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -noaudio -no-window -accel off -partition-size 8192 &
           adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
 
@@ -118,6 +123,30 @@ jobs:
           cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p Android -r flet -r --pre
           flutter test integration_test -d emulator-5554
+
+  emulator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          emulator-options: -no-window -noaudio -no-boot-anim
+          script: |
+            adb shell getprop ro.product.model
+            ./gradlew connectedCheck
 
   windows:
     name: Test on Windows
