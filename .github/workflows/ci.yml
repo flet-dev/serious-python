@@ -127,7 +127,7 @@ jobs:
   emulator:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Flutter
@@ -175,8 +175,8 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            adb devices && adb shell getprop
             cd src/serious_python/example/flet_example
+            ls -la
             dart run serious_python:main package app/src -p Android -r flet -r --pre
             flutter test integration_test -d emulator-5554
 
