@@ -130,6 +130,9 @@ jobs:
       - name: checkout
         uses: actions/checkout@v4
 
+      - name: Setup SDK for Android
+        uses: android-actions/setup-android@v3
+
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -151,26 +154,31 @@ jobs:
       - name: Run Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
+          avd-name: android_emulator
           api-level: 33
           target: google_atd
           arch: x86_64
           profile: pixel_5
-          sdcard-path-or-size: "128M"
-          emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -noaudio -no-window -partition-size 8192
-          script: |
-            ./gradlew connectedCheck
-            echo "XXXXXX Emulator test run completed."
-            sdkmanager --list_installed
-            sdkmanager --update
-            sdkmanager --list_installed
-            adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
-            echo "XXXXXX END"
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          disable-animations: true
+          cmake: 3.10.2.4988404
+          emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -partition-size 8192
           pre-emulator-launch-script: |
-            echo "XXXXXX Emulator test run completed."
             sdkmanager --list_installed
-            sdkmanager --update
-            sdkmanager --list_installed
-            echo "XXXXXX END"
+          script: |
+            adb wait-for-device
+            adb shell input keyevent 82
+            adb shell pm list instrumentation
+            adb devices && adb shell getprop
+            ./gradlew :example:assembleDebugAndroidTest
+            ./gradlew :lib:assembleDebugAndroidTest
+            ./gradlew :lib:testDebugUnitTest && ./gradlew jacocoFullReport --info
+            
+            ./gradlew connectedCheck
+            adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
+            echo "XXXXXX YYY ZZZ"
 
 
   windows:
