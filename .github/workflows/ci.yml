@@ -107,11 +107,11 @@ jobs:
         shell: bash
         run: |
           export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
+          sdkmanager --list_installed
           sdkmanager "platforms;android-${API_LEVEL}"
           sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
           sdkmanager --update
           echo "no" | avdmanager -v create avd --force --name "$DEVICE_NAME" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "$TARGET" --sdcard 128M --device "$DEVICE_TYPE"
-          ls -al ~/.android/avd
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
           ${ANDROID_HOME}/emulator/emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -noaudio -no-window -accel off -partition-size 8192 &
@@ -162,21 +162,20 @@ jobs:
           sdcard-path-or-size: 128M
           ram-size: 2048M
           disk-size: 4096M
+          emulator-port: 5554
           disable-animations: true
           cmake: 3.10.2.4988404
           emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -partition-size 8192
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
+            adb logcat -c
+            adb logcat &
             adb wait-for-device
             adb shell input keyevent 82
             adb shell pm list instrumentation
             adb devices && adb shell getprop
-            ./gradlew :example:assembleDebugAndroidTest
-            ./gradlew :lib:assembleDebugAndroidTest
-            ./gradlew :lib:testDebugUnitTest && ./gradlew jacocoFullReport --info
             
-            ./gradlew connectedCheck
             adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
             echo "XXXXXX YYY ZZZ"
 
