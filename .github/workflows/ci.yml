@@ -21,7 +21,7 @@ env:
 jobs:
   macos:
     name: Test on macOS
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
 
   ios:
     name: Test on iOS
-    runs-on: macos-14
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -75,20 +75,32 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'tools platform-tools'
+
       - name: Accept SDK licenses
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y unzip
           echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --licenses || true
-      - name: Prepare Android emulator + Flutter
-        shell: bash
+
+      - name: Prepare Android emulator
         env:
           API_LEVEL: "33"
           TARGET: "google_atd"
           ARCH: "x86_64"
           DEVICE_NAME: "android_emulator"
           DEVICE_TYPE: "pixel_5"
+        shell: bash
         run: |
           export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
           sdkmanager "platform-tools" "platforms;android-${API_LEVEL}"
@@ -127,7 +139,7 @@ jobs:
 
   linux:
     name: Test on Linux
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -141,7 +153,24 @@ jobs:
       - name: Install desktop deps
         run: |
           sudo apt-get update --allow-releaseinfo-change
-          sudo apt-get install -y xvfb libgtk-3-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+          sudo apt-get install -y \
+            xvfb \
+            libgtk-3-dev \
+            libgstreamer1.0-dev \
+            libgstreamer-plugins-base1.0-dev \
+            libgstreamer-plugins-bad1.0-dev \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            gstreamer1.0-plugins-ugly \
+            gstreamer1.0-libav \
+            gstreamer1.0-tools \
+            gstreamer1.0-x \
+            gstreamer1.0-alsa \
+            gstreamer1.0-gl \
+            gstreamer1.0-gtk3 \
+            gstreamer1.0-qt5 \
+            gstreamer1.0-pulseaudio
 
       - name: Run tests
         shell: bash
@@ -152,7 +181,7 @@ jobs:
 
   linux-arm64:
     name: Test on Linux ARM64
-    runs-on: ubuntu-22.04-arm64   # change if you use self-hosted ARM64
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
