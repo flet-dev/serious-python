@@ -159,6 +159,10 @@ jobs:
           script: |
             adb shell getprop ro.product.model
             ./gradlew connectedCheck
+            sdkmanager --list_installed
+            sdkmanager "platforms;android-33" "system-images;android-33;google_atd;x86_6"
+            sdkmanager --list_installed
+            sdkmanager --update
 
   windows:
     name: Test on Windows
