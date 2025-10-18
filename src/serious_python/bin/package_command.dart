@@ -15,7 +15,7 @@ import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.2/full";
+const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full";
 const pyodideLockFile = "pyodide-lock.json";
 
 const buildPythonVersion = "3.12.9";
@@ -71,7 +71,6 @@ const junkFilesDesktop = [
   "**.pyx",
   "**.a",
   "**.pdb",
-  "**.dist-info",
   "__pycache__",
   "**/__pycache__",
 ];

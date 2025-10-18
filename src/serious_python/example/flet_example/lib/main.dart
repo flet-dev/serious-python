@@ -90,7 +90,6 @@ void main() async {
               ? FletApp(
                   pageUrl: pageUrl,
                   assetsDir: assetsDir,
-                  hideLoadingPage: hideLoadingPage,
                 )
               : FutureBuilder(
                   future: runPythonApp(),
@@ -108,7 +107,6 @@ void main() async {
                       return FletApp(
                         pageUrl: pageUrl,
                         assetsDir: assetsDir,
-                        hideLoadingPage: hideLoadingPage,
                       );
                     }
                   });
