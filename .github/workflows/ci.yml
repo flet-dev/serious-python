@@ -175,10 +175,9 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example
-            ls -la
-            dart run serious_python:main package app/src -p Android -r flet -r --pre
-            flutter test integration_test -d emulator-5554
+            cd src/serious_python/example/flet_example && ls -la
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src -p Android -r flet -r --pre
+            cd src/serious_python/example/flet_example && flutter test integration_test -d emulator-5554
 
       - name: Run tests
         shell: bash
