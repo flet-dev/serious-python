@@ -1,3 +1,7 @@
+# /// script
+# dependencies = ["pyyaml"]
+# ///
+
 import os
 import pathlib
 import sys
@@ -22,7 +26,7 @@ dependencies = [
     "serious_python_macos",
 ]
 
-with open(pubspec_path, "r") as f:
+with open(pubspec_path) as f:
     data = yaml.safe_load(f)
 
     # patch version
