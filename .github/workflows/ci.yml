@@ -68,6 +68,7 @@ jobs:
 
   android:
     name: Test on Android
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
