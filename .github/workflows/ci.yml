@@ -46,7 +46,6 @@ jobs:
   ios:
     name: Test on iOS
     runs-on: macos-15
-    if: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,75 +55,25 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Launch iOS Simulator
+        uses: futureware-tech/simulator-action@v4
+        with:
+          model: 'iPhone 16'
+          shutdown_after_job: true
+          wait_for_boot: true
 
       - name: Build iOS
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
+          flutter devices
           dart run serious_python:main package app/src -p iOS -r flet -r --pre
           flutter build ios --no-codesign
 
+
   android:
     name: Test on Android
-    runs-on: ubuntu-24.04
-    env:
-      API_LEVEL: "33"
-      TARGET: "google_atd"
-      ARCH: "x86_64"
-      DEVICE_NAME: "android_emulator"
-      DEVICE_TYPE: "pixel_5"
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
-        with:
-          path: '.fvmrc'
-          cache: true
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'tools platform-tools'
-          accept-android-sdk-licenses: true
-          log-accepted-android-sdk-licenses: true
-
-      #- name: Accept SDK licenses
-      #  shell: bash
-      #  run: |
-      #    sudo apt-get update
-      #    sudo apt-get install -y unzip
-      #    echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --licenses || true
-
-      - name: Prepare Android emulator
-        shell: bash
-        run: |
-          export PATH=$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH
-          sdkmanager --list_installed
-          sdkmanager "platforms;android-${API_LEVEL}"
-          sdkmanager --install "system-images;android-${API_LEVEL};${TARGET};${ARCH}"
-          sdkmanager --update
-          echo "no" | avdmanager -v create avd --force --name "$DEVICE_NAME" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "$TARGET" --sdcard 128M --device "$DEVICE_TYPE"
-          sudo adduser $USER kvm
-          sudo chown $USER /dev/kvm
-          emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -noaudio -no-window -accel off -partition-size 8192 &
-          adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
-
-      - name: Run tests
-        shell: bash
-        run: |
-          cd src/serious_python/example/flet_example
-          dart run serious_python:main package app/src -p Android -r flet -r --pre
-          flutter test integration_test -d emulator-5554
-
-  emulator:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -135,9 +84,6 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
-
-      - name: Setup SDK for Android
-        uses: android-actions/setup-android@v3
 
       - name: Enable KVM
         run: |
@@ -170,22 +116,12 @@ jobs:
           disk-size: 4096M
           emulator-port: 5554
           disable-animations: true
-          # cmake: 3.10.2.4988404
           emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -partition-size 8192
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && ls -la
             cd src/serious_python/example/flet_example && dart run serious_python:main package app/src -p Android -r flet -r --pre
-            cd src/serious_python/example/flet_example && flutter test integration_test -d emulator-5554
-
-      - name: Run tests
-        shell: bash
-        working-directory: "src/serious_python/example/flet_example"
-        run: |
-          dart run serious_python:main package app/src -p Android -r flet -r --pre
-          flutter test integration_test -d emulator-5554
-
+            cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-5554
 
   windows:
     name: Test on Windows
