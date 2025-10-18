@@ -114,7 +114,7 @@ jobs:
           echo "no" | avdmanager -v create avd --force --name "$DEVICE_NAME" --package "system-images;android-${API_LEVEL};${TARGET};${ARCH}" --tag "$TARGET" --sdcard 128M --device "$DEVICE_TYPE"
           sudo adduser $USER kvm
           sudo chown $USER /dev/kvm
-          ${ANDROID_HOME}/emulator/emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -noaudio -no-window -accel off -partition-size 8192 &
+          emulator -avd "${DEVICE_NAME}" -memory 2048 -wipe-data -no-boot-anim -noaudio -no-window -accel off -partition-size 8192 &
           adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
 
       - name: Run tests
@@ -164,20 +164,22 @@ jobs:
           disk-size: 4096M
           emulator-port: 5554
           disable-animations: true
-          cmake: 3.10.2.4988404
+          # cmake: 3.10.2.4988404
           emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -partition-size 8192
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            adb logcat -c
-            adb logcat &
-            adb wait-for-device
-            adb shell input keyevent 82
-            adb shell pm list instrumentation
             adb devices && adb shell getprop
-            
-            adb wait-for-device shell 'while [[ -z $(getprop dev.bootcomplete) ]]; do sleep 1; done;'
-            echo "XXXXXX YYY ZZZ"
+            cd src/serious_python/example/flet_example
+            dart run serious_python:main package app/src -p Android -r flet -r --pre
+            flutter test integration_test -d emulator-5554
+
+      - name: Run tests
+        shell: bash
+        working-directory: "src/serious_python/example/flet_example"
+        run: |
+          dart run serious_python:main package app/src -p Android -r flet -r --pre
+          flutter test integration_test -d emulator-5554
 
 
   windows:
