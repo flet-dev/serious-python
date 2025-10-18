@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
 env:
   ROOT: "${{ github.workspace }}"
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
@@ -64,7 +68,7 @@ jobs:
 
   android:
     name: Test on Android
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -186,10 +190,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+      - name: Get Flutter version from ".fvmrc"
+        uses: kuhnroyal/flutter-fvm-config-action/config@v3
+        id: fvm-config-action
         with:
           path: '.fvmrc'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: 'master'  # https://github.com/subosito/flutter-action/issues/345#issuecomment-2657332687
           cache: true
 
       - name: Install deps
