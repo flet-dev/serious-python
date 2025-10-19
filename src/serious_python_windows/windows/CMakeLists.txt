@@ -30,6 +30,10 @@ list(APPEND PLUGIN_SOURCES
   "serious_python_windows_plugin.h"
 )
 
+if(MSVC)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")	
+endif()
+
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 add_library(${PLUGIN_NAME} SHARED
@@ -71,9 +75,9 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 set(serious_python_windows_bundled_libraries
   "${PYTHON_PACKAGE}/python312$<$<CONFIG:Debug>:_d>.dll"
   "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
-  "$ENV{WINDIR}/system32/msvcp140.dll"
-  "$ENV{WINDIR}/system32/vcruntime140.dll"
-  "$ENV{WINDIR}/system32/vcruntime140_1.dll"
+#  "$ENV{WINDIR}/system32/msvcp140.dll"
+#  "$ENV{WINDIR}/system32/vcruntime140.dll"
+#  "$ENV{WINDIR}/system32/vcruntime140_1.dll"
   PARENT_SCOPE
 )
 
