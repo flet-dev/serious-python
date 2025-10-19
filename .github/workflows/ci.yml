@@ -71,7 +71,6 @@ jobs:
           dart run serious_python:main package app/src -p iOS -r flet -r --pre
           flutter build ios --no-codesign
 
-
   android:
     name: Test on Android
     runs-on: ubuntu-latest
@@ -137,9 +136,9 @@ jobs:
           cache: true
 
       - name: Run tests
-        shell: pwsh
+        shell: bash
+        working-directory:  "src/serious_python/example/flet_example"
         run: |
-          cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p Windows -r flet -r --pre
           flutter test integration_test -d windows
 
@@ -180,8 +179,8 @@ jobs:
 
       - name: Run tests
         shell: bash
+        working-directory: "src/serious_python/example/flet_example"
         run: |
-          cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p Linux -r flet -r --pre
           xvfb-run flutter test integration_test -d linux
 
@@ -208,14 +207,14 @@ jobs:
       - name: Install deps
         shell: bash
         run: |
-          sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
+          # sudo sed -i "/#\$nrconf{restart} = 'i';/s/.*/\$nrconf{restart} = 'a';/" /etc/needrestart/needrestart.conf
           sudo apt-get update -y --allow-releaseinfo-change
           sudo apt-get install -y clang ninja-build xvfb libgtk-3-dev gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav
 
       - name: Run tests
         shell: bash
+        working-directory: "src/serious_python/example/flet_example"
         run: |
-          cd src/serious_python/example/flet_example
           dart run serious_python:main package app/src -p Linux -r flet -r --pre
           xvfb-run flutter test integration_test -d linux
 
@@ -260,19 +259,27 @@ jobs:
           echo "$PUB_DEV_TOKEN" | base64 --decode > $HOME/.config/dart/pub-credentials.json
 
       - name: Patch pubspec versions
+        shell: bash
+        working-directory: "src"
         run: |
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python_platform_interface/pubspec.yaml" "$PKG_VER"
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python/pubspec.yaml" "$PKG_VER"
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python_android/pubspec.yaml" "$PKG_VER"
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python_darwin/pubspec.yaml" "$PKG_VER"
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python_windows/pubspec.yaml" "$PKG_VER"
-          uv run "$SCRIPTS/patch_pubspec.py" "src/serious_python_linux/pubspec.yaml" "$PKG_VER"
+          for pkg in \
+            "serious_python" \
+            "serious_python_platform_interface" \
+            "serious_python_android" \
+            "serious_python_darwin" \
+            "serious_python_windows" \
+            "serious_python_linux"; do
+            uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
+          done
 
       - name: Publish packages
         shell: bash
-        if: false
         run: |
-          publish_pkg () { pushd "$1" >/dev/null; dart pub publish --force; popd >/dev/null; }
+          publish_pkg () { 
+            pushd "$1" >/dev/null
+            dart pub publish --force --dry-run
+            popd >/dev/null
+          }
 
           publish_pkg src/serious_python_platform_interface
           sleep 600
