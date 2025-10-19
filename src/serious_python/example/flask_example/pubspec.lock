@@ -215,18 +215,18 @@ packages:
     dependency: transitive
     description:
       name: path_provider_android
-      sha256: "993381400e94d18469750e5b9dcb8206f15bc09f9da86b9e44a9b0092a0066db"
+      sha256: e122c5ea805bb6773bb12ce667611265980940145be920cd09a4b0ec0285cb16
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.18"
+    version: "2.2.20"
   path_provider_foundation:
     dependency: transitive
     description:
       name: path_provider_foundation
-      sha256: "16eef174aacb07e09c351502740fa6254c165757638eba1e9116b0a781201bbd"
+      sha256: efaec349ddfc181528345c56f8eda9d6cccd71c177511b132c6a0ddaefaa2738
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.2"
+    version: "2.4.3"
   path_provider_linux:
     dependency: transitive
     description:
@@ -289,42 +289,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   serious_python_darwin:
     dependency: transitive
     description:
       path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   serious_python_linux:
     dependency: transitive
     description:
       path: "../../../serious_python_linux"
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   serious_python_windows:
     dependency: transitive
     description:
       path: "../../../serious_python_windows"
       relative: true
     source: path
-    version: "0.9.2"
+    version: "0.9.3+1"
   shelf:
     dependency: transitive
     description:
@@ -435,5 +435,5 @@ packages:
     source: hosted
     version: "1.1.0"
 sdks:
-  dart: ">=3.8.0 <4.0.0"
-  flutter: ">=3.29.0"
+  dart: ">=3.9.0 <4.0.0"
+  flutter: ">=3.35.0"
