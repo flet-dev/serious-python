@@ -57,11 +57,15 @@ jobs:
           cache: true
 
       - name: Launch iOS Simulator
+        id: ios-sim
         uses: futureware-tech/simulator-action@v4
         with:
           model: 'iPhone 16'
           shutdown_after_job: true
           wait_for_boot: true
+
+      - name: Show simulator UDID
+        run: echo "Simulator UDID is ${{ steps.ios-sim.outputs.udid }}"
 
       - name: Build iOS
         shell: bash
@@ -69,7 +73,7 @@ jobs:
         run: |
           flutter devices
           dart run serious_python:main package app/src -p iOS -r flet
-          flutter build ios --no-codesign
+          flutter drive -d ${{ steps.ios-sim.outputs.udid }} --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   android:
     name: Test on Android
@@ -215,6 +219,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
+          flutter pub get
           dart run serious_python:main package app/src -p Linux -r flet
           xvfb-run flutter test integration_test -d linux
 
