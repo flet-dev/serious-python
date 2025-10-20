@@ -40,7 +40,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Darwin -r flet -r --pre
+          dart run serious_python:main package app/src -p Darwin -r flet
           flutter test integration_test --device-id macos
 
   ios:
@@ -68,7 +68,7 @@ jobs:
         working-directory: "src/serious_python/example/flet_example"
         run: |
           flutter devices
-          dart run serious_python:main package app/src -p iOS -r flet -r --pre
+          dart run serious_python:main package app/src -p iOS -r flet
           flutter build ios --no-codesign
 
   android:
@@ -119,7 +119,7 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src -p Android -r flet -r --pre
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src -p Android -r flet
             cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-5554
 
   windows:
@@ -139,7 +139,7 @@ jobs:
         shell: bash
         working-directory:  "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Windows -r flet -r --pre
+          dart run serious_python:main package app/src -p Windows -r flet
           flutter test integration_test -d windows
 
   linux:
@@ -181,7 +181,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Linux -r flet -r --pre
+          dart run serious_python:main package app/src -p Linux -r flet
           xvfb-run flutter test integration_test -d linux
 
   linux-arm64:
@@ -215,7 +215,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Linux -r flet -r --pre
+          dart run serious_python:main package app/src -p Linux -r flet
           xvfb-run flutter test integration_test -d linux
 
   publish:
