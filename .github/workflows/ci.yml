@@ -280,7 +280,7 @@ jobs:
         run: |
           publish_pkg () { 
             pushd "$1" >/dev/null
-            dart pub publish --force --dry-run
+            dart pub publish --dry-run
             popd >/dev/null
           }
 
