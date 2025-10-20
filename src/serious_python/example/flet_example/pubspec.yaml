@@ -35,11 +35,7 @@ dependencies:
   serious_python:
     path: ../../
 
-  flet:
-    git:
-      path: packages/flet
-      ref: main
-      url: https://github.com/flet-dev/flet.git
+  flet: ^0.28.3
   
   path: ^1.8.3
   url_strategy: ^0.2.0

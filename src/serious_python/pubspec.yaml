@@ -2,7 +2,7 @@ name: serious_python
 description: A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.9.2
+version: 0.9.4
 
 platforms:
   ios:

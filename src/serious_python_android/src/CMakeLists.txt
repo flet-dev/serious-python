@@ -14,4 +14,11 @@ set_target_properties(serious_python PROPERTIES
   OUTPUT_NAME "serious_python"
 )
 
+# Add 16 KB page size support for Android 15
+if(ANDROID)
+    set_target_properties(serious_python PROPERTIES
+        LINK_FLAGS "-Wl,-z,max-page-size=16384"
+    )
+endif()
+
 target_compile_definitions(serious_python PUBLIC DART_SHARED_LIB)
