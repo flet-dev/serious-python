@@ -64,10 +64,7 @@ jobs:
           shutdown_after_job: true
           wait_for_boot: true
 
-      - name: Show simulator UDID
-        run: echo "Simulator UDID is ${{ steps.ios-sim.outputs.udid }}"
-
-      - name: Build iOS
+      - name: Run tests
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
@@ -241,6 +238,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
         with:
@@ -253,7 +253,6 @@ jobs:
         run: |
           PKG_VER="${GITHUB_REF_NAME#v}"
           echo "PKG_VER=$PKG_VER" | tee -a "$GITHUB_ENV"
-          sudo apt-get update
 
       - name: Configure pub.dev credentials
         # if: ${{ secrets.PUB_DEV_TOKEN != '' }}
