@@ -68,7 +68,6 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          flutter devices
           dart run serious_python:main package app/src -p iOS -r flet
           flutter drive -d ${{ steps.ios-sim.outputs.udid }} --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
