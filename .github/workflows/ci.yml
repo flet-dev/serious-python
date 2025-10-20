@@ -102,19 +102,6 @@ jobs:
             ~/.android/adb*
           key: avd
 
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        with:
-          path: |
-            /usr/local/lib/android/sdk/ndk
-            /usr/local/lib/android/sdk/cmake
-            /usr/local/lib/android/sdk/build-tools
-            /usr/local/lib/android/sdk/platforms
-            /usr/local/lib/android/sdk/platform-tools
-            /usr/local/lib/android/sdk/system-images
-          key: android-sdk-${{ runner.os }}-api33-ndk25.1
-          restore-keys: android-sdk-${{ runner.os }}-api33-ndk25.1
-
       - name: Run Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
