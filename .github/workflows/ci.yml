@@ -300,6 +300,7 @@ jobs:
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then
               dart pub publish --force
             else
+              dart pub get
               dart analyze
             fi
             popd >/dev/null
