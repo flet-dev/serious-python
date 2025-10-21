@@ -9,11 +9,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-
-#concurrency:
-#  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
-#  cancel-in-progress: true
-
 env:
   ROOT: "${{ github.workspace }}"
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
@@ -264,8 +259,6 @@ jobs:
           echo "PKG_VER=$PKG_VER" | tee -a "$GITHUB_ENV"
 
       - name: Configure pub.dev credentials
-        env:
-          PUB_DEV_TOKEN: ${{ secrets.PUB_DEV_TOKEN }}
         run: |
           mkdir -p $HOME/.config/dart
           echo "${{ secrets.PUB_DEV_TOKEN }}" | base64 --decode > $HOME/.config/dart/pub-credentials.json
