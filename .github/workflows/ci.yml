@@ -288,9 +288,6 @@ jobs:
             "serious_python_linux"; do
             
             uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
-            pushd "$pkg" >/dev/null
-            dart pub publish --dry-run
-            popd >/dev/null
           done
 
       - name: Publish packages
