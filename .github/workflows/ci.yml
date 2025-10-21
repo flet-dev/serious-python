@@ -40,7 +40,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Darwin -r flet
+          dart run serious_python:main package app/src --platform Darwin --requirements flet
           flutter test integration_test --device-id macos
 
   ios:
@@ -56,11 +56,11 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Launch iOS Simulator
-        id: ios-sim
+      - name: Setup iOS Simulator
+        id: simulator
         uses: futureware-tech/simulator-action@v4
         with:
-          model: 'iPhone 16'
+          model: 'iPhone 16 Pro Max'
           shutdown_after_job: true
           wait_for_boot: true
 
@@ -68,8 +68,8 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p iOS -r flet
-          flutter drive -d ${{ steps.ios-sim.outputs.udid }} --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+          dart run serious_python:main package app/src --platform iOS --requirements flet
+          flutter drive --device-id ${{ steps.simulator.outputs.udid }} --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
 
   android:
     name: Test on Android
@@ -102,7 +102,7 @@ jobs:
             ~/.android/adb*
           key: avd
 
-      - name: Run Android Emulator
+      - name: Setup Android Emulator + Run tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           avd-name: android_emulator
@@ -119,7 +119,7 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src -p Android -r flet
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --requirements flet
             cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-5554
 
   windows:
@@ -139,7 +139,7 @@ jobs:
         shell: bash
         working-directory:  "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Windows -r flet
+          dart run serious_python:main package app/src --platform Windows --requirements flet
           flutter test integration_test -d windows
 
   linux:
@@ -181,7 +181,7 @@ jobs:
         shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src -p Linux -r flet
+          dart run serious_python:main package app/src --platform Linux --requirements flet
           xvfb-run flutter test integration_test -d linux
 
   linux-arm64:
@@ -216,7 +216,7 @@ jobs:
         working-directory: "src/serious_python/example/flet_example"
         run: |
           flutter pub get
-          dart run serious_python:main package app/src -p Linux -r flet
+          dart run serious_python:main package app/src --platform Linux --requirements flet
           xvfb-run flutter test integration_test -d linux
 
   publish:
