@@ -1,0 +1,296 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '*'
+  pull_request:
+  workflow_dispatch:
+
+env:
+  ROOT: "${{ github.workspace }}"
+  SCRIPTS: "${{ github.workspace }}/.github/scripts"
+  SERIOUS_PYTHON_SITE_PACKAGES: "${{ github.workspace }}/site-packages"
+  UV_PYTHON: "3.12"
+
+jobs:
+  macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Run tests
+        working-directory: "src/serious_python/example/flet_example"
+        run: |
+          dart run serious_python:main package app/src --platform Darwin --requirements flet
+          flutter test integration_test --device-id macos
+
+  ios:
+    name: Test on iOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Setup iOS Simulator
+        id: simulator
+        uses: futureware-tech/simulator-action@v4
+        with:
+          # https://github.com/futureware-tech/simulator-action/wiki/Devices-macos-latest
+          model: 'iPhone 16 Pro Max'
+          os: "iOS"
+          os_version: "^18.6"
+          shutdown_after_job: true
+          wait_for_boot: true
+
+      - name: Run tests
+        working-directory: "src/serious_python/example/flet_example"
+        run: |
+          dart run serious_python:main package app/src --platform iOS --requirements flet
+          flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
+
+  android:
+    name: Test on Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd
+
+      - name: Setup Android Emulator + Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
+        with:
+          avd-name: android_emulator
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          emulator-port: ${{ env.EMULATOR_PORT }}
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
+          pre-emulator-launch-script: |
+            sdkmanager --list_installed
+          script: |
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --requirements flet
+            cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
+
+  windows:
+    name: Test on Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Run tests
+        working-directory:  "src/serious_python/example/flet_example"
+        run: |
+          dart run serious_python:main package app/src --platform Windows --requirements flet
+          flutter test integration_test -d windows
+
+  linux:
+    name: Test on Linux ${{ matrix.title }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            title: ARM64
+          - arch: amd64
+            runner: ubuntu-24.04
+            title: AMD64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Get Flutter version from ".fvmrc"
+        uses: kuhnroyal/flutter-fvm-config-action/config@v3
+        id: fvm-config-action
+        with:
+          path: '.fvmrc'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}  # https://github.com/subosito/flutter-action/issues/345#issuecomment-2657332687
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update --allow-releaseinfo-change
+          sudo apt-get install -y xvfb libgtk-3-dev
+          
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            sudo apt-get install -y \
+              libgstreamer1.0-dev \
+              libgstreamer-plugins-base1.0-dev \
+              libgstreamer-plugins-bad1.0-dev \
+              gstreamer1.0-plugins-base \
+              gstreamer1.0-plugins-good \
+              gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly \
+              gstreamer1.0-libav \
+              gstreamer1.0-tools \
+              gstreamer1.0-x \
+              gstreamer1.0-alsa \
+              gstreamer1.0-gl \
+              gstreamer1.0-gtk3 \
+              gstreamer1.0-qt5 \
+              gstreamer1.0-pulseaudio
+          else
+            sudo apt-get install -y \
+              clang \
+              ninja-build \
+              gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly \
+              gstreamer1.0-libav
+          fi
+
+      - name: Run tests
+        working-directory: src/serious_python/example/flet_example
+        run: |
+          flutter pub get
+          dart run serious_python:main package app/src --platform Linux --requirements flet
+          xvfb-run flutter test integration_test -d linux
+
+  publish:
+    name: Publish to pub.dev
+    needs:
+      - macos
+      - ios
+      - android
+      - windows
+      - linux
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Compute PKG_VER
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Extract the tag name
+            tag="${GITHUB_REF#refs/tags/}"
+            
+            # Remove leading "v" if present
+            PKG_VER="${tag#v}"
+          else
+            # Get the latest tag, or fall back to "v0.0.0" if none exist
+            cv=$(git describe --abbrev=0 2>/dev/null || echo "v0.0.0")
+            # Remove leading "v" if present
+            cv=${cv#v}
+            
+            # Split into major/minor components
+            major=$(echo "$cv" | cut -d. -f1)
+            minor=$(echo "$cv" | cut -d. -f2)
+            
+            # Construct the package version
+            PKG_VER="${major}.${minor}.${GITHUB_RUN_NUMBER}"
+          fi
+          
+          export PKG_VER
+          echo "PKG_VER=$PKG_VER" | tee -a "$GITHUB_ENV"
+
+      - name: Configure pub.dev credentials
+        run: |
+          mkdir -p $HOME/.config/dart
+          echo "${{ secrets.PUB_DEV_TOKEN }}" | base64 --decode > $HOME/.config/dart/pub-credentials.json
+
+      - name: Patch pubspec versions
+        working-directory: "src"
+        run: |
+          for pkg in \
+            "serious_python" \
+            "serious_python_platform_interface" \
+            "serious_python_android" \
+            "serious_python_darwin" \
+            "serious_python_windows" \
+            "serious_python_linux"; do
+            
+            uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
+          done
+
+      - name: Publish packages
+        run: |
+          publish_pkg () { 
+            pushd "$1" >/dev/null
+            dart pub publish --force
+            popd >/dev/null
+          }
+
+          publish_pkg src/serious_python_platform_interface
+          sleep 600
+          publish_pkg src/serious_python_android
+          publish_pkg src/serious_python_darwin
+          publish_pkg src/serious_python_windows
+          publish_pkg src/serious_python_linux
+          sleep 600
+          publish_pkg src/serious_python

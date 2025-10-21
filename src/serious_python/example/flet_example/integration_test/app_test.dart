@@ -10,7 +10,7 @@ void main() {
     testWidgets('make sure counter can be incremented and decremented',
         (tester) async {
       app.main();
-      await tester.pumpAndSettle();
+      await tester.pumpAndSettle(const Duration(seconds: 5));
 
       // Wait for up to 10 seconds for the app to start
       bool counterFound = false;
