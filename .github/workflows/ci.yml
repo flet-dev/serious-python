@@ -270,7 +270,7 @@ jobs:
           echo "PKG_VER=$PKG_VER" | tee -a "$GITHUB_ENV"
 
       - name: Configure pub.dev credentials
-        # if: ${{ secrets.PUB_DEV_TOKEN != '' }}
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
           PUB_DEV_TOKEN: ${{ secrets.PUB_DEV_TOKEN }}
         run: |
@@ -278,6 +278,7 @@ jobs:
           echo "$PUB_DEV_TOKEN" | base64 --decode > $HOME/.config/dart/pub-credentials.json
 
       - name: Patch pubspec versions
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         working-directory: "src"
         run: |
