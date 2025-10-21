@@ -35,7 +35,6 @@ jobs:
           cache: true
 
       - name: Run tests
-        shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
           dart run serious_python:main package app/src --platform Darwin --requirements flet
@@ -66,7 +65,6 @@ jobs:
           wait_for_boot: true
 
       - name: Run tests
-        shell: bash
         working-directory: "src/serious_python/example/flet_example"
         run: |
           dart run serious_python:main package app/src --platform iOS --requirements flet
@@ -139,7 +137,6 @@ jobs:
           cache: true
 
       - name: Run tests
-        shell: bash
         working-directory:  "src/serious_python/example/flet_example"
         run: |
           dart run serious_python:main package app/src --platform Windows --requirements flet
@@ -179,7 +176,6 @@ jobs:
           cache: true
 
       - name: Install dependencies
-        shell: bash
         run: |
           sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y xvfb libgtk-3-dev
@@ -211,7 +207,6 @@ jobs:
           fi
 
       - name: Run tests
-        shell: bash
         working-directory: src/serious_python/example/flet_example
         run: |
           dart run serious_python:main package app/src --platform Linux --requirements flet
@@ -244,7 +239,6 @@ jobs:
           cache: true
 
       - name: Compute PKG_VER
-        shell: bash
         run: |
           if [[ "$GITHUB_REF" == refs/tags/* ]]; then
             # Extract the tag name
@@ -274,10 +268,9 @@ jobs:
           PUB_DEV_TOKEN: ${{ secrets.PUB_DEV_TOKEN }}
         run: |
           mkdir -p $HOME/.config/dart
-          echo "$PUB_DEV_TOKEN" | base64 --decode > $HOME/.config/dart/pub-credentials.json
+          echo "${{ secrets.PUB_DEV_TOKEN }}" | base64 --decode > $HOME/.config/dart/pub-credentials.json
 
       - name: Patch pubspec versions
-        shell: bash
         working-directory: "src"
         run: |
           for pkg in \
@@ -292,7 +285,6 @@ jobs:
           done
 
       - name: Publish packages
-        shell: bash
         run: |
           publish_pkg () { 
             pushd "$1" >/dev/null
