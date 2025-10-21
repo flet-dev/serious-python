@@ -299,6 +299,7 @@ jobs:
             pushd "$1" >/dev/null
             if [[ "$GITHUB_REF" == refs/tags/* ]]; then
               dart pub publish --force
+              sleep $2
             else
               dart pub get
               dart analyze
@@ -306,11 +307,9 @@ jobs:
             popd >/dev/null
           }
 
-          publish_pkg src/serious_python_platform_interface
-          sleep 600
-          publish_pkg src/serious_python_android
-          publish_pkg src/serious_python_darwin
-          publish_pkg src/serious_python_windows
-          publish_pkg src/serious_python_linux
-          sleep 600
-          publish_pkg src/serious_python
+          publish_pkg src/serious_python_platform_interface 600
+          publish_pkg src/serious_python_android 0
+          publish_pkg src/serious_python_darwin 0
+          publish_pkg src/serious_python_windows 0
+          publish_pkg src/serious_python_linux 600
+          publish_pkg src/serious_python 0
