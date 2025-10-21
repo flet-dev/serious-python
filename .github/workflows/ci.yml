@@ -25,7 +25,7 @@ env:
 jobs:
   macos:
     name: Test on macOS
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
 
   ios:
     name: Test on iOS
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -60,7 +60,10 @@ jobs:
         id: simulator
         uses: futureware-tech/simulator-action@v4
         with:
+          # https://github.com/futureware-tech/simulator-action/wiki/Devices-macos-latest
           model: 'iPhone 16 Pro Max'
+          os: "iOS"
+          os_version: "^18.6"
           shutdown_after_job: true
           wait_for_boot: true
 
@@ -69,7 +72,7 @@ jobs:
         working-directory: "src/serious_python/example/flet_example"
         run: |
           dart run serious_python:main package app/src --platform iOS --requirements flet
-          flutter drive --device-id ${{ steps.simulator.outputs.udid }} --driver=test_driver/integration_test.dart --target=integration_test/app_test.dart
+          flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
 
   android:
     name: Test on Android
@@ -143,7 +146,7 @@ jobs:
           flutter test integration_test -d windows
 
   linux:
-    name: Build Flet Client for Linux ${{ matrix.title }}
+    name: Test on Linux ${{ matrix.title }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
