@@ -9,12 +9,10 @@ on:
   pull_request:
   workflow_dispatch:
 
-permissions:
-  contents: write
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
-  cancel-in-progress: true
+#concurrency:
+#  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+#  cancel-in-progress: true
 
 env:
   ROOT: "${{ github.workspace }}"
@@ -244,10 +242,29 @@ jobs:
           cache: true
 
       - name: Compute PKG_VER
-        id: ver
         shell: bash
         run: |
-          PKG_VER="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Extract the tag name
+            tag="${GITHUB_REF#refs/tags/}"
+            
+            # Remove leading "v" if present
+            PKG_VER="${tag#v}"
+          else
+            # Get the latest tag, or fall back to "v0.0.0" if none exist
+            cv=$(git describe --abbrev=0 2>/dev/null || echo "v0.0.0")
+            # Remove leading "v" if present
+            cv=${cv#v}
+            
+            # Split into major/minor components
+            major=$(echo "$cv" | cut -d. -f1)
+            minor=$(echo "$cv" | cut -d. -f2)
+            
+            # Construct the package version: <major>.<minor>.0
+            PKG_VER="${major}.${minor}.${GITHUB_RUN_NUMBER}"
+          fi
+          
+          export PKG_VER
           echo "PKG_VER=$PKG_VER" | tee -a "$GITHUB_ENV"
 
       - name: Configure pub.dev credentials
