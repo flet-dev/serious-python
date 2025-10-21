@@ -105,6 +105,8 @@ jobs:
 
       - name: Setup Android Emulator + Run tests
         uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
         with:
           avd-name: android_emulator
           api-level: 33
@@ -114,14 +116,14 @@ jobs:
           sdcard-path-or-size: 128M
           ram-size: 2048M
           disk-size: 4096M
-          emulator-port: 5554
+          emulator-port: ${{ env.EMULATOR_PORT }}
           disable-animations: true
-          emulator-options: -no-window -noaudio -no-boot-anim -memory 2048 -wipe-data -cache-size 1000 -partition-size 8192
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
             cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --requirements flet
-            cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-5554
+            cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
 
   windows:
     name: Test on Windows
