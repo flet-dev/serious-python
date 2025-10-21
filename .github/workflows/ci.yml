@@ -204,6 +204,7 @@ jobs:
       - name: Run tests
         working-directory: src/serious_python/example/flet_example
         run: |
+          flutter pub get
           dart run serious_python:main package app/src --platform Linux --requirements flet
           xvfb-run flutter test integration_test -d linux
 
