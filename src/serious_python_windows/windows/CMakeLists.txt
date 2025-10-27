@@ -31,8 +31,13 @@ list(APPEND PLUGIN_SOURCES
 )
 
 if(MSVC)
-	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")	
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+	set(CMAKE_INSTALL_DEBUG_LIBRARIES_ONLY $<IF:$<CONFIG:Debug>,ON,OFF>)
+	file(REAL_PATH ${CMAKE_BINARY_DIR}/runner/$<CONFIG> FLUTTER_APP_DIR)
+	set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${FLUTTER_APP_DIR})
 endif()
+
+include(InstallRequiredSystemLibraries)
 
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
@@ -75,9 +80,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 set(serious_python_windows_bundled_libraries
   "${PYTHON_PACKAGE}/python312$<$<CONFIG:Debug>:_d>.dll"
   "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
-#  "$ENV{WINDIR}/system32/msvcp140.dll"
-#  "$ENV{WINDIR}/system32/vcruntime140.dll"
-#  "$ENV{WINDIR}/system32/vcruntime140_1.dll"
   PARENT_SCOPE
 )
 
