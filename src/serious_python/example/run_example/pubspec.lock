@@ -312,42 +312,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   serious_python_darwin:
     dependency: transitive
     description:
       path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   serious_python_linux:
     dependency: transitive
     description:
       path: "../../../serious_python_linux"
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   serious_python_windows:
     dependency: transitive
     description:
       path: "../../../serious_python_windows"
       relative: true
     source: path
-    version: "0.9.3+1"
+    version: "0.9.4+1"
   shelf:
     dependency: transitive
     description:
