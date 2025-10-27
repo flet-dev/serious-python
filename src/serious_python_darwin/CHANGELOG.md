@@ -1,3 +1,7 @@
+## 0.9.4
+
+* 16 KB memory page support for Android 15+ (by [@ReYaNOW](https://github.com/ReYaNOW)).
+
 ## 0.9.3
 
 * Fix: Hidden files in site-packages are skipped when building macOS app.
