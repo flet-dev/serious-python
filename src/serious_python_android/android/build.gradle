@@ -98,7 +98,9 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     tasks.register("downloadDistArchive_$abi", Download) {
         src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
         dest new File(buildDir, "python-android-${abi}.tar.gz")
+        onlyIfModified true
     }
+    
     tasks.register("untarFile_$abi", Copy) {
         from tarTree(tasks.named("downloadDistArchive_$abi").get().dest)
         into "src/main/jniLibs/$abi"
