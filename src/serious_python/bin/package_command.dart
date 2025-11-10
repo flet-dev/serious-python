@@ -183,13 +183,13 @@ class PackageCommand extends Command {
         exit(2);
       }
 
-      if (!await sourceDir.exists()) {
+      if (!sourceDir.existsSync()) {
         stderr.writeln('Source directory does not exist.');
         exit(2);
       }
 
       final pubspecFile = File(path.join(currentPath, "pubspec.yaml"));
-      if (!await pubspecFile.exists()) {
+      if (!pubspecFile.existsSync()) {
         stderr.writeln("Current directory must contain pubspec.yaml.");
         exit(2);
       }
@@ -211,7 +211,7 @@ class PackageCommand extends Command {
 
       // ensure standard Dart/Flutter "build" directory exists
       _buildDir = Directory(path.join(currentPath, "build"));
-      if (!await _buildDir!.exists()) {
+      if (!_buildDir!.existsSync()) {
         await _buildDir!.create();
       }
 
@@ -224,7 +224,7 @@ class PackageCommand extends Command {
 
       // create dest dir
       final dest = File(path.join(currentPath, assetPath));
-      if (!await dest.parent.exists()) {
+      if (!dest.parent.existsSync()) {
         stdout.writeln("Creating asset directory: ${dest.parent.path}");
         await dest.parent.create(recursive: true);
       }
@@ -277,7 +277,7 @@ class PackageCommand extends Command {
           sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
         }
 
-        if (await Directory(sitePackagesRoot).exists()) {
+        if (Directory(sitePackagesRoot).existsSync()) {
           await for (var f in Directory(sitePackagesRoot)
               .list()
               .where((f) => !path.basename(f.path).startsWith("."))) {
@@ -373,7 +373,7 @@ class PackageCommand extends Command {
                 if (!flutterPackagesCopied) {
                   stdout.writeln(
                       "Copying Flutter packages to $flutterPackagesRoot");
-                  if (!await flutterPackagesRootDir.exists()) {
+                  if (!flutterPackagesRootDir.existsSync()) {
                     await flutterPackagesRootDir.create(recursive: true);
                   }
                   await copyDirectory(sitePackagesFlutterDir,
@@ -424,7 +424,7 @@ class PackageCommand extends Command {
         // synchronize pod
         var syncSh =
             File(path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
-        if (await syncSh.exists()) {
+        if (syncSh.existsSync()) {
           await runExec("/bin/sh", [syncSh.path]);
         }
       }
@@ -442,9 +442,13 @@ class PackageCommand extends Command {
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {
-      if (tempDir != null && await tempDir.exists()) {
+      if (tempDir != null && tempDir.existsSync()) {
         stdout.writeln("Deleting temp directory");
-        await tempDir.delete(recursive: true);
+        try {
+          tempDir.deleteSync(recursive: true);
+		} on Exception catch(e, s){
+			verbose('$e\n\n$s');
+		}
       }
       if (pyodidePyPiServer != null) {
         stdout.writeln("Shutting down Pyodide PyPI server");
@@ -523,7 +527,7 @@ class PackageCommand extends Command {
       _pythonDir = Directory(
           path.join(_buildDir!.path, "build_python_$buildPythonVersion"));
 
-      if (!await _pythonDir!.exists()) {
+      if (!_pythonDir!.existsSync()) {
         await _pythonDir!.create();
 
         var isArm64 = Platform.version.contains("arm64");
@@ -547,7 +551,7 @@ class PackageCommand extends Command {
         var pythonArchivePath =
             path.join(_buildDir!.path, pythonArchiveFilename);
 
-        if (!await File(pythonArchivePath).exists()) {
+        if (!File(pythonArchivePath).existsSync()) {
           // download Python distr from GitHub
           final url =
               "https://github.com/astral-sh/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
