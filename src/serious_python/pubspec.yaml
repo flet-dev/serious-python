@@ -11,9 +11,11 @@ platforms:
   windows:
   linux:
 
+resolution: workspace
+
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.7.0"
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
 
 flutter:
   plugin:
@@ -47,7 +49,7 @@ dependencies:
   archive: ^4.0.7
   path: ^1.9.1
   args: ^2.7.0
-  toml: ^0.16.0
+  toml: ^0.17.0
   http: ^1.5.0
   shelf: ^1.4.2
   crypto: ^3.0.6

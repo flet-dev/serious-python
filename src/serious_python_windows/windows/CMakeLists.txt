@@ -101,7 +101,9 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
 )
 
 if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
-  add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+  add_custom_target(CopySitePackages ALL)
+  add_dependencies(CopySitePackages CopyPythonDLLs)
+  add_custom_command(TARGET CopySitePackages POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E remove_directory
       "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
     COMMAND ${CMAKE_COMMAND} -E make_directory
