@@ -55,7 +55,11 @@ create_xcframework_from_dylibs() {
     dylib_without_ext=$(echo $dylib_relative_path | cut -d "." -f 1)
     framework=$(echo $dylib_without_ext | tr "/" ".")
     framework_identifier=${framework//_/-}
-
+    while [[ $framework_identifier == -* ]]; do
+        framework_identifier=${framework_identifier#-}
+    done
+    framework_identifier=${framework_identifier:-framework}
+    
     # creating "iphoneos" framework
     fd=iphoneos/$framework.framework
     mkdir -p $fd
