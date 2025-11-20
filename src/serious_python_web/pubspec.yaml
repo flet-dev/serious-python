@@ -1,0 +1,31 @@
+name: serious_python_web
+description: Web implementations of the serious_python plugin
+homepage: https://flet.dev
+repository: https://github.com/flet-dev/serious-python
+version: 0.8.7
+
+environment:
+  sdk: '>=3.1.3 <4.0.0'
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  js: ^0.6.7
+  serious_python_platform_interface:
+    path: ../serious_python_platform_interface
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  plugin:
+    implements: serious_python
+    platforms:
+      web:
+        pluginClass: SeriousPythonWeb
+        fileName: serious_python_web.dart

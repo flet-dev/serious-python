@@ -10,6 +10,7 @@ platforms:
   macos:
   windows:
   linux:
+  web:
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -28,6 +29,8 @@ flutter:
         default_package: serious_python_windows
       linux:
         default_package: serious_python_linux
+      web:
+        default_package: serious_python_web
 
 dependencies:
   flutter:
@@ -42,6 +45,8 @@ dependencies:
     path: ../serious_python_windows
   serious_python_linux:
     path: ../serious_python_linux
+  serious_python_web:
+    path: ../serious_python_web
 
   path_provider: ^2.1.3
   archive: ^3.6.1

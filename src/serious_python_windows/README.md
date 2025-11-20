@@ -1,4 +1,4 @@
-# serious_python_ios
+# serious_python_windows
 
 The Windows implementation of `serious_python`.
 
