@@ -31,15 +31,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   serious_python:
     path: ../../
-
   flet:
     git:
       url: https://github.com/flet-dev/flet.git
       path: packages/flet
-  
   path: ^1.9.1
   url_strategy: ^0.2.0
   path_provider: ^2.1.5
