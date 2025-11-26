@@ -32,32 +32,34 @@ const platforms = {
     "iphoneos.arm64": {"tag": "ios-13.0-arm64-iphoneos", "mac_ver": ""},
     "iphonesimulator.arm64": {
       "tag": "ios-13.0-arm64-iphonesimulator",
-      "mac_ver": ""
+      "mac_ver": "",
     },
     "iphonesimulator.x86_64": {
       "tag": "ios-13.0-x86_64-iphonesimulator",
-      "mac_ver": ""
-    }
+      "mac_ver": "",
+    },
   },
   "Android": {
     "arm64-v8a": {"tag": "android-24-arm64-v8a", "mac_ver": ""},
     "armeabi-v7a": {"tag": "android-24-armeabi-v7a", "mac_ver": ""},
     "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
-    "x86": {"tag": "android-24-x86", "mac_ver": ""}
+    "x86": {"tag": "android-24-x86", "mac_ver": ""},
   },
   "Pyodide": {
-    "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""}
+    "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""},
   },
   "Darwin": {
     "arm64": {"tag": "", "mac_ver": "arm64"},
-    "x86_64": {"tag": "", "mac_ver": "x86_64"}
+    "x86_64": {"tag": "", "mac_ver": "x86_64"},
   },
   "Windows": {
-    "": {"tag": "", "mac_ver": ""}
+    "arm64": {"tag": "", "mac_ver": ""},
+    "x86_64": {"tag": "", "mac_ver": ""},
   },
   "Linux": {
-    "": {"tag": "", "mac_ver": ""}
-  }
+    "arm64": {"tag": "", "mac_ver": ""},
+    "x86_64": {"tag": "", "mac_ver": ""},
+  },
 };
 
 const junkFilesDesktop = [
@@ -94,46 +96,80 @@ class PackageCommand extends Command {
   final description = "Packages Python app into Flutter asset.";
 
   PackageCommand() {
-    argParser.addOption('platform',
-        abbr: "p",
-        allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
-        mandatory: true,
-        help: "Install dependencies for specific platform, e.g. 'Android'.");
-    argParser.addMultiOption('arch',
-        help:
-            "Install dependencies for specific architectures only. Leave empty to install all supported architectures.");
-    argParser.addMultiOption('requirements',
-        abbr: "r",
-        help: "The list of dependencies to install. Allows any pip options.'",
-        splitCommas: false);
-    argParser.addOption('asset',
-        abbr: 'a',
-        help:
-            "Output asset path, relative to pubspec.yaml, to package Python program into.");
-    argParser.addMultiOption('exclude',
-        help:
-            "List of relative paths to exclude from app package, e.g. \"assets,build\".");
-    argParser.addFlag("skip-site-packages",
-        help: "Skip installation of site packages.", negatable: false);
-    argParser.addFlag("compile-app",
-        help: "Compile Python application before packaging.", negatable: false);
-    argParser.addFlag("compile-packages",
-        help: "Compile application packages before packaging.",
-        negatable: false);
-    argParser.addFlag("cleanup",
-        help:
-            "Cleanup app and packages from unneccessary files and directories.",
-        negatable: false);
-    argParser.addFlag("cleanup-app",
-        help: "Cleanup app from unneccessary files and directories.",
-        negatable: false);
-    argParser.addMultiOption('cleanup-app-files',
-        help: "List of globs to delete extra app files and directories.");
-    argParser.addFlag("cleanup-packages",
-        help: "Cleanup packages from unneccessary files and directories.",
-        negatable: false);
-    argParser.addMultiOption('cleanup-package-files',
-        help: "List of globs to delete extra packages files and directories.");
+    argParser.addOption(
+      'platform',
+      abbr: "p",
+      allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
+      mandatory: true,
+      help: "Install dependencies for specific platform, e.g. 'Android'.",
+    );
+    argParser.addMultiOption(
+      'arch',
+      help:
+          "Install dependencies for specific architectures only. Leave empty to install all supported architectures.",
+    );
+    argParser.addMultiOption(
+      'requirements',
+      abbr: "r",
+      help: "The list of dependencies to install. Allows any pip options.'",
+      splitCommas: false,
+    );
+    argParser.addOption(
+      'build-type',
+      abbr: 'b',
+      allowed: ['Debug', 'Profile', 'Release'],
+      defaultsTo: 'Release',
+      help: "Build type of application, one of debug, profile or release.",
+    );
+    argParser.addOption(
+      'asset',
+      abbr: 'a',
+      help:
+          "Output asset path, relative to pubspec.yaml, to package Python program into.",
+    );
+    argParser.addMultiOption(
+      'exclude',
+      help:
+          "List of relative paths to exclude from app package, e.g. \"assets,build\".",
+    );
+    argParser.addFlag(
+      "skip-site-packages",
+      help: "Skip installation of site packages.",
+      negatable: false,
+    );
+    argParser.addFlag(
+      "compile-app",
+      help: "Compile Python application before packaging.",
+      negatable: false,
+    );
+    argParser.addFlag(
+      "compile-packages",
+      help: "Compile application packages before packaging.",
+      negatable: false,
+    );
+    argParser.addFlag(
+      "cleanup",
+      help: "Cleanup app and packages from unneccessary files and directories.",
+      negatable: false,
+    );
+    argParser.addFlag(
+      "cleanup-app",
+      help: "Cleanup app from unneccessary files and directories.",
+      negatable: false,
+    );
+    argParser.addMultiOption(
+      'cleanup-app-files',
+      help: "List of globs to delete extra app files and directories.",
+    );
+    argParser.addFlag(
+      "cleanup-packages",
+      help: "Cleanup packages from unneccessary files and directories.",
+      negatable: false,
+    );
+    argParser.addMultiOption(
+      'cleanup-package-files',
+      help: "List of globs to delete extra packages files and directories.",
+    );
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 
@@ -160,6 +196,7 @@ class PackageCommand extends Command {
       String platform = argResults?['platform'];
       List<String> archArg = argResults?['arch'];
       List<String> requirements = argResults?['requirements'];
+      String buildType = argResults?['build-type'];
       String? assetPath = argResults?['asset'];
       List<String> exclude = argResults?['exclude'];
       bool skipSitePackages = argResults?["skip-site-packages"];
@@ -204,7 +241,8 @@ class PackageCommand extends Command {
       if (platform == "Pyodide") {
         pyodidePyPiServer = await startSimpleServer();
         extraPyPiIndexes.add(
-            "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple");
+          "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple",
+        );
       }
 
       stdout.writeln("Extra PyPi indexes: $extraPyPiIndexes");
@@ -212,7 +250,7 @@ class PackageCommand extends Command {
       // ensure standard Dart/Flutter "build" directory exists
       _buildDir = Directory(path.join(currentPath, "build"));
       if (!_buildDir!.existsSync()) {
-        await _buildDir!.create();
+        _buildDir!.createSync();
       }
 
       // asset path
@@ -226,18 +264,23 @@ class PackageCommand extends Command {
       final dest = File(path.join(currentPath, assetPath));
       if (!dest.parent.existsSync()) {
         stdout.writeln("Creating asset directory: ${dest.parent.path}");
-        await dest.parent.create(recursive: true);
+        dest.parent.createSync(recursive: true);
       }
 
       // create temp dir
-      tempDir = await Directory.systemTemp.createTemp('serious_python_temp');
+      tempDir = Directory.systemTemp.createTempSync('serious_python_temp');
       stdout.writeln("Created temp directory: ${tempDir.path}");
 
       // copy app to a temp dir
       stdout.writeln(
-          "Copying Python app from ${sourceDir.path} to a temp directory");
-      await copyDirectory(sourceDir, tempDir, sourceDir.path,
-          exclude.map((s) => s.trim()).toList());
+        "Copying Python app from ${sourceDir.path} to a temp directory",
+      );
+      await copyDirectory(
+        sourceDir,
+        tempDir,
+        sourceDir.path,
+        exclude.map((s) => s.trim()).toList(),
+      );
 
       // compile all python code
       if (compileApp) {
@@ -253,7 +296,8 @@ class PackageCommand extends Command {
         var allJunkFiles = [...junkFiles, ...cleanupAppFiles];
         if (_verbose) {
           verbose(
-              "Delete unnecessary app files and directories: $allJunkFiles");
+            "Delete unnecessary app files and directories: $allJunkFiles",
+          );
         } else {
           stdout.writeln(("Cleanup app"));
         }
@@ -263,25 +307,33 @@ class PackageCommand extends Command {
       // install requirements
       if (requirements.isNotEmpty && !skipSitePackages) {
         String? sitePackagesRoot;
-
-        if (platform != "Pyodide") {
-          if (Platform.environment
-              .containsKey(sitePackagesEnvironmentVariable)) {
+        if (platform == 'Windows' || platform == 'Linux') {
+          sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
+        } else if (platform != "Pyodide") {
+          if (Platform.environment.containsKey(
+            sitePackagesEnvironmentVariable,
+          )) {
             sitePackagesRoot =
                 Platform.environment[sitePackagesEnvironmentVariable];
           }
           if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
+            verbose(
+              "Setting sitePackagesRoot(./build/site-packages): $sitePackagesRoot",
+            );
             sitePackagesRoot = path.join(currentPath, "build", "site-packages");
           }
         } else {
+          verbose(
+            "Setting sitePackagesRoot(tempDir,defaultSitePackagesDir): $sitePackagesRoot",
+          );
           sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
         }
-
         if (Directory(sitePackagesRoot).existsSync()) {
-          await for (var f in Directory(sitePackagesRoot)
-              .list()
-              .where((f) => !path.basename(f.path).startsWith("."))) {
-            await f.delete(recursive: true);
+          verbose("Deleting packages from sitePackagesRoot: $sitePackagesRoot");
+          await for (var f in Directory(
+            sitePackagesRoot,
+          ).list().where((f) => !path.basename(f.path).startsWith("."))) {
+            f.deleteSync(recursive: true);
           }
         }
 
@@ -291,57 +343,94 @@ class PackageCommand extends Command {
           if (archArg.isNotEmpty && !archArg.contains(arch.key)) {
             continue;
           }
-          String? sitePackagesDir;
+          stdout.writeln(
+            "Invoking pip for platform/arch: $platform/${arch.key}",
+          );
+          String sitePackagesDir = sitePackagesRoot;
           Map<String, String>? pipEnv;
           Directory? sitecustomizeDir;
 
           try {
             // customized pip
             // create temp dir with sitecustomize.py for mobile and web
-            sitecustomizeDir = await Directory.systemTemp
-                .createTemp('serious_python_sitecustomize');
-            var sitecustomizePath =
-                path.join(sitecustomizeDir.path, "sitecustomize.py");
+            sitecustomizeDir = Directory.systemTemp.createTempSync(
+              'serious_python_sitecustomize',
+            );
+            var sitecustomizePath = path.join(
+              sitecustomizeDir.path,
+              "sitecustomize.py",
+            );
             if (_verbose) {
               verbose(
-                  "Configured $platform/${arch.key} platform with sitecustomize.py at $sitecustomizePath");
+                "Configured $platform/${arch.key} platform with sitecustomize.py at $sitecustomizePath",
+              );
             } else {
               stdout.writeln(
-                  "Configured $platform/${arch.key} platform with sitecustomize.py");
+                "Configured $platform/${arch.key} platform with sitecustomize.py",
+              );
             }
 
-            await File(sitecustomizePath).writeAsString(sitecustomizePy
-                .replaceAll(
-                    "{platform}", arch.value["tag"]!.isNotEmpty ? platform : "")
-                .replaceAll("{tag}", arch.value["tag"]!)
-                .replaceAll("{mac_ver}", arch.value["mac_ver"]!));
+            File(sitecustomizePath).writeAsStringSync(
+              sitecustomizePy
+                  .replaceAll(
+                    "{platform}",
+                    arch.value["tag"]!.isNotEmpty ? platform : "",
+                  )
+                  .replaceAll("{tag}", arch.value["tag"]!)
+                  .replaceAll("{mac_ver}", arch.value["mac_ver"]!),
+            );
 
             // print(File(sitecustomizePath).readAsStringSync());
 
             pipEnv = {
-              "PYTHONPATH":
-                  [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
+              "PYTHONPATH": [
+                sitecustomizeDir.path,
+              ].join(Platform.isWindows ? ";" : ":"),
             };
-
-            sitePackagesDir = arch.key.isNotEmpty
-                ? path.join(sitePackagesRoot, arch.key)
-                : sitePackagesRoot;
-            if (!await Directory(sitePackagesDir).exists()) {
-              await Directory(sitePackagesDir).create(recursive: true);
+            String buildDir = path.join(
+              currentPath,
+              'build',
+              Platform.operatingSystem,
+              arch.key == "x86_64" ? "x64" : arch.key,
+              "runner",
+              Platform.isWindows ? buildType : buildType.toLowerCase(),
+            );
+            sitePackagesDir =
+                arch.key.isNotEmpty
+                    ? Platform.isWindows
+                        ? path.join(buildDir, "site-packages")
+                        : path.join(buildDir, "python3.12", "site-packages")
+                    : sitePackagesRoot;
+            if (!Directory(sitePackagesDir).existsSync()) {
+              verbose("Creating sitePackagesDir: $sitePackagesDir");
+              Directory(sitePackagesDir).createSync(recursive: true);
             }
 
-            stdout.writeln(
-                "Installing $requirements with pip command to $sitePackagesDir");
+            verbose(
+              "Installing $requirements with pip command to $sitePackagesDir",
+            );
 
             List<String> pipArgs = ["--disable-pip-version-check"];
 
+            if (compilePackages) {
+              pipArgs.addAll(['--compile', '--only-binary=:all:']);
+              if (platform == 'Windows') {
+                if (arch.key == 'arm64') {
+                  pipArgs.addAll(["--platform", "win_arm64"]);
+                } else {
+                  pipArgs.addAll(["--platform", "win_amd64"]);
+                }
+              }
+            }
+
             if (isMobile || isWeb) {
               pipArgs.addAll(["--only-binary", ":all:"]);
-              if (Platform.environment
-                  .containsKey(allowSourceDistrosEnvironmentVariable)) {
+              if (Platform.environment.containsKey(
+                allowSourceDistrosEnvironmentVariable,
+              )) {
                 pipArgs.addAll([
                   "--no-binary",
-                  Platform.environment[allowSourceDistrosEnvironmentVariable]!
+                  Platform.environment[allowSourceDistrosEnvironmentVariable]!,
                 ]);
               }
             }
@@ -358,29 +447,37 @@ class PackageCommand extends Command {
               ...pipArgs,
               '--target',
               sitePackagesDir,
-              ...requirements
+              ...requirements,
             ], environment: pipEnv);
 
             // move $sitePackagesDir/flutter if env var is defined
-            if (Platform.environment
-                .containsKey(flutterPackagesFlutterEnvironmentVariable)) {
-              var flutterPackagesRoot = Platform
-                  .environment[flutterPackagesFlutterEnvironmentVariable];
+            if (Platform.environment.containsKey(
+              flutterPackagesFlutterEnvironmentVariable,
+            )) {
+              var flutterPackagesRoot =
+                  Platform
+                      .environment[flutterPackagesFlutterEnvironmentVariable];
               var flutterPackagesRootDir = Directory(flutterPackagesRoot!);
-              var sitePackagesFlutterDir =
-                  Directory(path.join(sitePackagesDir, "flutter"));
-              if (await sitePackagesFlutterDir.exists()) {
+              var sitePackagesFlutterDir = Directory(
+                path.join(sitePackagesDir, "flutter"),
+              );
+              if (sitePackagesFlutterDir.existsSync()) {
                 if (!flutterPackagesCopied) {
                   stdout.writeln(
-                      "Copying Flutter packages to $flutterPackagesRoot");
+                    "Copying Flutter packages to $flutterPackagesRoot",
+                  );
                   if (!flutterPackagesRootDir.existsSync()) {
-                    await flutterPackagesRootDir.create(recursive: true);
+                    flutterPackagesRootDir.createSync(recursive: true);
                   }
-                  await copyDirectory(sitePackagesFlutterDir,
-                      flutterPackagesRootDir, sitePackagesFlutterDir.path, []);
+                  await copyDirectory(
+                    sitePackagesFlutterDir,
+                    flutterPackagesRootDir,
+                    sitePackagesFlutterDir.path,
+                    [],
+                  );
                   flutterPackagesCopied = true;
                 }
-                await sitePackagesFlutterDir.delete(recursive: true);
+                sitePackagesFlutterDir.deleteSync(recursive: true);
               }
             }
 
@@ -390,6 +487,7 @@ class PackageCommand extends Command {
               await runPython(['-m', 'compileall', '-b', sitePackagesDir]);
 
               verbose("Deleting original .py files");
+
               await cleanupDir(Directory(sitePackagesDir), ["**.py"]);
             }
 
@@ -398,32 +496,36 @@ class PackageCommand extends Command {
               var allJunkFiles = [...junkFiles, ...cleanupPackageFiles];
               if (_verbose) {
                 verbose(
-                    "Delete unnecessary package files and directories: $allJunkFiles");
+                  "Delete unnecessary package files and directories: $allJunkFiles",
+                );
               } else {
                 stdout.writeln(("Cleanup installed packages"));
               }
               await cleanupDir(Directory(sitePackagesDir), allJunkFiles);
             }
           } finally {
-            if (sitecustomizeDir != null && await sitecustomizeDir.exists()) {
+            if (sitecustomizeDir != null && sitecustomizeDir.existsSync()) {
               verbose(
-                  "Deleting sitecustomize directory ${sitecustomizeDir.path}");
-              await sitecustomizeDir.delete(recursive: true);
+                "Deleting sitecustomize directory ${sitecustomizeDir.path}",
+              );
+              sitecustomizeDir.deleteSync(recursive: true);
             }
           }
         } // for each arch
 
         if (platform == "Darwin") {
           await macos_utils.mergeMacOsSitePackages(
-              path.join(sitePackagesRoot, "arm64"),
-              path.join(sitePackagesRoot, "x86_64"),
-              path.join(sitePackagesRoot),
-              _verbose);
+            path.join(sitePackagesRoot, "arm64"),
+            path.join(sitePackagesRoot, "x86_64"),
+            path.join(sitePackagesRoot),
+            _verbose,
+          );
         }
 
         // synchronize pod
-        var syncSh =
-            File(path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
+        var syncSh = File(
+          path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"),
+        );
         if (syncSh.existsSync()) {
           await runExec("/bin/sh", [syncSh.path]);
         }
@@ -431,24 +533,26 @@ class PackageCommand extends Command {
 
       // create archive
       stdout.writeln(
-          "Creating app archive at ${dest.path} from a temp directory");
+        "Creating app archive at ${dest.path} from a temp directory",
+      );
       final encoder = ZipFileEncoder();
       encoder.zipDirectory(tempDir, filename: dest.path);
 
       // create hash file
       stdout.writeln("Writing app archive hash to ${dest.path}.hash");
-      await File("${dest.path}.hash")
-          .writeAsString(await calculateFileHash(dest.path));
+      File(
+        "${dest.path}.hash",
+      ).writeAsStringSync(await calculateFileHash(dest.path));
     } catch (e) {
-      stdout.writeln("Error: $e");
+      verbose("Error: $e");
     } finally {
       if (tempDir != null && tempDir.existsSync()) {
         stdout.writeln("Deleting temp directory");
         try {
           tempDir.deleteSync(recursive: true);
-		} on Exception catch(e, s){
-			verbose('$e\n\n$s');
-		}
+        } on Exception catch (e, s) {
+          verbose('$e\n\n$s');
+        }
       }
       if (pyodidePyPiServer != null) {
         stdout.writeln("Shutting down Pyodide PyPI server");
@@ -457,21 +561,31 @@ class PackageCommand extends Command {
     }
   }
 
-  Future<void> copyDirectory(Directory source, Directory destination,
-      String rootDir, List<String> excludeList) async {
+  Future<void> copyDirectory(
+    Directory source,
+    Directory destination,
+    String rootDir,
+    List<String> excludeList,
+  ) async {
     await for (var entity in source.list()) {
       if (excludeList.contains(path.relative(entity.path, from: rootDir))) {
         continue;
       }
       if (entity is Directory) {
-        final newDirectory =
-            Directory(path.join(destination.path, path.basename(entity.path)));
-        await newDirectory.create();
+        final newDirectory = Directory(
+          path.join(destination.path, path.basename(entity.path)),
+        );
+        newDirectory.createSync();
         await copyDirectory(
-            entity.absolute, newDirectory, rootDir, excludeList);
+          entity.absolute,
+          newDirectory,
+          rootDir,
+          excludeList,
+        );
       } else if (entity is File) {
-        await entity
-            .copy(path.join(destination.path, path.basename(entity.path)));
+        entity.copySync(
+          path.join(destination.path, path.basename(entity.path)),
+        );
       }
     }
   }
@@ -479,23 +593,30 @@ class PackageCommand extends Command {
   Future<void> cleanupDir(Directory directory, List<String> filesGlobs) async {
     verbose("Cleanup directory ${directory.path}: $filesGlobs");
     await cleanupDirRecursive(
-        directory,
-        filesGlobs.map((g) => Glob(g.replaceAll("\\", "/"),
-            context: path.Context(current: directory.path))));
+      directory,
+      filesGlobs.map(
+        (g) => Glob(
+          g.replaceAll("\\", "/"),
+          context: path.Context(current: directory.path),
+        ),
+      ),
+    );
   }
 
   Future<bool> cleanupDirRecursive(
-      Directory directory, Iterable<Glob> globs) async {
+    Directory directory,
+    Iterable<Glob> globs,
+  ) async {
     var emptyDir = true;
     for (var entity in directory.listSync()) {
       if (globs.any((g) => g.matches(entity.path.replaceAll("\\", "/"))) &&
-          await entity.exists()) {
+          entity.existsSync()) {
         verbose("Deleting ${entity.path}");
-        await entity.delete(recursive: true);
+        entity.deleteSync(recursive: true);
       } else if (entity is Directory) {
         if (await cleanupDirRecursive(entity, globs)) {
           verbose("Deleting empty directory ${entity.path}");
-          await entity.delete(recursive: true);
+          entity.deleteSync(recursive: true);
         } else {
           emptyDir = false;
         }
@@ -506,8 +627,11 @@ class PackageCommand extends Command {
     return emptyDir;
   }
 
-  Future<int> runExec(String execPath, List<String> args,
-      {Map<String, String>? environment}) async {
+  Future<int> runExec(
+    String execPath,
+    List<String> args, {
+    Map<String, String>? environment,
+  }) async {
     final proc = await Process.start(execPath, args, environment: environment);
 
     await for (final line in proc.stdout.transform(utf8.decoder)) {
@@ -521,14 +645,17 @@ class PackageCommand extends Command {
     return proc.exitCode;
   }
 
-  Future<int> runPython(List<String> args,
-      {Map<String, String>? environment}) async {
+  Future<int> runPython(
+    List<String> args, {
+    Map<String, String>? environment,
+  }) async {
     if (_pythonDir == null) {
       _pythonDir = Directory(
-          path.join(_buildDir!.path, "build_python_$buildPythonVersion"));
+        path.join(_buildDir!.path, "build_python_$buildPythonVersion"),
+      );
 
       if (!_pythonDir!.existsSync()) {
-        await _pythonDir!.create();
+        _pythonDir!.createSync();
 
         var isArm64 = Platform.version.contains("arm64");
 
@@ -541,15 +668,19 @@ class PackageCommand extends Command {
           arch = 'x86_64-unknown-linux-gnu';
         } else if (Platform.isLinux && isArm64) {
           arch = 'aarch64-unknown-linux-gnu';
-        } else if (Platform.isWindows) {
+        } else if (Platform.isWindows && !isArm64) {
           arch = 'x86_64-pc-windows-msvc-shared';
+        } else if (Platform.isWindows && isArm64) {
+          arch = 'aarch64-pc-windows-msvc-shared';
         }
 
         var pythonArchiveFilename =
             "cpython-$buildPythonVersion+$buildPythonReleaseDate-$arch-install_only_stripped.tar.gz";
 
-        var pythonArchivePath =
-            path.join(_buildDir!.path, pythonArchiveFilename);
+        var pythonArchivePath = path.join(
+          _buildDir!.path,
+          pythonArchiveFilename,
+        );
 
         if (!File(pythonArchivePath).existsSync()) {
           // download Python distr from GitHub
@@ -558,26 +689,33 @@ class PackageCommand extends Command {
 
           if (_verbose) {
             verbose(
-                "Downloading Python distributive from $url to $pythonArchivePath");
+              "Downloading Python distributive from $url to $pythonArchivePath",
+            );
           } else {
             stdout.writeln(
-                "Downloading Python distributive from $url to a build directory");
+              "Downloading Python distributive from $url to a build directory",
+            );
           }
 
           var response = await http.get(Uri.parse(url));
-          await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
+          File(pythonArchivePath).writeAsBytesSync(response.bodyBytes);
         }
 
         // extract Python from archive
         if (_verbose) {
           verbose(
-              "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}");
+            "Extracting Python distributive from $pythonArchivePath to ${_pythonDir!.path}",
+          );
         } else {
           stdout.writeln("Extracting Python distributive");
         }
 
-        await Process.run(
-            'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
+        await Process.run('tar', [
+          '-xzf',
+          pythonArchivePath,
+          '-C',
+          _pythonDir!.path,
+        ]);
 
         if (Platform.isMacOS) {
           duplicateSysconfigFile(_pythonDir!.path);
@@ -585,9 +723,10 @@ class PackageCommand extends Command {
       }
     }
 
-    var pythonExePath = Platform.isWindows
-        ? path.join(_pythonDir!.path, 'python', 'python.exe')
-        : path.join(_pythonDir!.path, 'python', 'bin', 'python3');
+    var pythonExePath =
+        Platform.isWindows
+            ? path.join(_pythonDir!.path, 'python', 'python.exe')
+            : path.join(_pythonDir!.path, 'python', 'bin', 'python3');
 
     // Run the python executable
     verbose([pythonExePath, ...args].join(" "));
@@ -595,8 +734,10 @@ class PackageCommand extends Command {
   }
 
   void duplicateSysconfigFile(String pythonDir) {
-    final sysConfigGlob = Glob("python/lib/python3.*/_sysconfigdata__*.py",
-        context: path.Context(current: pythonDir));
+    final sysConfigGlob = Glob(
+      "python/lib/python3.*/_sysconfigdata__*.py",
+      context: path.Context(current: pythonDir),
+    );
     for (var sysConfig in sysConfigGlob.listSync(root: pythonDir)) {
       // copy the first found sys config and exit
       if (sysConfig is File) {
@@ -620,8 +761,9 @@ class PackageCommand extends Command {
     const htmlHeader = "<!DOCTYPE html><html><body>\n";
     const htmlFooter = "</body></html>\n";
 
-    var pyodidePackages =
-        await fetchJsonFromUrl("$pyodideRootUrl/$pyodideLockFile");
+    var pyodidePackages = await fetchJsonFromUrl(
+      "$pyodideRootUrl/$pyodideLockFile",
+    );
 
     var wheels = Map.from(pyodidePackages["packages"])
       ..removeWhere((k, p) => !p["file_name"].endsWith(".whl"));
@@ -632,32 +774,40 @@ class PackageCommand extends Command {
       var parts = path.split("/");
       if (parts.length == 1 && parts[0] == "simple") {
         return Response.ok(
-            htmlHeader +
-                wheels.keys
-                    .map((k) => '<a href="/simple/$k/">$k</a></br>\n')
-                    .join("") +
-                htmlFooter,
-            headers: {"Content-Type": "text/html"});
+          htmlHeader +
+              wheels.keys
+                  .map((k) => '<a href="/simple/$k/">$k</a></br>\n')
+                  .join("") +
+              htmlFooter,
+          headers: {"Content-Type": "text/html"},
+        );
       } else if (parts.length == 2 && parts[0] == "simple") {
         List<String> links = [];
         wheels.forEach((k, p) {
           if (k == parts[1].toLowerCase()) {
             links.add(
-                "<a href=\"$pyodideRootUrl/${p['file_name']}#sha256=${p['sha256']}\">${p['file_name']}</a></br>");
+              "<a href=\"$pyodideRootUrl/${p['file_name']}#sha256=${p['sha256']}\">${p['file_name']}</a></br>",
+            );
           }
         });
-        return Response.ok(htmlHeader + links.join("\n") + htmlFooter,
-            headers: {"Content-Type": "text/html"});
+        return Response.ok(
+          htmlHeader + links.join("\n") + htmlFooter,
+          headers: {"Content-Type": "text/html"},
+        );
       } else {
         return Response.ok('Request for "${request.url}"');
       }
     }
 
-    var handler =
-        const Pipeline().addMiddleware(logRequests()).addHandler(serveRequest);
+    var handler = const Pipeline()
+        .addMiddleware(logRequests())
+        .addHandler(serveRequest);
 
-    var server =
-        await shelf_io.serve(handler, '127.0.0.1', await getUnusedPort());
+    var server = await shelf_io.serve(
+      handler,
+      '127.0.0.1',
+      await getUnusedPort(),
+    );
 
     // Enable content compression
     server.autoCompress = true;
