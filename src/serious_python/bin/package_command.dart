@@ -324,7 +324,7 @@ class PackageCommand extends Command {
           }
         } else {
           verbose(
-            "Setting sitePackagesRoot(tempDir,defaultSitePackagesDir): $sitePackagesRoot",
+            "Setting sitePackagesRoot(tempDir,defaultSitePackagesDir): ${path.join(tempDir.path, defaultSitePackagesDir)}",
           );
           sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
         }
@@ -346,7 +346,7 @@ class PackageCommand extends Command {
           stdout.writeln(
             "Invoking pip for platform/arch: $platform/${arch.key}",
           );
-          String sitePackagesDir = sitePackagesRoot;
+          // String sitePackagesDir = sitePackagesRoot;
           Map<String, String>? pipEnv;
           Directory? sitecustomizeDir;
 
@@ -395,7 +395,7 @@ class PackageCommand extends Command {
               "runner",
               Platform.isWindows ? buildType : buildType.toLowerCase(),
             );
-            sitePackagesDir =
+            final sitePackagesDir =
                 arch.key.isNotEmpty
                     ? Platform.isWindows
                         ? path.join(buildDir, "site-packages")
