@@ -93,11 +93,11 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
     "${PYTHON_PACKAGE}/DLLs"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
-  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\" /Q
+  COMMAND IF \"$<CONFIG:Release>\" == \"1\" (DEL  /S /Q \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\")
+  COMMAND DEL /S /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" 
+  COMMAND DEL /S /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\"
+  COMMAND DEL /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\"
+  COMMAND DEL /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\"
 )
 
 if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
