@@ -30,6 +30,14 @@ list(APPEND PLUGIN_SOURCES
   "serious_python_windows_plugin.h"
 )
 
+if(MSVC)
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+	file(REAL_PATH ${CMAKE_BINARY_DIR}/runner/$<CONFIG> FLUTTER_APP_DIR)
+	set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${FLUTTER_APP_DIR})
+endif()
+
+include(InstallRequiredSystemLibraries)
+
 # Define the plugin library target. Its name must not be changed (see comment
 # on PLUGIN_NAME above).
 add_library(${PLUGIN_NAME} SHARED
@@ -71,9 +79,6 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 set(serious_python_windows_bundled_libraries
   "${PYTHON_PACKAGE}/python312$<$<CONFIG:Debug>:_d>.dll"
   "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
-  "$ENV{WINDIR}/system32/msvcp140.dll"
-  "$ENV{WINDIR}/system32/vcruntime140.dll"
-  "$ENV{WINDIR}/system32/vcruntime140_1.dll"
   PARENT_SCOPE
 )
 
@@ -88,15 +93,17 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
     "${PYTHON_PACKAGE}/DLLs"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
-  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\" /Q
+  COMMAND IF \"$<CONFIG:Release>\" == \"1\" (DEL  /S /Q \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\")
+  COMMAND DEL /S /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" 
+  COMMAND DEL /S /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\"
+  COMMAND DEL /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\"
+  COMMAND DEL /Q \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\"
 )
 
 if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
-  add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+  add_custom_target(CopySitePackages ALL)
+  add_dependencies(CopySitePackages CopyPythonDLLs)
+  add_custom_command(TARGET CopySitePackages POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E remove_directory
       "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
     COMMAND ${CMAKE_COMMAND} -E make_directory
