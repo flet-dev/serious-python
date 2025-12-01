@@ -2,7 +2,7 @@ name: serious_python_darwin
 description: iOS and macOS implementations of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.9.4
+version: 0.9.5
 
 environment:
   sdk: ">=3.0.0 <4.0.0"

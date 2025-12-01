@@ -1,3 +1,8 @@
+## 0.9.5
+
+* Bump `archive` to `^4.0.7`.
+* Fixed iOS framework identifier generation.
+
 ## 0.9.4
 
 * 16 KB memory page support for Android 15+ (by [@ReYaNOW](https://github.com/ReYaNOW)).

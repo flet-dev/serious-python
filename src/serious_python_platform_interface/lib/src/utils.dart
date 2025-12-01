@@ -60,9 +60,9 @@ Future<String> extractAssetOrFile(String path,
       archive = ZipDecoder().decodeBytes(data);
     } else {
       final inputStream = InputFileStream(path);
-      archive = ZipDecoder().decodeBuffer(inputStream);
+      archive = ZipDecoder().decodeStream(inputStream);
     }
-    await extractArchiveToDiskAsync(archive, destDir.path, asyncWrite: true);
+    await extractArchiveToDisk(archive, destDir.path);
   } catch (e) {
     debugPrint("Error unpacking archive: $e");
     await destDir.delete(recursive: true);
