@@ -1,6 +1,7 @@
 ## 0.9.5
 
 * Bump `archive` to `^4.0.7`.
+* Fixed iOS framework identifier generation.
 
 ## 0.9.4
 
