@@ -1,3 +1,7 @@
+## 0.9.6
+
+* Make zipDirectory call asynchronous.
+
 ## 0.9.5
 
 * Bump `archive` to `^4.0.7`.
