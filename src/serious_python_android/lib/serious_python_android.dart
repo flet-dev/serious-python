@@ -33,10 +33,9 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
-    Future setenv(String key, String value) async {
-      await methodChannel.invokeMethod<String>(
-          'setEnvironmentVariable', {'name': key, 'value': value});
-    }
+    Future<void> setenv(String key, String value) =>
+        methodChannel.invokeMethod<String>(
+            'setEnvironmentVariable', {'name': key, 'value': value});
 
     // load libpyjni.so to get JNI reference
     try {
@@ -78,18 +77,18 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       moduleSearchPaths.add(sitePackagesPath);
     }
 
-    setenv("PYTHONINSPECT", "1");
-    setenv("PYTHONDONTWRITEBYTECODE", "1");
-    setenv("PYTHONNOUSERSITE", "1");
-    setenv("PYTHONUNBUFFERED", "1");
-    setenv("LC_CTYPE", "UTF-8");
-    setenv("PYTHONHOME", pythonLibPath);
-    setenv("PYTHONPATH", moduleSearchPaths.join(":"));
+    await setenv("PYTHONINSPECT", "1");
+    await setenv("PYTHONDONTWRITEBYTECODE", "1");
+    await setenv("PYTHONNOUSERSITE", "1");
+    await setenv("PYTHONUNBUFFERED", "1");
+    await setenv("LC_CTYPE", "UTF-8");
+    await setenv("PYTHONHOME", pythonLibPath);
+    await setenv("PYTHONPATH", moduleSearchPaths.join(":"));
 
     // set environment variables
     if (environmentVariables != null) {
       for (var v in environmentVariables.entries) {
-        setenv(v.key, v.value);
+        await setenv(v.key, v.value);
       }
     }
 
