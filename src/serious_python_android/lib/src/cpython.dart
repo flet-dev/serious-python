@@ -11,9 +11,6 @@ import 'gen.dart';
 export 'gen.dart';
 
 CPython? _cpython;
-// Keep a single interpreter per process; repeated init/finalize of CPython 3.12
-// from an embedder is fragile and was crashing on second launch.
-bool _pythonInitialized = false;
 
 CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
@@ -54,42 +51,32 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   debugPrint("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
-  if (!_pythonInitialized) {
-    cpython.Py_Initialize();
-    _pythonInitialized = true;
-    debugPrint("after Py_Initialize()");
-  } else {
-    debugPrint("Python already initialized; reusing interpreter");
-  }
+  cpython.Py_Initialize();
+  debugPrint("after Py_Initialize()");
 
   var result = "";
-  // Ensure the current native thread is registered with the GIL; this is
-  // required if we re-enter Python from a new Dart isolate/thread.
-  final gilState = cpython.PyGILState_Ensure();
 
-  try {
-    if (script != "") {
-      // run script
-      final scriptPtr = script.toNativeUtf8();
-      int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-      debugPrint("PyRun_SimpleString for script result: $sr");
-      malloc.free(scriptPtr);
-      if (sr != 0) {
-        result = getPythonError(cpython);
-      }
-    } else {
-      // run program
-      final moduleNamePtr = programModuleName.toNativeUtf8();
-      var modulePtr =
-          cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-      if (modulePtr == nullptr) {
-        result = getPythonError(cpython);
-      }
-      malloc.free(moduleNamePtr);
+  if (script != "") {
+    // run script
+    final scriptPtr = script.toNativeUtf8();
+    int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+    debugPrint("PyRun_SimpleString for script result: $sr");
+    malloc.free(scriptPtr);
+    if (sr != 0) {
+      result = getPythonError(cpython);
     }
-  } finally {
-    cpython.PyGILState_Release(gilState);
+  } else {
+    // run program
+    final moduleNamePtr = programModuleName.toNativeUtf8();
+    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+    if (modulePtr == nullptr) {
+      result = getPythonError(cpython);
+    }
+    malloc.free(moduleNamePtr);
   }
+
+  cpython.Py_Finalize();
+  debugPrint("after Py_Finalize()");
 
   sendPort.send(result);
 
