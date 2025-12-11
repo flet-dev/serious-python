@@ -43,7 +43,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
           .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
       await setenv("FLET_JNI_READY", "1");
     } catch (e) {
-      debugPrint("Warning: Unable to load libpyjni.so library: $e");
+      debugPrint("Unable to load libpyjni.so library: $e");
     }
 
     // unpack python bundle
