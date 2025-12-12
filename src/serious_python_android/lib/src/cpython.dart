@@ -96,42 +96,52 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     _debug("after Py_Initialize()");
   }
 
-  final result = _withGIL(cpython, () {
-    final logcatSetupError = _setupLogcatForwarding(cpython);
-    if (logcatSetupError != null) {
-      return logcatSetupError;
-    }
-
-    if (script != "") {
-      // run script
-      _debug("Running script: $script");
-      final scriptPtr = script.toNativeUtf8();
-      int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-      _debug("PyRun_SimpleString for script result: $sr");
-      malloc.free(scriptPtr);
-      if (sr != 0) {
-        return getPythonError(cpython);
+  String result = "";
+  try {
+    result = _withGIL(cpython, () {
+      final logcatSetupError = _setupLogcatForwarding(cpython);
+      if (logcatSetupError != null) {
+        return logcatSetupError;
       }
-    } else {
-      // run program
-      _debug("Running program module: $programModuleName");
-      final moduleNamePtr = programModuleName.toNativeUtf8();
-      var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-      if (modulePtr == nullptr) {
-        final error = getPythonError(cpython);
+
+      if (script != "") {
+        // run script
+        _debug("Running script: $script");
+        final scriptPtr = script.toNativeUtf8();
+        int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+        _debug("PyRun_SimpleString for script result: $sr");
+        malloc.free(scriptPtr);
+        if (sr != 0) {
+          return getPythonError(cpython);
+        }
+      } else {
+        // run program
+        _debug("Running program module: $programModuleName");
+        final moduleNamePtr = programModuleName.toNativeUtf8();
+        var modulePtr =
+            cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+        if (modulePtr == nullptr) {
+          final error = getPythonError(cpython);
+          malloc.free(moduleNamePtr);
+          return error;
+        }
         malloc.free(moduleNamePtr);
-        return error;
       }
-      malloc.free(moduleNamePtr);
-    }
 
-    return "";
-  });
+      _debug("Python program finished");
 
-  _debug("Python program finished");
-
-//   cpython.Py_FinalizeEx();
-//   _debug("after Py_FinalizeEx()");
+      return "";
+    });
+  } finally {
+    // Always finalize interpreter so the next run starts clean and can obtain the GIL.
+    _withGIL(cpython, () {
+      if (cpython.Py_IsInitialized() != 0) {
+        cpython.Py_FinalizeEx();
+        _debug("after Py_FinalizeEx()");
+      }
+    });
+    _cpython = null;
+  }
 
   sendPort.send(result);
 
