@@ -96,16 +96,6 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     _debug("after Py_Initialize()");
   }
 
-  AppLifecycleListener(onDetach: () {
-    _debug("AppLifecycleListener: onDetach");
-    _withGIL(cpython, () {
-      if (cpython.Py_IsInitialized() != 0) {
-        cpython.Py_FinalizeEx();
-        _debug("after Py_FinalizeEx()");
-      }
-    });
-  });
-
   final result = _withGIL(cpython, () {
     final logcatSetupError = _setupLogcatForwarding(cpython);
     if (logcatSetupError != null) {
@@ -139,6 +129,9 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   });
 
   _debug("Python program finished");
+
+  cpython.Py_FinalizeEx();
+  _debug("after Py_FinalizeEx()");
 
   sendPort.send(result);
 
