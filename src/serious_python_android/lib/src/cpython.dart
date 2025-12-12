@@ -46,6 +46,15 @@ void _debug(String message) {
   debugPrint("[serious_python] $message");
 }
 
+T _withGIL<T>(CPython cpython, T Function() action) {
+  final gil = cpython.PyGILState_Ensure();
+  try {
+    return action();
+  } finally {
+    cpython.PyGILState_Release(gil);
+  }
+}
+
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
@@ -87,7 +96,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     _debug("after Py_Initialize()");
   }
 
-  final logcatSetupError = _setupLogcatForwarding(cpython);
+  final logcatSetupError = _withGIL(cpython, () => _setupLogcatForwarding(cpython));
   if (logcatSetupError != null) {
     sendPort.send(logcatSetupError);
     return logcatSetupError;
@@ -97,23 +106,31 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
 
   if (script != "") {
     // run script
-    _debug("Running script: $script");
-    final scriptPtr = script.toNativeUtf8();
-    int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-    _debug("PyRun_SimpleString for script result: $sr");
-    malloc.free(scriptPtr);
-    if (sr != 0) {
-      result = getPythonError(cpython);
-    }
+    result = _withGIL(cpython, () {
+      _debug("Running script: $script");
+      final scriptPtr = script.toNativeUtf8();
+      int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+      _debug("PyRun_SimpleString for script result: $sr");
+      malloc.free(scriptPtr);
+      if (sr != 0) {
+        return getPythonError(cpython);
+      }
+      return "";
+    });
   } else {
     // run program
-    _debug("Running program module: $programModuleName");
-    final moduleNamePtr = programModuleName.toNativeUtf8();
-    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-    if (modulePtr == nullptr) {
-      result = getPythonError(cpython);
-    }
-    malloc.free(moduleNamePtr);
+    result = _withGIL(cpython, () {
+      _debug("Running program module: $programModuleName");
+      final moduleNamePtr = programModuleName.toNativeUtf8();
+      var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+      if (modulePtr == nullptr) {
+        final error = getPythonError(cpython);
+        malloc.free(moduleNamePtr);
+        return error;
+      }
+      malloc.free(moduleNamePtr);
+      return "";
+    });
   }
 
   _debug("Python program finished");
@@ -125,38 +142,41 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
 
 String getPythonError(CPython cpython) {
   // get error object
-  var exPtr = cpython.PyErr_GetRaisedException();
+  var exPtr = _withGIL(cpython, () => cpython.PyErr_GetRaisedException());
 
   // use 'traceback' module to format exception
   final tracebackModuleNamePtr = "traceback".toNativeUtf8();
-  var tracebackModulePtr =
-      cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
+  var tracebackModulePtr = _withGIL(cpython,
+      () => cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>()));
   cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
   if (tracebackModulePtr != nullptr) {
     //_debug("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
-    final pFormatFunc = cpython.PyObject_GetAttrString(
-        tracebackModulePtr, formatFuncName.cast());
+    final pFormatFunc = _withGIL(
+        cpython,
+        () => cpython.PyObject_GetAttrString(
+            tracebackModulePtr, formatFuncName.cast()));
     cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
     if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
       // call `traceback.format_exception()` method
-      final pArgs = cpython.PyTuple_New(1);
-      cpython.PyTuple_SetItem(pArgs, 0, exPtr);
+      final pArgs = _withGIL(cpython, () => cpython.PyTuple_New(1));
+      _withGIL(cpython, () => cpython.PyTuple_SetItem(pArgs, 0, exPtr));
 
       // result is a list
-      var listPtr = cpython.PyObject_CallObject(pFormatFunc, pArgs);
+      var listPtr =
+          _withGIL(cpython, () => cpython.PyObject_CallObject(pFormatFunc, pArgs));
 
       // get and combine list items
       var exLines = [];
-      var listSize = cpython.PyList_Size(listPtr);
+      var listSize = _withGIL(cpython, () => cpython.PyList_Size(listPtr));
       for (var i = 0; i < listSize; i++) {
-        var itemObj = cpython.PyList_GetItem(listPtr, i);
-        var itemObjStr = cpython.PyObject_Str(itemObj);
-        var s =
-            cpython.PyUnicode_AsUTF8(itemObjStr).cast<Utf8>().toDartString();
+        var itemObj = _withGIL(cpython, () => cpython.PyList_GetItem(listPtr, i));
+        var itemObjStr = _withGIL(cpython, () => cpython.PyObject_Str(itemObj));
+        var s = _withGIL(cpython,
+            () => cpython.PyUnicode_AsUTF8(itemObjStr).cast<Utf8>().toDartString());
         exLines.add(s);
       }
       return exLines.join("");
