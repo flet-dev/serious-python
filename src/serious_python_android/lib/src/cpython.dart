@@ -47,12 +47,13 @@ void _debug(String message) {
 }
 
 T _withGIL<T>(CPython cpython, T Function() action) {
-  final gil = cpython.PyGILState_Ensure();
-  try {
-    return action();
-  } finally {
-    cpython.PyGILState_Release(gil);
-  }
+//   final gil = cpython.PyGILState_Ensure();
+//   try {
+//     return action();
+//   } finally {
+//     cpython.PyGILState_Release(gil);
+//   }
+  return action();
 }
 
 /// Finalize interpreter safely without releasing GIL afterwards (Py_FinalizeEx
@@ -146,8 +147,9 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
       return "";
     });
   } finally {
-    // Keep interpreter alive between runs; finalizing caused crashes when
-    // re-initializing extension modules (e.g. _ctypes) on Android.
+    // Finalize interpreter so subsequent runs start clean and GIL is free.
+    // _finalizeInterpreter(cpython);
+    // _cpython = null;
   }
 
   sendPort.send(result);
