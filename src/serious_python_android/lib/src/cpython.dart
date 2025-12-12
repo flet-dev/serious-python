@@ -11,8 +11,15 @@ import 'gen.dart';
 export 'gen.dart';
 
 CPython? _cpython;
+String? _logcatForwardingError;
 const _logcatInitScript = r'''
 import sys, logging
+
+# Make this init idempotent across Dart isolate restarts.
+if getattr(sys, "__serious_python_logcat_configured__", False):
+    raise SystemExit
+sys.__serious_python_logcat_configured__ = True
+
 from ctypes import cdll
 liblog = cdll.LoadLibrary("liblog.so")
 ANDROID_LOG_INFO = 4
@@ -73,19 +80,23 @@ Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
-    return await runPythonProgramInIsolate(
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-  } else {
-    var completer = Completer<String>();
-    // async run
-    final isolate = await Isolate.spawn(runPythonProgramInIsolate,
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-    receivePort.listen((message) {
+    try {
+      return await runPythonProgramInIsolate(
+          [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+    } finally {
       receivePort.close();
-      isolate.kill();
-      completer.complete(message);
-    });
-    return completer.future;
+    }
+  } else {
+    // async run
+    //
+    // IMPORTANT: do not `isolate.kill()` here. Killing the isolate can abort the
+    // underlying OS thread while it still interacts with CPython, leaving the
+    // interpreter/GIL in a bad state for subsequent runs.
+    await Isolate.spawn(runPythonProgramInIsolate,
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+    final message = await receivePort.first;
+    receivePort.close();
+    return message as String;
   }
 }
 
@@ -146,9 +157,9 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
       return "";
     });
   } finally {
-    // Finalize interpreter so subsequent runs start clean and GIL is free.
-    _finalizeInterpreter(cpython);
-    _cpython = null;
+    // Keep interpreter alive between runs. Finalizing + re-initializing the
+    // interpreter is not reliably supported and has caused native crashes
+    // (e.g. during _ctypes re-import) on Android.
   }
 
   sendPort.send(result);
@@ -208,9 +219,11 @@ String? _setupLogcatForwarding(CPython cpython) {
   malloc.free(setupPtr);
 
   if (result != 0) {
-    return getPythonError(cpython);
+    _logcatForwardingError = getPythonError(cpython);
+    return _logcatForwardingError;
   }
 
   _debug("logcat forwarding configured");
+  _logcatForwardingError = null;
   return null;
 }
