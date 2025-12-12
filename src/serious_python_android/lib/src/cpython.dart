@@ -61,13 +61,11 @@ void _finalizeInterpreter(CPython cpython) {
   if (cpython.Py_IsInitialized() == 0) {
     return;
   }
+  // Acquire the GIL but avoid releasing it after finalize; Py_FinalizeEx will
+  // tear down the current thread state.
   cpython.PyGILState_Ensure();
-  try {
-    cpython.Py_FinalizeEx();
-    _debug("after Py_FinalizeEx()");
-  } finally {
-    // Do NOT call PyGILState_Release after finalize; the thread state is gone.
-  }
+  cpython.Py_FinalizeEx();
+  _debug("after Py_FinalizeEx()");
 }
 
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
@@ -148,9 +146,8 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
       return "";
     });
   } finally {
-    // Always finalize interpreter so the next run starts clean and can obtain the GIL.
-    _finalizeInterpreter(cpython);
-    _cpython = null;
+    // Keep interpreter alive between runs; finalizing caused crashes when
+    // re-initializing extension modules (e.g. _ctypes) on Android.
   }
 
   sendPort.send(result);
