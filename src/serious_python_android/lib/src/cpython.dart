@@ -16,6 +16,10 @@ CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
 }
 
+void _debug(String message) {
+  debugPrint("[serious_python] $message");
+}
+
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
@@ -46,13 +50,16 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  debugPrint("dynamicLibPath: $dynamicLibPath");
-  debugPrint("programDirPath: $programDirPath");
-  debugPrint("programModuleName: $programModuleName");
+  _debug("dynamicLibPath: $dynamicLibPath");
+  _debug("programDirPath: $programDirPath");
+  _debug("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
-  cpython.Py_Initialize();
-  debugPrint("after Py_Initialize()");
+  if (cpython.Py_IsInitialized() == 0) {
+    // Initialize the runtime only if it is not already active.
+    cpython.Py_Initialize();
+    _debug("after Py_Initialize()");
+  }
 
   var result = "";
 
@@ -60,7 +67,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     // run script
     final scriptPtr = script.toNativeUtf8();
     int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-    debugPrint("PyRun_SimpleString for script result: $sr");
+    _debug("PyRun_SimpleString for script result: $sr");
     malloc.free(scriptPtr);
     if (sr != 0) {
       result = getPythonError(cpython);
@@ -74,9 +81,6 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     }
     malloc.free(moduleNamePtr);
   }
-
-  cpython.Py_Finalize();
-  debugPrint("after Py_Finalize()");
 
   sendPort.send(result);
 
@@ -94,7 +98,7 @@ String getPythonError(CPython cpython) {
   cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
   if (tracebackModulePtr != nullptr) {
-    //debugPrint("Traceback module loaded");
+    //_debug("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(
