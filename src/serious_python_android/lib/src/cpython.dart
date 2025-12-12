@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
@@ -96,6 +96,16 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     _debug("after Py_Initialize()");
   }
 
+  AppLifecycleListener(onDetach: () {
+    _debug("AppLifecycleListener: onDetach");
+    _withGIL(cpython, () {
+      if (cpython.Py_IsInitialized() != 0) {
+        cpython.Py_FinalizeEx();
+        _debug("after Py_FinalizeEx()");
+      }
+    });
+  });
+
   final result = _withGIL(cpython, () {
     final logcatSetupError = _setupLogcatForwarding(cpython);
     if (logcatSetupError != null) {
@@ -149,8 +159,8 @@ String getPythonError(CPython cpython) {
     //_debug("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
-    final pFormatFunc =
-        cpython.PyObject_GetAttrString(tracebackModulePtr, formatFuncName.cast());
+    final pFormatFunc = cpython.PyObject_GetAttrString(
+        tracebackModulePtr, formatFuncName.cast());
     cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
     if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
