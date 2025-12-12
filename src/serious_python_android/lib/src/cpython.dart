@@ -166,7 +166,7 @@ String getPythonError(CPython cpython) {
   final tracebackModuleNamePtr = "traceback".toNativeUtf8();
   var tracebackModulePtr =
       cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
-  cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+  malloc.free(tracebackModuleNamePtr);
 
   if (tracebackModulePtr != nullptr) {
     //_debug("Traceback module loaded");
@@ -174,7 +174,7 @@ String getPythonError(CPython cpython) {
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(
         tracebackModulePtr, formatFuncName.cast());
-    cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+    malloc.free(formatFuncName);
 
     if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
       // call `traceback.format_exception()` method
