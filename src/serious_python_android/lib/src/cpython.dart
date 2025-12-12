@@ -130,8 +130,8 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
 
   _debug("Python program finished");
 
-  cpython.Py_FinalizeEx();
-  _debug("after Py_FinalizeEx()");
+//   cpython.Py_FinalizeEx();
+//   _debug("after Py_FinalizeEx()");
 
   sendPort.send(result);
 
