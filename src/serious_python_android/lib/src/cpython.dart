@@ -11,6 +11,32 @@ import 'gen.dart';
 export 'gen.dart';
 
 CPython? _cpython;
+const _logcatInitScript = r'''
+import sys, logging
+from ctypes import cdll
+liblog = cdll.LoadLibrary("liblog.so")
+ANDROID_LOG_INFO = 4
+
+def _log_to_logcat(msg, level=ANDROID_LOG_INFO):
+    if not msg:
+        return
+    if isinstance(msg, bytes):
+        msg = msg.decode("utf-8", errors="replace")
+    liblog.__android_log_write(level, b"serious_python", msg.encode("utf-8"))
+
+class _LogcatWriter:
+    def write(self, msg):
+        _log_to_logcat(msg.strip())
+    def flush(self):
+        pass
+
+sys.stdout = sys.stderr = _LogcatWriter()
+handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+root = logging.getLogger()
+root.handlers[:] = [handler]
+root.setLevel(logging.DEBUG)
+''';
 
 CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
@@ -61,10 +87,17 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     _debug("after Py_Initialize()");
   }
 
+  final logcatSetupError = _setupLogcatForwarding(cpython);
+  if (logcatSetupError != null) {
+    sendPort.send(logcatSetupError);
+    return logcatSetupError;
+  }
+
   var result = "";
 
   if (script != "") {
     // run script
+    _debug("Running script: $script");
     final scriptPtr = script.toNativeUtf8();
     int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
     _debug("PyRun_SimpleString for script result: $sr");
@@ -74,6 +107,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     }
   } else {
     // run program
+    _debug("Running program module: $programModuleName");
     final moduleNamePtr = programModuleName.toNativeUtf8();
     var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
     if (modulePtr == nullptr) {
@@ -81,6 +115,8 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     }
     malloc.free(moduleNamePtr);
   }
+
+  _debug("Python program finished");
 
   sendPort.send(result);
 
@@ -130,4 +166,18 @@ String getPythonError(CPython cpython) {
   } else {
     return "Error loading traceback module.";
   }
+}
+
+String? _setupLogcatForwarding(CPython cpython) {
+  _debug("Setting up logcat forwarding");
+  final setupPtr = _logcatInitScript.toNativeUtf8();
+  final result = cpython.PyRun_SimpleString(setupPtr.cast<Char>());
+  malloc.free(setupPtr);
+
+  if (result != 0) {
+    return getPythonError(cpython);
+  }
+
+  _debug("logcat forwarding configured");
+  return null;
 }
