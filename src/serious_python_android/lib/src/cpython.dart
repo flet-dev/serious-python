@@ -47,13 +47,12 @@ void _debug(String message) {
 }
 
 T _withGIL<T>(CPython cpython, T Function() action) {
-//   final gil = cpython.PyGILState_Ensure();
-//   try {
-//     return action();
-//   } finally {
-//     cpython.PyGILState_Release(gil);
-//   }
-  return action();
+  final gil = cpython.PyGILState_Ensure();
+  try {
+    return action();
+  } finally {
+    cpython.PyGILState_Release(gil);
+  }
 }
 
 /// Finalize interpreter safely without releasing GIL afterwards (Py_FinalizeEx
@@ -148,8 +147,8 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     });
   } finally {
     // Finalize interpreter so subsequent runs start clean and GIL is free.
-    // _finalizeInterpreter(cpython);
-    // _cpython = null;
+    _finalizeInterpreter(cpython);
+    _cpython = null;
   }
 
   sendPort.send(result);
