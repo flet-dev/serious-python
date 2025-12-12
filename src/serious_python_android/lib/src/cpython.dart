@@ -55,6 +55,21 @@ T _withGIL<T>(CPython cpython, T Function() action) {
   }
 }
 
+/// Finalize interpreter safely without releasing GIL afterwards (Py_FinalizeEx
+/// tears down the current thread state, so releasing would fatal).
+void _finalizeInterpreter(CPython cpython) {
+  if (cpython.Py_IsInitialized() == 0) {
+    return;
+  }
+  cpython.PyGILState_Ensure();
+  try {
+    cpython.Py_FinalizeEx();
+    _debug("after Py_FinalizeEx()");
+  } finally {
+    // Do NOT call PyGILState_Release after finalize; the thread state is gone.
+  }
+}
+
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
@@ -134,12 +149,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     });
   } finally {
     // Always finalize interpreter so the next run starts clean and can obtain the GIL.
-    _withGIL(cpython, () {
-      if (cpython.Py_IsInitialized() != 0) {
-        cpython.Py_FinalizeEx();
-        _debug("after Py_FinalizeEx()");
-      }
-    });
+    _finalizeInterpreter(cpython);
     _cpython = null;
   }
 
