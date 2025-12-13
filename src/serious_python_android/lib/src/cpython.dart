@@ -53,12 +53,13 @@ void _debug(String message) {
 }
 
 T _withGIL<T>(CPython cpython, T Function() action) {
-  final gil = cpython.PyGILState_Ensure();
-  try {
-    return action();
-  } finally {
-    cpython.PyGILState_Release(gil);
-  }
+//   final gil = cpython.PyGILState_Ensure();
+//   try {
+//     return action();
+//   } finally {
+//     cpython.PyGILState_Release(gil);
+//   }
+  return action();
 }
 
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,

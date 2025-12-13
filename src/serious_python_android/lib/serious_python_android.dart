@@ -95,4 +95,12 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     return runPythonProgramFFI(
         sync ?? false, "libpython3.12.so", appPath, script ?? "");
   }
+
+  @override
+  void terminate() {
+    // CPython is embedded in-process; after Flutter engine/Dart isolate restarts,
+    // native CPython state (including the GIL) can be left in a bad state.
+    // Killing the process is the most reliable way to guarantee a clean start.
+    methodChannel.invokeMethod<String>('terminate');
+  }
 }

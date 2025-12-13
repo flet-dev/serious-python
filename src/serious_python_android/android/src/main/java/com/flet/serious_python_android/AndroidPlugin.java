@@ -5,6 +5,9 @@ import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
 import android.system.Os;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Process;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -80,6 +83,13 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
+    } else if (call.method.equals("terminate")) {
+      // Terminate the process shortly after responding to Dart.
+      result.success(null);
+      new Handler(Looper.getMainLooper()).postDelayed(
+          () -> Process.killProcess(Process.myPid()),
+          100
+      );
     } else {
       result.notImplemented();
     }
