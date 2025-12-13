@@ -16,33 +16,32 @@ const _logcatInitScript = r'''
 import sys, logging
 
 # Make this init idempotent across Dart isolate restarts.
-if getattr(sys, "__serious_python_logcat_configured__", False):
-    raise SystemExit
-sys.__serious_python_logcat_configured__ = True
+if not getattr(sys, "__serious_python_logcat_configured__", False):
+    sys.__serious_python_logcat_configured__ = True
 
-from ctypes import cdll
-liblog = cdll.LoadLibrary("liblog.so")
-ANDROID_LOG_INFO = 4
+    from ctypes import cdll
+    liblog = cdll.LoadLibrary("liblog.so")
+    ANDROID_LOG_INFO = 4
 
-def _log_to_logcat(msg, level=ANDROID_LOG_INFO):
-    if not msg:
-        return
-    if isinstance(msg, bytes):
-        msg = msg.decode("utf-8", errors="replace")
-    liblog.__android_log_write(level, b"serious_python", msg.encode("utf-8"))
+    def _log_to_logcat(msg, level=ANDROID_LOG_INFO):
+        if not msg:
+            return
+        if isinstance(msg, bytes):
+            msg = msg.decode("utf-8", errors="replace")
+        liblog.__android_log_write(level, b"serious_python", msg.encode("utf-8"))
 
-class _LogcatWriter:
-    def write(self, msg):
-        _log_to_logcat(msg.strip())
-    def flush(self):
-        pass
+    class _LogcatWriter:
+        def write(self, msg):
+            _log_to_logcat(msg.strip())
+        def flush(self):
+            pass
 
-sys.stdout = sys.stderr = _LogcatWriter()
-handler = logging.StreamHandler(sys.stderr)
-handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
-root = logging.getLogger()
-root.handlers[:] = [handler]
-root.setLevel(logging.DEBUG)
+    sys.stdout = sys.stderr = _LogcatWriter()
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    root = logging.getLogger()
+    root.handlers[:] = [handler]
+    root.setLevel(logging.DEBUG)
 ''';
 
 CPython getCPython(String dynamicLibPath) {
@@ -60,19 +59,6 @@ T _withGIL<T>(CPython cpython, T Function() action) {
   } finally {
     cpython.PyGILState_Release(gil);
   }
-}
-
-/// Finalize interpreter safely without releasing GIL afterwards (Py_FinalizeEx
-/// tears down the current thread state, so releasing would fatal).
-void _finalizeInterpreter(CPython cpython) {
-  if (cpython.Py_IsInitialized() == 0) {
-    return;
-  }
-  // Acquire the GIL but avoid releasing it after finalize; Py_FinalizeEx will
-  // tear down the current thread state.
-  cpython.PyGILState_Ensure();
-  cpython.Py_FinalizeEx();
-  _debug("after Py_FinalizeEx()");
 }
 
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
@@ -123,38 +109,54 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   String result = "";
   try {
     result = _withGIL(cpython, () {
-      final logcatSetupError = _setupLogcatForwarding(cpython);
-      if (logcatSetupError != null) {
-        return logcatSetupError;
+      // Run each invocation in a fresh sub-interpreter to reduce cross-run
+      // leakage (event loops/background threads/modules) that can otherwise
+      // lead to GIL deadlocks on the next app start.
+      final mainThreadState = cpython.PyThreadState_Get();
+      final subThreadState = cpython.Py_NewInterpreter();
+      if (subThreadState == nullptr) {
+        return "Py_NewInterpreter() failed.";
       }
 
-      if (script != "") {
-        // run script
-        _debug("Running script: $script");
-        final scriptPtr = script.toNativeUtf8();
-        int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-        _debug("PyRun_SimpleString for script result: $sr");
-        malloc.free(scriptPtr);
-        if (sr != 0) {
-          return getPythonError(cpython);
+      try {
+        final logcatSetupError = _setupLogcatForwarding(cpython);
+        if (logcatSetupError != null) {
+          return logcatSetupError;
         }
-      } else {
-        // run program
-        _debug("Running program module: $programModuleName");
-        final moduleNamePtr = programModuleName.toNativeUtf8();
-        var modulePtr =
-            cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-        if (modulePtr == nullptr) {
-          final error = getPythonError(cpython);
+
+        if (script != "") {
+          // run script
+          _debug("Running script: $script");
+          final scriptPtr = script.toNativeUtf8();
+          int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+          _debug("PyRun_SimpleString for script result: $sr");
+          malloc.free(scriptPtr);
+          if (sr != 0) {
+            return getPythonError(cpython);
+          }
+        } else {
+          // run program
+          _debug("Running program module: $programModuleName");
+          final moduleNamePtr = programModuleName.toNativeUtf8();
+          var modulePtr =
+              cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+          if (modulePtr == nullptr) {
+            final error = getPythonError(cpython);
+            malloc.free(moduleNamePtr);
+            return error;
+          }
           malloc.free(moduleNamePtr);
-          return error;
         }
-        malloc.free(moduleNamePtr);
+
+        _debug("Python program finished");
+
+        return "";
+      } finally {
+        cpython.Py_EndInterpreter(subThreadState);
+        if (mainThreadState != nullptr) {
+          cpython.PyThreadState_Swap(mainThreadState);
+        }
       }
-
-      _debug("Python program finished");
-
-      return "";
     });
   } finally {
     // Keep interpreter alive between runs. Finalizing + re-initializing the
