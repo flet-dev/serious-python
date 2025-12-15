@@ -3,7 +3,7 @@ import 'dart:ffi';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
@@ -48,41 +48,24 @@ CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
 }
 
-void _debug(String message) {
-  debugPrint("[serious_python] $message");
-}
-
-T _withGIL<T>(CPython cpython, T Function() action) {
-  final gil = cpython.PyGILState_Ensure();
-  try {
-    return action();
-  } finally {
-    cpython.PyGILState_Release(gil);
-  }
-}
-
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   final receivePort = ReceivePort();
   if (sync) {
     // sync run
-    try {
-      return await runPythonProgramInIsolate(
-          [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-    } finally {
-      receivePort.close();
-    }
-  } else {
-    // async run
-    //
-    // IMPORTANT: do not `isolate.kill()` here. Killing the isolate can abort the
-    // underlying OS thread while it still interacts with CPython, leaving the
-    // interpreter/GIL in a bad state for subsequent runs.
-    await Isolate.spawn(runPythonProgramInIsolate,
+    return await runPythonProgramInIsolate(
         [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-    final message = await receivePort.first;
-    receivePort.close();
-    return message as String;
+  } else {
+    var completer = Completer<String>();
+    // async run
+    final isolate = await Isolate.spawn(runPythonProgramInIsolate,
+        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+    receivePort.listen((message) {
+      receivePort.close();
+      isolate.kill();
+      completer.complete(message);
+    });
+    return completer.future;
   }
 }
 
@@ -95,74 +78,49 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  _debug("dynamicLibPath: $dynamicLibPath");
-  _debug("programDirPath: $programDirPath");
-  _debug("programModuleName: $programModuleName");
+  debugPrint("dynamicLibPath: $dynamicLibPath");
+  debugPrint("programDirPath: $programDirPath");
+  debugPrint("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
-  if (cpython.Py_IsInitialized() == 0) {
-    // Initialize the runtime only if it is not already active.
-    cpython.Py_Initialize();
-    _debug("after Py_Initialize()");
+  if (cpython.Py_IsInitialized() != 0) {
+    sendPort.send("");
+    return "";
   }
 
-  String result = "";
-  try {
-    result = _withGIL(cpython, () {
-      // Run each invocation in a fresh sub-interpreter to reduce cross-run
-      // leakage (event loops/background threads/modules) that can otherwise
-      // lead to GIL deadlocks on the next app start.
-      final mainThreadState = cpython.PyThreadState_Get();
-      final subThreadState = cpython.Py_NewInterpreter();
-      if (subThreadState == nullptr) {
-        return "Py_NewInterpreter() failed.";
-      }
+  cpython.Py_Initialize();
+  debugPrint("after Py_Initialize()");
 
-      try {
-        final logcatSetupError = _setupLogcatForwarding(cpython);
-        if (logcatSetupError != null) {
-          return logcatSetupError;
-        }
+  var result = "";
 
-        if (script != "") {
-          // run script
-          _debug("Running script: $script");
-          final scriptPtr = script.toNativeUtf8();
-          int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-          _debug("PyRun_SimpleString for script result: $sr");
-          malloc.free(scriptPtr);
-          if (sr != 0) {
-            return getPythonError(cpython);
-          }
-        } else {
-          // run program
-          _debug("Running program module: $programModuleName");
-          final moduleNamePtr = programModuleName.toNativeUtf8();
-          var modulePtr =
-              cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
-          if (modulePtr == nullptr) {
-            final error = getPythonError(cpython);
-            malloc.free(moduleNamePtr);
-            return error;
-          }
-          malloc.free(moduleNamePtr);
-        }
-
-        _debug("Python program finished");
-
-        return "";
-      } finally {
-        cpython.Py_EndInterpreter(subThreadState);
-        if (mainThreadState != nullptr) {
-          cpython.PyThreadState_Swap(mainThreadState);
-        }
-      }
-    });
-  } finally {
-    // Keep interpreter alive between runs. Finalizing + re-initializing the
-    // interpreter is not reliably supported and has caused native crashes
-    // (e.g. during _ctypes re-import) on Android.
+  final logcatSetupError = _setupLogcatForwarding(cpython);
+  if (logcatSetupError != null) {
+    cpython.Py_Finalize();
+    sendPort.send(logcatSetupError);
+    return logcatSetupError;
   }
+
+  if (script != "") {
+    // run script
+    final scriptPtr = script.toNativeUtf8();
+    int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
+    debugPrint("PyRun_SimpleString for script result: $sr");
+    malloc.free(scriptPtr);
+    if (sr != 0) {
+      result = getPythonError(cpython);
+    }
+  } else {
+    // run program
+    final moduleNamePtr = programModuleName.toNativeUtf8();
+    var modulePtr = cpython.PyImport_ImportModule(moduleNamePtr.cast<Char>());
+    if (modulePtr == nullptr) {
+      result = getPythonError(cpython);
+    }
+    malloc.free(moduleNamePtr);
+  }
+
+  cpython.Py_Finalize();
+  debugPrint("after Py_Finalize()");
 
   sendPort.send(result);
 
@@ -177,15 +135,15 @@ String getPythonError(CPython cpython) {
   final tracebackModuleNamePtr = "traceback".toNativeUtf8();
   var tracebackModulePtr =
       cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
-  malloc.free(tracebackModuleNamePtr);
+  cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
   if (tracebackModulePtr != nullptr) {
-    //_debug("Traceback module loaded");
+    //debugPrint("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(
         tracebackModulePtr, formatFuncName.cast());
-    malloc.free(formatFuncName);
+    cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
     if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
       // call `traceback.format_exception()` method
@@ -215,7 +173,10 @@ String getPythonError(CPython cpython) {
 }
 
 String? _setupLogcatForwarding(CPython cpython) {
-  _debug("Setting up logcat forwarding");
+  if (_logcatForwardingError != null) {
+    return _logcatForwardingError;
+  }
+
   final setupPtr = _logcatInitScript.toNativeUtf8();
   final result = cpython.PyRun_SimpleString(setupPtr.cast<Char>());
   malloc.free(setupPtr);
@@ -225,7 +186,5 @@ String? _setupLogcatForwarding(CPython cpython) {
     return _logcatForwardingError;
   }
 
-  _debug("logcat forwarding configured");
-  _logcatForwardingError = null;
   return null;
 }
