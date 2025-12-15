@@ -3,10 +3,10 @@ import 'dart:ffi';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
+import 'log.dart';
 
 export 'gen.dart';
 
@@ -78,9 +78,9 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  debugPrint("dynamicLibPath: $dynamicLibPath");
-  debugPrint("programDirPath: $programDirPath");
-  debugPrint("programModuleName: $programModuleName");
+  spDebug("dynamicLibPath: $dynamicLibPath");
+  spDebug("programDirPath: $programDirPath");
+  spDebug("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
   if (cpython.Py_IsInitialized() != 0) {
@@ -89,7 +89,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   }
 
   cpython.Py_Initialize();
-  debugPrint("after Py_Initialize()");
+  spDebug("after Py_Initialize()");
 
   var result = "";
 
@@ -104,7 +104,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
     // run script
     final scriptPtr = script.toNativeUtf8();
     int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-    debugPrint("PyRun_SimpleString for script result: $sr");
+    spDebug("PyRun_SimpleString for script result: $sr");
     malloc.free(scriptPtr);
     if (sr != 0) {
       result = getPythonError(cpython);
@@ -120,7 +120,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   }
 
   cpython.Py_Finalize();
-  debugPrint("after Py_Finalize()");
+  spDebug("after Py_Finalize()");
 
   sendPort.send(result);
 
@@ -138,7 +138,7 @@ String getPythonError(CPython cpython) {
   cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
   if (tracebackModulePtr != nullptr) {
-    //debugPrint("Traceback module loaded");
+    //spDebug("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(

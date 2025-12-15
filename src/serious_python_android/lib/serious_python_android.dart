@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 import 'src/cpython.dart';
+import 'src/log.dart';
 
 /// An implementation of [SeriousPythonPlatform] that uses method channels.
 class SeriousPythonAndroid extends SeriousPythonPlatform {
@@ -43,13 +44,13 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
           .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
       await setenv("FLET_JNI_READY", "1");
     } catch (e) {
-      debugPrint("Unable to load libpyjni.so library: $e");
+      spDebug("Unable to load libpyjni.so library: $e");
     }
 
     // unpack python bundle
     final nativeLibraryDir =
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
-    debugPrint("getNativeLibraryDir: $nativeLibraryDir");
+    spDebug("getNativeLibraryDir: $nativeLibraryDir");
 
     var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
     var sitePackagesZipPath = "$nativeLibraryDir/libpythonsitepackages.so";
@@ -59,7 +60,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     }
     var pythonLibPath =
         await extractFileZip(bundlePath, targetPath: "python_bundle");
-    debugPrint("pythonLibPath: $pythonLibPath");
+    spDebug("pythonLibPath: $pythonLibPath");
 
     var programDirPath = p.dirname(appPath);
 
@@ -73,7 +74,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     if (await File(sitePackagesZipPath).exists()) {
       var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
           targetPath: "python_site_packages");
-      debugPrint("sitePackagesPath: $sitePackagesPath");
+      spDebug("sitePackagesPath: $sitePackagesPath");
       moduleSearchPaths.add(sitePackagesPath);
     }
 
