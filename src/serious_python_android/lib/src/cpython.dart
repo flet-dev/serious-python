@@ -83,7 +83,9 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   spDebug("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
+  spDebug("CPython loaded");
   if (cpython.Py_IsInitialized() != 0) {
+    spDebug("Python already initialized, skipping execution.");
     sendPort.send("");
     return "";
   }
