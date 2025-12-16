@@ -5,9 +5,6 @@ import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
 import android.system.Os;
 import android.content.Intent;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Process;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
