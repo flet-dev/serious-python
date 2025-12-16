@@ -15,6 +15,12 @@ Future<String> extractAssetOrFile(String path,
       Directory(p.join(supportDir.path, "flet", targetPath ?? p.dirname(path)));
 
   String assetHash = "";
+  // read asset hash from asset
+  try {
+    assetHash = (await rootBundle.loadString("$path.hash")).trim();
+    // ignore: empty_catches
+  } catch (e) {}
+
   String destHash = "";
   var hashFile = File(p.join(destDir.path, ".hash"));
 
@@ -25,14 +31,6 @@ Future<String> extractAssetOrFile(String path,
       await destDir.delete(recursive: true);
     } else {
       if (checkHash) {
-        // read asset hash from asset
-        try {
-          assetHash = (await rootBundle.loadString("$path.hash")).trim();
-          debugPrint("Asset hash for $path: $assetHash");
-          // ignore: empty_catches
-        } catch (e) {
-          debugPrint("No asset hash file found for $path.hash: $e");
-        }
         if (await hashFile.exists()) {
           destHash = (await hashFile.readAsString()).trim();
         }
@@ -77,9 +75,6 @@ Future<String> extractAssetOrFile(String path,
   if (checkHash) {
     debugPrint("Writing hash file: ${hashFile.path}, hash: $assetHash");
     await hashFile.writeAsString(assetHash);
-    debugPrint("Hash file written.");
-  } else {
-    debugPrint("Hash check not requested, skipping hash file write.");
   }
 
   return destDir.path;
