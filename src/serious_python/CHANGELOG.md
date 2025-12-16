@@ -1,3 +1,8 @@
+## 0.9.7
+
+* Fix app restart on Android 10.
+* Redirect Python output to logcat.
+
 ## 0.9.6
 
 * Make zipDirectory call asynchronous.
