@@ -83,13 +83,6 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
-    } else if (call.method.equals("terminate")) {
-      // Terminate the process shortly after responding to Dart.
-      result.success(null);
-      new Handler(Looper.getMainLooper()).postDelayed(
-          () -> Process.killProcess(Process.myPid()),
-          100
-      );
     } else {
       result.notImplemented();
     }
