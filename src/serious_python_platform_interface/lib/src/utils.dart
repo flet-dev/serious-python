@@ -28,6 +28,7 @@ Future<String> extractAssetOrFile(String path,
         // read asset hash from asset
         try {
           assetHash = (await rootBundle.loadString("$path.hash")).trim();
+          debugPrint("Asset hash for $path: $assetHash");
           // ignore: empty_catches
         } catch (e) {
           debugPrint("No asset hash file found for $path.hash: $e");
@@ -74,7 +75,11 @@ Future<String> extractAssetOrFile(String path,
   debugPrint("Finished unpacking application archive in ${stopwatch.elapsed}");
 
   if (checkHash) {
+    debugPrint("Writing hash file: ${hashFile.path}, hash: $assetHash");
     await hashFile.writeAsString(assetHash);
+    debugPrint("Hash file written.");
+  } else {
+    debugPrint("Hash check not requested, skipping hash file write.");
   }
 
   return destDir.path;
