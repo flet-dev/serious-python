@@ -29,7 +29,9 @@ Future<String> extractAssetOrFile(String path,
         try {
           assetHash = (await rootBundle.loadString("$path.hash")).trim();
           // ignore: empty_catches
-        } catch (e) {}
+        } catch (e) {
+          debugPrint("No asset hash file found for $path.hash: $e");
+        }
         if (await hashFile.exists()) {
           destHash = (await hashFile.readAsString()).trim();
         }
