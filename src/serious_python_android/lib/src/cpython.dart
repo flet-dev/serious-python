@@ -3,14 +3,46 @@ import 'dart:ffi';
 import 'dart:isolate';
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
 import 'gen.dart';
+import 'log.dart';
 
 export 'gen.dart';
 
 CPython? _cpython;
+String? _logcatForwardingError;
+const _logcatInitScript = r'''
+import sys, logging
+
+# Make this init idempotent across Dart isolate restarts.
+if not getattr(sys, "__serious_python_logcat_configured__", False):
+    sys.__serious_python_logcat_configured__ = True
+
+    from ctypes import cdll
+    liblog = cdll.LoadLibrary("liblog.so")
+    ANDROID_LOG_INFO = 4
+
+    def _log_to_logcat(msg, level=ANDROID_LOG_INFO):
+        if not msg:
+            return
+        if isinstance(msg, bytes):
+            msg = msg.decode("utf-8", errors="replace")
+        liblog.__android_log_write(level, b"serious_python", msg.encode("utf-8"))
+
+    class _LogcatWriter:
+        def write(self, msg):
+            _log_to_logcat(msg.strip())
+        def flush(self):
+            pass
+
+    sys.stdout = sys.stderr = _LogcatWriter()
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    root = logging.getLogger()
+    root.handlers[:] = [handler]
+    root.setLevel(logging.DEBUG)
+''';
 
 CPython getCPython(String dynamicLibPath) {
   return _cpython ??= _cpython = CPython(DynamicLibrary.open(dynamicLibPath));
@@ -46,21 +78,35 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
-  debugPrint("dynamicLibPath: $dynamicLibPath");
-  debugPrint("programDirPath: $programDirPath");
-  debugPrint("programModuleName: $programModuleName");
+  spDebug("dynamicLibPath: $dynamicLibPath");
+  spDebug("programDirPath: $programDirPath");
+  spDebug("programModuleName: $programModuleName");
 
   final cpython = getCPython(dynamicLibPath);
+  spDebug("CPython loaded");
+  if (cpython.Py_IsInitialized() != 0) {
+    spDebug("Python already initialized, skipping execution.");
+    sendPort.send("");
+    return "";
+  }
+
   cpython.Py_Initialize();
-  debugPrint("after Py_Initialize()");
+  spDebug("after Py_Initialize()");
 
   var result = "";
+
+  final logcatSetupError = _setupLogcatForwarding(cpython);
+  if (logcatSetupError != null) {
+    cpython.Py_Finalize();
+    sendPort.send(logcatSetupError);
+    return logcatSetupError;
+  }
 
   if (script != "") {
     // run script
     final scriptPtr = script.toNativeUtf8();
     int sr = cpython.PyRun_SimpleString(scriptPtr.cast<Char>());
-    debugPrint("PyRun_SimpleString for script result: $sr");
+    spDebug("PyRun_SimpleString for script result: $sr");
     malloc.free(scriptPtr);
     if (sr != 0) {
       result = getPythonError(cpython);
@@ -76,7 +122,7 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   }
 
   cpython.Py_Finalize();
-  debugPrint("after Py_Finalize()");
+  spDebug("after Py_Finalize()");
 
   sendPort.send(result);
 
@@ -94,7 +140,7 @@ String getPythonError(CPython cpython) {
   cpython.Py_DecRef(tracebackModuleNamePtr.cast());
 
   if (tracebackModulePtr != nullptr) {
-    //debugPrint("Traceback module loaded");
+    //spDebug("Traceback module loaded");
 
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(
@@ -126,4 +172,21 @@ String getPythonError(CPython cpython) {
   } else {
     return "Error loading traceback module.";
   }
+}
+
+String? _setupLogcatForwarding(CPython cpython) {
+  if (_logcatForwardingError != null) {
+    return _logcatForwardingError;
+  }
+
+  final setupPtr = _logcatInitScript.toNativeUtf8();
+  final result = cpython.PyRun_SimpleString(setupPtr.cast<Char>());
+  malloc.free(setupPtr);
+
+  if (result != 0) {
+    _logcatForwardingError = getPythonError(cpython);
+    return _logcatForwardingError;
+  }
+
+  return null;
 }
