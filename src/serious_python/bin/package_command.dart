@@ -398,7 +398,7 @@ class PackageCommand extends Command {
             final sitePackagesDir =
                 arch.key.isNotEmpty
                     ? Platform.isWindows
-                        ? path.join(buildDir, "site-packages")
+                        ? path.join(buildDir, "Lib", "site-packages")
                         : path.join(buildDir, "python3.12", "site-packages")
                     : sitePackagesRoot;
             if (!Directory(sitePackagesDir).existsSync()) {
@@ -413,13 +413,33 @@ class PackageCommand extends Command {
             List<String> pipArgs = ["--disable-pip-version-check"];
 
             if (compilePackages) {
-              pipArgs.addAll(['--compile', '--only-binary=:all:']);
+              pipArgs.addAll(['--compile', '--implementation', 'cp', '--python-version', '3.12', '--only-binary=:all:']);
               if (platform == 'Windows') {
                 if (arch.key == 'arm64') {
                   pipArgs.addAll(["--platform", "win_arm64"]);
                 } else {
                   pipArgs.addAll(["--platform", "win_amd64"]);
                 }
+              } else if (platform == 'Linux') {
+                if (arch.key == 'arm64') {
+                  pipArgs.addAll(["--platform", "manylinux2014_aarch64"]);
+                } else {
+                  pipArgs.addAll(["--platform", "manylinux2014_x86_64"]);
+                }
+              } else if (platform == 'Darwin') {
+                if (arch.key == 'arm64') {
+                  pipArgs.addAll(["--platform", "macosx_11_0_arm64"]);
+                } else {
+                  pipArgs.addAll(["--platform", "macosx_10_12_x86_64"]);
+                }
+              } else if (platform == 'Android') {
+                if (arch.key == 'arm64') {
+                  pipArgs.addAll(["--platform", "android_24_arm64_v8a"]);
+                } else {
+                  pipArgs.addAll(["--platform", "android_24_x86_64"]);
+                }
+              } else if (platform == 'IOS') {
+                  pipArgs.addAll(["--platform", "ios_13_0_arm64_iphoneos"]);
               }
             }
 
@@ -444,6 +464,7 @@ class PackageCommand extends Command {
               'pip',
               'install',
               '--upgrade',
+              '--no-cache-dir',
               ...pipArgs,
               '--target',
               sitePackagesDir,
@@ -549,7 +570,7 @@ class PackageCommand extends Command {
       if (tempDir != null && tempDir.existsSync()) {
         stdout.writeln("Deleting temp directory");
         try {
-          tempDir.deleteSync(recursive: true);
+          await tempDir.delete(recursive: true);
         } on Exception catch (e, s) {
           verbose('$e\n\n$s');
         }
