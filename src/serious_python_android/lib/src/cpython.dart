@@ -13,7 +13,7 @@ export 'gen.dart';
 CPython? _cpython;
 String? _logcatForwardingError;
 const _logcatInitScript = r'''
-import sys, logging
+import sys
 
 # Make this init idempotent across Dart isolate restarts.
 if not getattr(sys, "__serious_python_logcat_configured__", False):
@@ -37,11 +37,6 @@ if not getattr(sys, "__serious_python_logcat_configured__", False):
             pass
 
     sys.stdout = sys.stderr = _LogcatWriter()
-    handler = logging.StreamHandler(sys.stderr)
-    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
-    root = logging.getLogger()
-    root.handlers[:] = [handler]
-    root.setLevel(logging.DEBUG)
 ''';
 
 CPython getCPython(String dynamicLibPath) {
