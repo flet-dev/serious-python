@@ -56,7 +56,7 @@ if not getattr(sys, "__serious_python_logcat_configured__", False):
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
     root = logging.getLogger()
     root.handlers[:] = [handler]
-    root.setLevel(logging.getLogger().getEffectiveLevel())
+    root.setLevel(logging.DEBUG)
 ''';
 
 CPython getCPython(String dynamicLibPath) {
