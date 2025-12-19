@@ -55,7 +55,6 @@ if not getattr(sys, "__serious_python_logcat_configured__", False):
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
     logcat = logging.getLogger("logcat")
-    logcat.propagate = False
     logcat.handlers[:] = [handler]
     logcat.setLevel(logging.ERROR)
 ''';
