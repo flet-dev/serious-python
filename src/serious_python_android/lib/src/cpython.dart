@@ -52,6 +52,10 @@ if not getattr(sys, "__serious_python_logcat_configured__", False):
             pass
 
     sys.stdout = sys.stderr = _LogcatWriter()
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    root = logging.getLogger()
+    root.handlers[:] = [handler]
 ''';
 
 CPython getCPython(String dynamicLibPath) {
@@ -66,14 +70,15 @@ Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
         "Python run#$runId start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
     if (sync) {
       // Sync run: do not involve ports (avoids GC/close races).
-      final result = _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
+      final result =
+          _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
       spDebug("Python run#$runId done (resultLength=${result.length})");
       return result;
     } else {
       // Async run: use Isolate.run() to avoid manual port lifecycle issues.
       try {
-        final result = await Isolate.run(() =>
-            _runPythonProgram(dynamicLibPath, pythonProgramPath, script));
+        final result = await Isolate.run(
+            () => _runPythonProgram(dynamicLibPath, pythonProgramPath, script));
         spDebug("Python run#$runId done (resultLength=${result.length})");
         return result;
       } catch (e, st) {
