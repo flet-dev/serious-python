@@ -12,6 +12,21 @@ export 'gen.dart';
 
 CPython? _cpython;
 String? _logcatForwardingError;
+Future<void> _pythonRunQueue = Future<void>.value();
+var _pythonRunSeq = 0;
+
+Future<T> _enqueuePythonRun<T>(Future<T> Function() action) {
+  final completer = Completer<T>();
+  _pythonRunQueue = _pythonRunQueue.then((_) async {
+    try {
+      completer.complete(await action());
+    } catch (e, st) {
+      completer.completeError(e, st);
+    }
+  });
+  return completer.future;
+}
+
 const _logcatInitScript = r'''
 import sys
 
@@ -45,21 +60,30 @@ CPython getCPython(String dynamicLibPath) {
 
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
-  if (sync) {
-    // Sync run: do not involve ports (avoids GC/close races).
-    return _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
-  } else {
-    // Async run: execute in a separate isolate and await exactly one result.
-    final receivePort = ReceivePort();
-    try {
-      await Isolate.spawn(runPythonProgramInIsolate,
-          [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-      final message = await receivePort.first;
-      return message is String ? message : message.toString();
-    } finally {
-      receivePort.close();
+  return _enqueuePythonRun(() async {
+    final runId = ++_pythonRunSeq;
+    spDebug(
+        "Python run#$runId start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
+    if (sync) {
+      // Sync run: do not involve ports (avoids GC/close races).
+      final result = _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
+      spDebug("Python run#$runId done (resultLength=${result.length})");
+      return result;
+    } else {
+      // Async run: use Isolate.run() to avoid manual port lifecycle issues.
+      try {
+        final result = await Isolate.run(() =>
+            _runPythonProgram(dynamicLibPath, pythonProgramPath, script));
+        spDebug("Python run#$runId done (resultLength=${result.length})");
+        return result;
+      } catch (e, st) {
+        final message = "Dart error running Python: $e\n$st";
+        spDebug(message);
+        spDebug("Python run#$runId failed");
+        return message;
+      }
     }
-  }
+  });
 }
 
 Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
