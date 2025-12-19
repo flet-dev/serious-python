@@ -54,9 +54,9 @@ if not getattr(sys, "__serious_python_logcat_configured__", False):
     sys.stdout = sys.stderr = _LogcatWriter()
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
-    logcat = logging.getLogger("logcat")
-    logcat.handlers[:] = [handler]
-    logcat.setLevel(logging.ERROR)
+    root = logging.getLogger()
+    root.handlers[:] = [handler]
+    root.setLevel(logging.ERROR)
 ''';
 
 CPython getCPython(String dynamicLibPath) {
