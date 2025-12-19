@@ -28,7 +28,7 @@ Future<T> _enqueuePythonRun<T>(Future<T> Function() action) {
 }
 
 const _logcatInitScript = r'''
-import sys
+import logging,sys
 
 # Make this init idempotent across Dart isolate restarts.
 if not getattr(sys, "__serious_python_logcat_configured__", False):
