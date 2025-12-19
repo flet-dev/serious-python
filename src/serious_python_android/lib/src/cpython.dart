@@ -45,22 +45,20 @@ CPython getCPython(String dynamicLibPath) {
 
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
-  final receivePort = ReceivePort();
   if (sync) {
-    // sync run
-    return await runPythonProgramInIsolate(
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+    // Sync run: do not involve ports (avoids GC/close races).
+    return _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
   } else {
-    var completer = Completer<String>();
-    // async run
-    final isolate = await Isolate.spawn(runPythonProgramInIsolate,
-        [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
-    receivePort.listen((message) {
+    // Async run: execute in a separate isolate and await exactly one result.
+    final receivePort = ReceivePort();
+    try {
+      await Isolate.spawn(runPythonProgramInIsolate,
+          [receivePort.sendPort, dynamicLibPath, pythonProgramPath, script]);
+      final message = await receivePort.first;
+      return message is String ? message : message.toString();
+    } finally {
       receivePort.close();
-      isolate.kill();
-      completer.complete(message);
-    });
-    return completer.future;
+    }
   }
 }
 
@@ -70,6 +68,20 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   final pythonProgramPath = arguments[2] as String;
   final script = arguments[3] as String;
 
+  try {
+    final result = _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
+    sendPort.send(result);
+    return result;
+  } catch (e, st) {
+    final message = "Dart error running Python: $e\n$st";
+    spDebug(message);
+    sendPort.send(message);
+    return message;
+  }
+}
+
+String _runPythonProgram(
+    String dynamicLibPath, String pythonProgramPath, String script) {
   var programDirPath = p.dirname(pythonProgramPath);
   var programModuleName = p.basenameWithoutExtension(pythonProgramPath);
 
@@ -81,7 +93,6 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   spDebug("CPython loaded");
   if (cpython.Py_IsInitialized() != 0) {
     spDebug("Python already initialized, skipping execution.");
-    sendPort.send("");
     return "";
   }
 
@@ -93,7 +104,6 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
   final logcatSetupError = _setupLogcatForwarding(cpython);
   if (logcatSetupError != null) {
     cpython.Py_Finalize();
-    sendPort.send(logcatSetupError);
     return logcatSetupError;
   }
 
@@ -118,8 +128,6 @@ Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
 
   cpython.Py_Finalize();
   spDebug("after Py_Finalize()");
-
-  sendPort.send(result);
 
   return result;
 }
