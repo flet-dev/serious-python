@@ -164,13 +164,16 @@ String _runPythonProgram(
 
 String getPythonError(CPython cpython) {
   // get error object
-  var exPtr = cpython.PyErr_GetRaisedException();
+  final exPtr = cpython.PyErr_GetRaisedException();
+  if (exPtr == nullptr) {
+    return "Unknown Python error (no exception set).";
+  }
 
   // use 'traceback' module to format exception
   final tracebackModuleNamePtr = "traceback".toNativeUtf8();
   var tracebackModulePtr =
       cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
-  cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+  malloc.free(tracebackModuleNamePtr);
 
   if (tracebackModulePtr != nullptr) {
     //spDebug("Traceback module loaded");
@@ -178,31 +181,100 @@ String getPythonError(CPython cpython) {
     final formatFuncName = "format_exception".toNativeUtf8();
     final pFormatFunc = cpython.PyObject_GetAttrString(
         tracebackModulePtr, formatFuncName.cast());
-    cpython.Py_DecRef(tracebackModuleNamePtr.cast());
+    malloc.free(formatFuncName);
 
     if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
       // call `traceback.format_exception()` method
       final pArgs = cpython.PyTuple_New(1);
+      if (pArgs == nullptr) {
+        final fallback = cpython.PyObject_Str(exPtr);
+        if (fallback == nullptr) {
+          cpython.Py_DecRef(pFormatFunc);
+          cpython.Py_DecRef(tracebackModulePtr);
+          cpython.Py_DecRef(exPtr);
+          return "Failed to allocate args to format Python exception.";
+        }
+        final s = cpython
+            .PyUnicode_AsUTF8(fallback)
+            .cast<Utf8>()
+            .toDartString();
+        cpython.Py_DecRef(fallback);
+        cpython.Py_DecRef(pFormatFunc);
+        cpython.Py_DecRef(tracebackModulePtr);
+        cpython.Py_DecRef(exPtr);
+        return s;
+      }
+      // Keep a reference for fallback error formatting.
+      cpython.Py_IncRef(exPtr);
       cpython.PyTuple_SetItem(pArgs, 0, exPtr);
 
       // result is a list
       var listPtr = cpython.PyObject_CallObject(pFormatFunc, pArgs);
+      cpython.Py_DecRef(pArgs);
+      cpython.Py_DecRef(pFormatFunc);
+      cpython.Py_DecRef(tracebackModulePtr);
 
       // get and combine list items
       var exLines = [];
+      if (listPtr == nullptr) {
+        final fallback = cpython.PyObject_Str(exPtr);
+        if (fallback == nullptr) {
+          cpython.Py_DecRef(exPtr);
+          return "Failed to format Python exception.";
+        }
+        final s = cpython
+            .PyUnicode_AsUTF8(fallback)
+            .cast<Utf8>()
+            .toDartString();
+        cpython.Py_DecRef(fallback);
+        cpython.Py_DecRef(exPtr);
+        return s;
+      }
+
       var listSize = cpython.PyList_Size(listPtr);
+      if (listSize < 0) {
+        cpython.Py_DecRef(listPtr);
+        final fallback = cpython.PyObject_Str(exPtr);
+        if (fallback == nullptr) {
+          cpython.Py_DecRef(exPtr);
+          return "Failed to format Python exception.";
+        }
+        final s = cpython
+            .PyUnicode_AsUTF8(fallback)
+            .cast<Utf8>()
+            .toDartString();
+        cpython.Py_DecRef(fallback);
+        cpython.Py_DecRef(exPtr);
+        return s;
+      }
       for (var i = 0; i < listSize; i++) {
         var itemObj = cpython.PyList_GetItem(listPtr, i);
         var itemObjStr = cpython.PyObject_Str(itemObj);
-        var s =
-            cpython.PyUnicode_AsUTF8(itemObjStr).cast<Utf8>().toDartString();
+        if (itemObjStr == nullptr) {
+          continue;
+        }
+        final cStr = cpython.PyUnicode_AsUTF8(itemObjStr);
+        if (cStr == nullptr) {
+          cpython.Py_DecRef(itemObjStr);
+          continue;
+        }
+        var s = cStr.cast<Utf8>().toDartString();
+        cpython.Py_DecRef(itemObjStr);
         exLines.add(s);
       }
+      cpython.Py_DecRef(listPtr);
+      cpython.Py_DecRef(exPtr);
       return exLines.join("");
     } else {
+      if (pFormatFunc != nullptr) {
+        cpython.Py_DecRef(pFormatFunc);
+      }
+      cpython.Py_DecRef(tracebackModulePtr);
+      cpython.Py_DecRef(exPtr);
       return "traceback.format_exception() method not found.";
     }
   } else {
+    cpython.Py_DecRef(exPtr);
     return "Error loading traceback module.";
   }
 }
