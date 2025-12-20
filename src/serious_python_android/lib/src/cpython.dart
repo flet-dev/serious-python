@@ -13,7 +13,6 @@ export 'gen.dart';
 CPython? _cpython;
 String? _logcatForwardingError;
 Future<void> _pythonRunQueue = Future<void>.value();
-var _pythonRunSeq = 0;
 
 Future<T> _enqueuePythonRun<T>(Future<T> Function() action) {
   final completer = Completer<T>();
@@ -66,48 +65,30 @@ CPython getCPython(String dynamicLibPath) {
 Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     String pythonProgramPath, String script) async {
   return _enqueuePythonRun(() async {
-    final runId = ++_pythonRunSeq;
     spDebug(
-        "Python run#$runId start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
+        "Python run start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
     if (sync) {
       // Sync run: do not involve ports (avoids GC/close races).
       final result =
           _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
-      spDebug("Python run#$runId done (resultLength=${result.length})");
+      spDebug("Python run done (resultLength=${result.length})");
       return result;
     } else {
       // Async run: use Isolate.run() to avoid manual port lifecycle issues.
       try {
+        spDebug(
+            "Python async run start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
         final result = await Isolate.run(
             () => _runPythonProgram(dynamicLibPath, pythonProgramPath, script));
-        spDebug("Python run#$runId done (resultLength=${result.length})");
+        spDebug("Python run done (resultLength=${result.length})");
         return result;
       } catch (e, st) {
         final message = "Dart error running Python: $e\n$st";
         spDebug(message);
-        spDebug("Python run#$runId failed");
         return message;
       }
     }
   });
-}
-
-Future<String> runPythonProgramInIsolate(List<Object> arguments) async {
-  final sendPort = arguments[0] as SendPort;
-  final dynamicLibPath = arguments[1] as String;
-  final pythonProgramPath = arguments[2] as String;
-  final script = arguments[3] as String;
-
-  try {
-    final result = _runPythonProgram(dynamicLibPath, pythonProgramPath, script);
-    sendPort.send(result);
-    return result;
-  } catch (e, st) {
-    final message = "Dart error running Python: $e\n$st";
-    spDebug(message);
-    sendPort.send(message);
-    return message;
-  }
 }
 
 String _runPythonProgram(
@@ -122,7 +103,8 @@ String _runPythonProgram(
   final cpython = getCPython(dynamicLibPath);
   spDebug("CPython loaded");
   if (cpython.Py_IsInitialized() != 0) {
-    spDebug("Python already initialized, skipping execution.");
+    spDebug(
+        "Python already initialized and another program is running, skipping execution.");
     return "";
   }
 
@@ -163,119 +145,84 @@ String _runPythonProgram(
 }
 
 String getPythonError(CPython cpython) {
-  // get error object
   final exPtr = cpython.PyErr_GetRaisedException();
-  if (exPtr == nullptr) {
-    return "Unknown Python error (no exception set).";
-  }
+  if (exPtr == nullptr) return "Unknown Python error (no exception set).";
 
-  // use 'traceback' module to format exception
+  try {
+    final formatted = _formatPythonException(cpython, exPtr);
+    if (formatted != null && formatted.isNotEmpty) return formatted;
+
+    final fallback = _pyObjectToDartString(cpython, exPtr);
+    return fallback ?? "Unknown Python error (failed to stringify exception).";
+  } finally {
+    cpython.Py_DecRef(exPtr);
+    // Defensive: formatting can set a new Python error.
+    cpython.PyErr_Clear();
+  }
+}
+
+String? _formatPythonException(
+    CPython cpython, Pointer<PyObject> exceptionPtr) {
+  // Uses `traceback.format_exception(exc)` (Python 3.10+ signature).
   final tracebackModuleNamePtr = "traceback".toNativeUtf8();
-  var tracebackModulePtr =
+  final tracebackModulePtr =
       cpython.PyImport_ImportModule(tracebackModuleNamePtr.cast<Char>());
   malloc.free(tracebackModuleNamePtr);
+  if (tracebackModulePtr == nullptr) return null;
 
-  if (tracebackModulePtr != nullptr) {
-    //spDebug("Traceback module loaded");
+  try {
+    final formatFuncNamePtr = "format_exception".toNativeUtf8();
+    final formatFuncPtr = cpython.PyObject_GetAttrString(
+        tracebackModulePtr, formatFuncNamePtr.cast());
+    malloc.free(formatFuncNamePtr);
+    if (formatFuncPtr == nullptr) return null;
 
-    final formatFuncName = "format_exception".toNativeUtf8();
-    final pFormatFunc = cpython.PyObject_GetAttrString(
-        tracebackModulePtr, formatFuncName.cast());
-    malloc.free(formatFuncName);
+    try {
+      if (cpython.PyCallable_Check(formatFuncPtr) == 0) return null;
 
-    if (pFormatFunc != nullptr && cpython.PyCallable_Check(pFormatFunc) != 0) {
-      // call `traceback.format_exception()` method
-      final pArgs = cpython.PyTuple_New(1);
-      if (pArgs == nullptr) {
-        final fallback = cpython.PyObject_Str(exPtr);
-        if (fallback == nullptr) {
-          cpython.Py_DecRef(pFormatFunc);
-          cpython.Py_DecRef(tracebackModulePtr);
-          cpython.Py_DecRef(exPtr);
-          return "Failed to allocate args to format Python exception.";
+      final listPtr = cpython.PyObject_CallOneArg(formatFuncPtr, exceptionPtr);
+      if (listPtr == nullptr) return null;
+
+      try {
+        final listSize = cpython.PyList_Size(listPtr);
+        if (listSize < 0) return null;
+
+        final buffer = StringBuffer();
+        for (var i = 0; i < listSize; i++) {
+          final itemObj = cpython.PyList_GetItem(listPtr, i); // borrowed ref
+          if (itemObj == nullptr) continue;
+
+          final line = _pyUnicodeToDartString(cpython, itemObj) ??
+              _pyObjectToDartString(cpython, itemObj);
+          if (line == null) continue;
+          buffer.write(line);
         }
-        final s = cpython
-            .PyUnicode_AsUTF8(fallback)
-            .cast<Utf8>()
-            .toDartString();
-        cpython.Py_DecRef(fallback);
-        cpython.Py_DecRef(pFormatFunc);
-        cpython.Py_DecRef(tracebackModulePtr);
-        cpython.Py_DecRef(exPtr);
-        return s;
-      }
-      // Keep a reference for fallback error formatting.
-      cpython.Py_IncRef(exPtr);
-      cpython.PyTuple_SetItem(pArgs, 0, exPtr);
-
-      // result is a list
-      var listPtr = cpython.PyObject_CallObject(pFormatFunc, pArgs);
-      cpython.Py_DecRef(pArgs);
-      cpython.Py_DecRef(pFormatFunc);
-      cpython.Py_DecRef(tracebackModulePtr);
-
-      // get and combine list items
-      var exLines = [];
-      if (listPtr == nullptr) {
-        final fallback = cpython.PyObject_Str(exPtr);
-        if (fallback == nullptr) {
-          cpython.Py_DecRef(exPtr);
-          return "Failed to format Python exception.";
-        }
-        final s = cpython
-            .PyUnicode_AsUTF8(fallback)
-            .cast<Utf8>()
-            .toDartString();
-        cpython.Py_DecRef(fallback);
-        cpython.Py_DecRef(exPtr);
-        return s;
-      }
-
-      var listSize = cpython.PyList_Size(listPtr);
-      if (listSize < 0) {
+        return buffer.toString();
+      } finally {
         cpython.Py_DecRef(listPtr);
-        final fallback = cpython.PyObject_Str(exPtr);
-        if (fallback == nullptr) {
-          cpython.Py_DecRef(exPtr);
-          return "Failed to format Python exception.";
-        }
-        final s = cpython
-            .PyUnicode_AsUTF8(fallback)
-            .cast<Utf8>()
-            .toDartString();
-        cpython.Py_DecRef(fallback);
-        cpython.Py_DecRef(exPtr);
-        return s;
       }
-      for (var i = 0; i < listSize; i++) {
-        var itemObj = cpython.PyList_GetItem(listPtr, i);
-        var itemObjStr = cpython.PyObject_Str(itemObj);
-        if (itemObjStr == nullptr) {
-          continue;
-        }
-        final cStr = cpython.PyUnicode_AsUTF8(itemObjStr);
-        if (cStr == nullptr) {
-          cpython.Py_DecRef(itemObjStr);
-          continue;
-        }
-        var s = cStr.cast<Utf8>().toDartString();
-        cpython.Py_DecRef(itemObjStr);
-        exLines.add(s);
-      }
-      cpython.Py_DecRef(listPtr);
-      cpython.Py_DecRef(exPtr);
-      return exLines.join("");
-    } else {
-      if (pFormatFunc != nullptr) {
-        cpython.Py_DecRef(pFormatFunc);
-      }
-      cpython.Py_DecRef(tracebackModulePtr);
-      cpython.Py_DecRef(exPtr);
-      return "traceback.format_exception() method not found.";
+    } finally {
+      cpython.Py_DecRef(formatFuncPtr);
     }
-  } else {
-    cpython.Py_DecRef(exPtr);
-    return "Error loading traceback module.";
+  } finally {
+    cpython.Py_DecRef(tracebackModulePtr);
+  }
+}
+
+String? _pyUnicodeToDartString(
+    CPython cpython, Pointer<PyObject> unicodeObjPtr) {
+  final cStr = cpython.PyUnicode_AsUTF8(unicodeObjPtr);
+  if (cStr == nullptr) return null;
+  return cStr.cast<Utf8>().toDartString();
+}
+
+String? _pyObjectToDartString(CPython cpython, Pointer<PyObject> objPtr) {
+  final strObj = cpython.PyObject_Str(objPtr);
+  if (strObj == nullptr) return null;
+  try {
+    return _pyUnicodeToDartString(cpython, strObj);
+  } finally {
+    cpython.Py_DecRef(strObj);
   }
 }
 
