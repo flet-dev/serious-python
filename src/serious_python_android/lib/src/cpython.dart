@@ -76,8 +76,6 @@ Future<String> runPythonProgramFFI(bool sync, String dynamicLibPath,
     } else {
       // Async run: use Isolate.run() to avoid manual port lifecycle issues.
       try {
-        spDebug(
-            "Python async run start (sync=$sync, script=${script.isNotEmpty}, program=$pythonProgramPath)");
         final result = await Isolate.run(
             () => _runPythonProgram(dynamicLibPath, pythonProgramPath, script));
         spDebug("Python run done (resultLength=${result.length})");
