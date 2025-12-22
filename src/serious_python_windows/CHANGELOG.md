@@ -1,3 +1,7 @@
+## 0.9.8
+
+* Fix logging on Android.
+
 ## 0.9.7
 
 * Fix app restart on Android 10.
