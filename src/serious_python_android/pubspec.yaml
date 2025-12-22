@@ -2,7 +2,7 @@ name: serious_python_android
 description: Android implementation of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.9.7
+version: 0.9.8
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
