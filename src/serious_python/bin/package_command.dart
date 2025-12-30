@@ -432,8 +432,7 @@ class PackageCommand extends Command {
       // create archive
       stdout.writeln(
           "Creating app archive at ${dest.path} from a temp directory");
-      final encoder = ZipFileEncoder();
-      await encoder.zipDirectory(tempDir, filename: dest.path);
+      await zipDirectoryPosix(tempDir, dest);
 
       // create hash file
       stdout.writeln("Writing app archive hash to ${dest.path}.hash");
@@ -515,6 +514,21 @@ class PackageCommand extends Command {
       exit(1);
     }
     return proc.exitCode;
+  }
+
+  Future<void> zipDirectoryPosix(Directory source, File dest) async {
+    final encoder = ZipFileEncoder();
+    encoder.create(dest.path);
+    await for (final entity
+        in source.list(recursive: true, followLinks: false)) {
+      if (entity is! File) {
+        continue;
+      }
+      final relativePath = path.relative(entity.path, from: source.path);
+      final posixPath = path.posix.joinAll(path.split(relativePath));
+      encoder.addFile(entity, posixPath);
+    }
+    encoder.close();
   }
 
   Future<int> runPython(List<String> args,
