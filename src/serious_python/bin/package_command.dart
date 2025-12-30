@@ -526,9 +526,9 @@ class PackageCommand extends Command {
       }
       final relativePath = path.relative(entity.path, from: source.path);
       final posixPath = path.posix.joinAll(path.split(relativePath));
-      encoder.addFile(entity, posixPath);
+      await encoder.addFile(entity, posixPath);
     }
-    encoder.close();
+    await encoder.close();
   }
 
   Future<int> runPython(List<String> args,
