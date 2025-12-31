@@ -1,3 +1,21 @@
+## 0.9.8
+
+* Fix logging on Android.
+
+## 0.9.7
+
+* Fix app restart on Android 10.
+* Redirect Python output to logcat.
+
+## 0.9.6
+
+* Make zipDirectory call asynchronous.
+
+## 0.9.5
+
+* Bump `archive` to `^4.0.7`.
+* Fixed iOS framework identifier generation.
+
 ## 0.9.4
 
 * 16 KB memory page support for Android 15+ (by [@ReYaNOW](https://github.com/ReYaNOW)).

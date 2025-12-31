@@ -557,7 +557,7 @@ class PackageCommand extends Command {
         "Creating app archive at ${dest.path} from a temp directory",
       );
       final encoder = ZipFileEncoder();
-      encoder.zipDirectory(tempDir, filename: dest.path);
+      await encoder.zipDirectory(tempDir, filename: dest.path);
 
       // create hash file
       stdout.writeln("Writing app archive hash to ${dest.path}.hash");

@@ -23,7 +23,7 @@ create_plist() {
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
-	<string>APPL</string>
+	<string>FMWK</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleSupportedPlatforms</key>
@@ -55,6 +55,10 @@ create_xcframework_from_dylibs() {
     dylib_without_ext=$(echo $dylib_relative_path | cut -d "." -f 1)
     framework=$(echo $dylib_without_ext | tr "/" ".")
     framework_identifier=${framework//_/-}
+    while [[ $framework_identifier == -* ]]; do
+        framework_identifier=${framework_identifier#-}
+    done
+    framework_identifier=${framework_identifier:-framework}
 
     # creating "iphoneos" framework
     fd=iphoneos/$framework.framework

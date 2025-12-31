@@ -2,9 +2,7 @@ name: serious_python_windows
 description: Windows implementations of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.9.4+1
-
-resolution: workspace
+version: 0.9.8+1
 
 environment:
   sdk: '>=3.7.0 < 4.0.0'
