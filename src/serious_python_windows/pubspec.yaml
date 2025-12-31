@@ -2,11 +2,11 @@ name: serious_python_windows
 description: Windows implementations of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
-version: 0.9.8
+version: 0.9.8+1
 
 environment:
-  sdk: '>=3.1.3 <4.0.0'
-  flutter: '>=3.3.0'
+  sdk: '>=3.7.0 < 4.0.0'
+  flutter: '>=3.27.0'
 
 dependencies:
   flutter:
@@ -18,7 +18,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   plugin:
