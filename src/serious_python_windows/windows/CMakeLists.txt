@@ -42,6 +42,7 @@ add_library(${PLUGIN_NAME} SHARED
 # application-level CMakeLists.txt. This can be removed for plugins that want
 # full control over build settings.
 apply_standard_settings(${PLUGIN_NAME})
+target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_20)
 
 # Symbols are hidden by default to reduce the chance of accidental conflicts
 # between plugins. This should not be removed; any symbols that should be
