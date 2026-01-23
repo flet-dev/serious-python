@@ -25,6 +25,84 @@
 #include <string>
 #include <thread>
 
+namespace
+{
+  // Convert UTF-8 text from Flutter/Dart to UTF-16 for Windows APIs.
+  std::wstring Utf8ToWide(const std::string &value)
+  {
+    if (value.empty())
+    {
+      return L"";
+    }
+    UINT codepage = CP_UTF8;
+    DWORD flags = MB_ERR_INVALID_CHARS;
+    int size = MultiByteToWideChar(codepage, flags, value.data(),
+                                   static_cast<int>(value.size()), nullptr, 0);
+    if (size <= 0)
+    {
+      codepage = CP_ACP;
+      flags = 0;
+      size = MultiByteToWideChar(codepage, flags, value.data(),
+                                 static_cast<int>(value.size()), nullptr, 0);
+    }
+    if (size <= 0)
+    {
+      return L"";
+    }
+    std::wstring wide(size, L'\0');
+    MultiByteToWideChar(codepage, flags, value.data(),
+                        static_cast<int>(value.size()), wide.data(), size);
+    return wide;
+  }
+
+  // Convert UTF-16 Windows strings to UTF-8 for logs/interop.
+  std::string WideToUtf8(const std::wstring &value)
+  {
+    if (value.empty())
+    {
+      return "";
+    }
+    int size = WideCharToMultiByte(CP_UTF8, 0, value.data(),
+                                   static_cast<int>(value.size()), nullptr, 0,
+                                   nullptr, nullptr);
+    if (size <= 0)
+    {
+      return "";
+    }
+    std::string utf8(size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, value.data(),
+                        static_cast<int>(value.size()), utf8.data(), size,
+                        nullptr, nullptr);
+    return utf8;
+  }
+
+  // Set environment variables using Unicode-safe Windows APIs.
+  void SetEnvWide(const std::wstring &key, const std::wstring &value)
+  {
+    if (key.empty())
+    {
+      return;
+    }
+    _wputenv_s(key.c_str(), value.c_str());
+    SetEnvironmentVariableW(key.c_str(), value.c_str());
+  }
+
+  // Join paths without narrowing, preserving non-ASCII characters.
+  std::wstring JoinPaths(const std::vector<std::wstring> &paths, wchar_t sep)
+  {
+    std::wstring joined;
+    for (size_t i = 0; i < paths.size(); ++i)
+    {
+      joined += paths[i];
+      if (i + 1 < paths.size())
+      {
+        joined += sep;
+      }
+    }
+    return joined;
+  }
+}
+
 namespace serious_python_windows
 {
 
@@ -134,14 +212,17 @@ namespace serious_python_windows
         return;
       }
 
-      std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
-      std::string app_dir = std::filesystem::path(app_path).parent_path().string();
+      // Treat Dart strings as UTF-8 to avoid lossy conversions.
+      std::filesystem::path exe_path_fs(Utf8ToWide(exe_path));
+      std::filesystem::path app_path_fs(Utf8ToWide(app_path));
+      std::wstring exe_dir = exe_path_fs.parent_path().wstring();
+      std::wstring app_dir = app_path_fs.parent_path().wstring();
 
       printf("exePath: %s\n", exe_path.c_str());
-      printf("exeDir: %s\n", exe_dir.c_str());
+      printf("exeDir: %s\n", WideToUtf8(exe_dir).c_str());
       printf("appPath: %s\n", app_path.c_str());
 
-      std::vector<std::string> python_paths;
+      std::vector<std::wstring> python_paths;
 
       // add user module paths to the top
       for (const auto &item : module_paths)
@@ -149,40 +230,31 @@ namespace serious_python_windows
         if (auto str_value = std::get_if<std::string>(&item))
         {
           printf("module_path: %s\n", str_value->c_str());
-          python_paths.push_back(*str_value);
+          python_paths.push_back(Utf8ToWide(*str_value));
         }
       }
 
       // add system paths
       python_paths.push_back(app_dir);
-      python_paths.push_back(app_dir + "\\__pypackages__");
-      python_paths.push_back(exe_dir + "\\site-packages");
-      python_paths.push_back(exe_dir + "\\DLLs");
-      python_paths.push_back(exe_dir + "\\Lib");
-      python_paths.push_back(exe_dir + "\\Lib\\site-packages");
+      python_paths.push_back(app_dir + L"\\__pypackages__");
+      python_paths.push_back(exe_dir + L"\\site-packages");
+      python_paths.push_back(exe_dir + L"\\DLLs");
+      python_paths.push_back(exe_dir + L"\\Lib");
+      python_paths.push_back(exe_dir + L"\\Lib\\site-packages");
 
-      std::string python_path;
-      for (int i = 0; i < python_paths.size(); i++)
-      {
-        python_path += python_paths[i];
-        if (i < python_paths.size() - 1)
-        { // Don't add separator after the last element
-          python_path += ";";
-        }
-      }
+      std::wstring python_path = JoinPaths(python_paths, L';');
+      printf("PYTHONPATH: %s\n", WideToUtf8(python_path).c_str());
 
-      printf("PYTHONPATH: %s\n", python_path.c_str());
+      // Set Python-related env vars using wide APIs so Unicode paths survive.
+      SetEnvWide(L"PYTHONINSPECT", L"1");
+      SetEnvWide(L"PYTHONDONTWRITEBYTECODE", L"1");
+      SetEnvWide(L"PYTHONNOUSERSITE", L"1");
+      SetEnvWide(L"PYTHONUNBUFFERED", L"1");
+      SetEnvWide(L"LC_CTYPE", L"UTF-8");
+      SetEnvWide(L"PYTHONHOME", exe_dir);
+      SetEnvWide(L"PYTHONPATH", python_path);
 
-      // set python-related env vars
-      _putenv_s("PYTHONINSPECT", "1");
-      _putenv_s("PYTHONDONTWRITEBYTECODE", "1");
-      _putenv_s("PYTHONNOUSERSITE", "1");
-      _putenv_s("PYTHONUNBUFFERED", "1");
-      _putenv_s("LC_CTYPE", "UTF-8");
-      _putenv_s("PYTHONHOME", exe_dir.c_str());
-      _putenv_s("PYTHONPATH", python_path.c_str());
-
-      // set user environment variables
+      // Set user-provided env vars as UTF-16 for Windows.
       for (const auto &kv : env_vars)
       {
         auto key = kv.first;
@@ -191,7 +263,7 @@ namespace serious_python_windows
             auto str_value = std::get_if<std::string>(&value))
         {
           printf("env_var: %s=%s\n", str_key->c_str(), str_value->c_str());
-          _putenv_s(str_key->c_str(), str_value->c_str());
+          SetEnvWide(Utf8ToWide(*str_key), Utf8ToWide(*str_value));
         }
       }
 
@@ -256,7 +328,9 @@ namespace serious_python_windows
     Py_Initialize();
 
     FILE *file;
-    errno_t err = fopen_s(&file, appPath.c_str(), "r");
+    // Use wide fopen to open Unicode paths on Windows.
+    std::wstring appPathWide = Utf8ToWide(appPath);
+    errno_t err = _wfopen_s(&file, appPathWide.c_str(), L"r");
     if (err == 0 && file != NULL)
     {
       PyRun_SimpleFileEx(file, appPath.c_str(), 1);
