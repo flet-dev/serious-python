@@ -33,9 +33,11 @@ import logging,sys
 if not getattr(sys, "__serious_python_logcat_configured__", False):
     sys.__serious_python_logcat_configured__ = True
 
-    from ctypes import cdll
+    from ctypes import cdll, c_int, c_char_p
     liblog = cdll.LoadLibrary("liblog.so")
     ANDROID_LOG_INFO = 4
+    liblog.__android_log_write.argtypes = [c_int, c_char_p, c_char_p]
+    liblog.__android_log_write.restype = c_int
 
     def _log_to_logcat(msg, level=ANDROID_LOG_INFO):
         if not msg:
