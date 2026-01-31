@@ -1,3 +1,10 @@
+## 0.9.9
+
+* Add zipDirectoryPosix to create POSIX-compliant app archives on Windows.
+* Enforce C++20 standard for `serious_python` plugin build.
+* Fix: Normalize `WINDIR` path for bundled DLLs in CMake.
+* Fix Logcat logging crash on some Android devices.
+
 ## 0.9.8
 
 * Fix logging on Android.
