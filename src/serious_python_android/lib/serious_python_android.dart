@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
@@ -47,6 +48,28 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       spDebug("Unable to load libpyjni.so library: $e");
     }
 
+    const pythonSharedLib = "libpython3.12.so";
+
+    String? getPythonFullVersion() {
+      try {
+        final cpython = getCPython(pythonSharedLib);
+        final versionPtr = cpython.Py_GetVersion();
+        return versionPtr.cast<Utf8>().toDartString();
+      } catch (e) {
+        spDebug("Unable to read Python version for invalidation: $e");
+        return null;
+      }
+    }
+
+    Future<String?> getAppVersion() async {
+      try {
+        return await methodChannel.invokeMethod<String>('getAppVersion');
+      } catch (e) {
+        spDebug("Unable to get app version for invalidation: $e");
+        return null;
+      }
+    }
+
     // unpack python bundle
     final nativeLibraryDir =
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
@@ -58,8 +81,11 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     if (!await File(bundlePath).exists()) {
       throw Exception("Python bundle not found: $bundlePath");
     }
-    var pythonLibPath =
-        await extractFileZip(bundlePath, targetPath: "python_bundle");
+    final pythonVersion = getPythonFullVersion();
+    final pythonInvalidateKey =
+        pythonVersion != null ? "python:$pythonVersion" : "python:$pythonSharedLib";
+    var pythonLibPath = await extractFileZip(bundlePath,
+        targetPath: "python_bundle", invalidateKey: pythonInvalidateKey);
     spDebug("pythonLibPath: $pythonLibPath");
 
     var programDirPath = p.dirname(appPath);
@@ -72,8 +98,12 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     ];
 
     if (await File(sitePackagesZipPath).exists()) {
+      final appVersion = await getAppVersion();
+      final sitePackagesInvalidateKey =
+          appVersion != null ? "app:$appVersion" : null;
       var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
-          targetPath: "python_site_packages");
+          targetPath: "python_site_packages",
+          invalidateKey: sitePackagesInvalidateKey);
       spDebug("sitePackagesPath: $sitePackagesPath");
       moduleSearchPaths.add(sitePackagesPath);
     }
@@ -94,6 +124,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     }
 
     return runPythonProgramFFI(
-        sync ?? false, "libpython3.12.so", appPath, script ?? "");
+        sync ?? false, pythonSharedLib, appPath, script ?? "");
   }
 }

@@ -60,6 +60,22 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
     if (call.method.equals("getPlatformVersion")) {
       result.success("Android " + android.os.Build.VERSION.RELEASE);
+    } else if (call.method.equals("getAppVersion")) {
+      try {
+        String packageName = context.getPackageName();
+        android.content.pm.PackageManager pm = context.getPackageManager();
+        android.content.pm.PackageInfo info = pm.getPackageInfo(packageName, 0);
+        String versionName = info.versionName;
+        long versionCode;
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+          versionCode = info.getLongVersionCode();
+        } else {
+          versionCode = info.versionCode;
+        }
+        result.success(versionName + "+" + versionCode);
+      } catch (Exception e) {
+        result.error("Error", e.getMessage(), null);
+      }
     } else if (call.method.equals("getNativeLibraryDir")) {
       ContextWrapper contextWrapper = new ContextWrapper(context);
       String nativeLibraryDir = contextWrapper.getApplicationInfo().nativeLibraryDir;
