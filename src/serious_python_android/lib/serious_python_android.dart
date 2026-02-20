@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ffi/ffi.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
@@ -82,8 +82,10 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       throw Exception("Python bundle not found: $bundlePath");
     }
     final pythonVersion = getPythonFullVersion();
-    final pythonInvalidateKey =
-        pythonVersion != null ? "python:$pythonVersion" : "python:$pythonSharedLib";
+    spDebug("Python version: $pythonVersion");
+    final pythonInvalidateKey = pythonVersion != null
+        ? "python:$pythonVersion"
+        : "python:$pythonSharedLib";
     var pythonLibPath = await extractFileZip(bundlePath,
         targetPath: "python_bundle", invalidateKey: pythonInvalidateKey);
     spDebug("pythonLibPath: $pythonLibPath");
@@ -99,6 +101,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
 
     if (await File(sitePackagesZipPath).exists()) {
       final appVersion = await getAppVersion();
+      spDebug("App version: $appVersion");
       final sitePackagesInvalidateKey =
           appVersion != null ? "app:$appVersion" : null;
       var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
