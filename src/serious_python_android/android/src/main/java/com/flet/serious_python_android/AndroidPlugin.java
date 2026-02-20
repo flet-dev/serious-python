@@ -66,12 +66,7 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
         android.content.pm.PackageManager pm = context.getPackageManager();
         android.content.pm.PackageInfo info = pm.getPackageInfo(packageName, 0);
         String versionName = info.versionName;
-        long versionCode;
-        if (android.os.Build.VERSION.SDK_INT >= 28) {
-          versionCode = info.getLongVersionCode();
-        } else {
-          versionCode = info.versionCode;
-        }
+        long versionCode = info.getLongVersionCode();
         result.success(versionName + "+" + versionCode);
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
