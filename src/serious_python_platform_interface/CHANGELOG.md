@@ -1,3 +1,8 @@
+## 0.9.10
+
+* Android: Add debug logs and deduplicate FFI imports.
+* Android: Invalidate extracted assets when version keys change.
+
 ## 0.9.9
 
 * Add zipDirectoryPosix to create POSIX-compliant app archives on Windows.
