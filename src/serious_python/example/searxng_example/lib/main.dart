@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
   Future getServiceResult() async {
     while (true) {
       try {
-        var response = await http.get(Uri.parse("http://127.0.0.1:11881/mcp"));
+        var response = await http.get(Uri.parse("http://127.0.0.1:11888/mcp"));
         setState(() {
           _result = response.body;
         });
@@ -103,7 +103,7 @@ class _MyAppState extends State<MyApp> {
                               http
                                   .post(
                                       Uri.parse(
-                                          "http://127.0.0.1:11881/mcp"),
+                                          "http://127.0.0.1:11888/mcp"),
                                       headers: {
                                         'Content-Type': 'application/json'
                                       },
