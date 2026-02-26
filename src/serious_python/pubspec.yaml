@@ -4,6 +4,8 @@ homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
 version: 0.9.8+1
 
+resolution: workspace
+
 platforms:
   ios:
   android:
