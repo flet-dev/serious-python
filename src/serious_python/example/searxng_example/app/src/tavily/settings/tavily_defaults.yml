@@ -1,0 +1,3 @@
+crawler:
+  timeout: 10
+  user_agent: "Mozilla/5.0 (compatible; SearchBot/1.0)"
