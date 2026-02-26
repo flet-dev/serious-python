@@ -10,7 +10,7 @@ void main() {
 }
 
 void startPython() async {
-  SeriousPython.run("app/app.zip", environmentVariables: {"a": "1", "b": "2"});
+  SeriousPython.run("app/app.zip");
 }
 
 class MyApp extends StatefulWidget {
@@ -40,7 +40,7 @@ class _MyAppState extends State<MyApp> {
   Future getServiceResult() async {
     while (true) {
       try {
-        var response = await http.get(Uri.parse("http://127.0.0.1:55001"));
+        var response = await http.get(Uri.parse("http://127.0.0.1:11881/mcp"));
         setState(() {
           _result = response.body;
         });
@@ -64,7 +64,7 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(useMaterial3: true),
       home: Scaffold(
           appBar: AppBar(
-            title: const Text('Python REPL'),
+            title: const Text('MCP REPL'),
           ),
           body: SafeArea(
               child: Column(children: [
@@ -82,7 +82,7 @@ class _MyAppState extends State<MyApp> {
                     controller: _controller,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
-                      hintText: 'Enter Python code',
+                      hintText: 'MCP Request',
                     ),
                     smartQuotesType: SmartQuotesType.disabled,
                     smartDashesType: SmartDashesType.disabled,
@@ -103,12 +103,11 @@ class _MyAppState extends State<MyApp> {
                               http
                                   .post(
                                       Uri.parse(
-                                          "http://127.0.0.1:55001/python"),
+                                          "http://127.0.0.1:11881/mcp"),
                                       headers: {
                                         'Content-Type': 'application/json'
                                       },
-                                      body: json.encode(
-                                          {"command": _controller.text}))
+                                      body: _controller.text)
                                   .then((resp) => setState(() {
                                         _controller.text = "";
                                         _result = resp.body;
