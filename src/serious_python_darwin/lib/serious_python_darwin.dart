@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:meta/meta.dart';
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
 /// An implementation of [SeriousPythonPlatform] that uses method channels.

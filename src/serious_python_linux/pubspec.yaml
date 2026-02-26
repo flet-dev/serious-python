@@ -2,7 +2,13 @@ name: serious_python_linux
 description: Linux implementations of the serious_python plugin
 homepage: https://flet.dev
 repository: https://github.com/flet-dev/serious-python
+<<<<<<< HEAD
+version: 0.9.5+1
+
+resolution: workspace
+=======
 version: 0.9.8+1
+>>>>>>> 93d636cc64931cefc89dbcf73cbd57f27fb4d309
 
 environment:
   sdk: '>=3.7.0 < 4.0.0'
@@ -12,6 +18,7 @@ dependencies:
   flutter:
     sdk: flutter
   plugin_platform_interface: ^2.1.8
+  meta: ^1.17.0
   serious_python_platform_interface:
     path: ../serious_python_platform_interface
 
