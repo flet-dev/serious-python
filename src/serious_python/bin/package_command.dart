@@ -321,6 +321,9 @@ class PackageCommand extends Command {
             pipEnv = {
               "PYTHONPATH":
                   [sitecustomizeDir.path].join(Platform.isWindows ? ";" : ":"),
+              // Prevent importing user-site packages (e.g. ~/.local/.../site-packages)
+              // which can shadow bundled pip in build Python.
+              "PYTHONNOUSERSITE": "1",
             };
 
             sitePackagesDir = arch.key.isNotEmpty
