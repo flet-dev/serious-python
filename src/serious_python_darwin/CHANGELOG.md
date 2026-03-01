@@ -1,3 +1,7 @@
+## 0.9.11
+
+* Disable user-site packages in pip environment ([#195](https://github.com/flet-dev/serious-python/pull/195)).
+
 ## 0.9.10
 
 * Android: Add debug logs and deduplicate FFI imports.
