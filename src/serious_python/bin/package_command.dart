@@ -430,7 +430,7 @@ class PackageCommand extends Command {
       }
 
       // copy site packages to temp dir for web platform
-      if (platform == "Pyodide") {
+      if (platform == "Pyodide" && requirements.isNotEmpty) {
         final sitePackagesSrcDir = Directory(sitePackagesRoot);
         if (await sitePackagesSrcDir.exists()) {
           stdout.writeln("Copying site packages to app archive");
