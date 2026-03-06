@@ -260,23 +260,20 @@ class PackageCommand extends Command {
         await cleanupDir(tempDir, allJunkFiles);
       }
 
+      // site-packages root
+      String sitePackagesRoot =
+          path.join(currentPath, "build", "site-packages");
+      if (Platform.environment
+          .containsKey(sitePackagesEnvironmentVariable)) {
+        final envValue =
+            Platform.environment[sitePackagesEnvironmentVariable];
+        if (envValue != null && envValue.isNotEmpty) {
+          sitePackagesRoot = envValue;
+        }
+      }
+
       // install requirements
       if (requirements.isNotEmpty && !skipSitePackages) {
-        String? sitePackagesRoot;
-
-        if (platform != "Pyodide") {
-          if (Platform.environment
-              .containsKey(sitePackagesEnvironmentVariable)) {
-            sitePackagesRoot =
-                Platform.environment[sitePackagesEnvironmentVariable];
-          }
-          if (sitePackagesRoot == null || sitePackagesRoot.isEmpty) {
-            sitePackagesRoot = path.join(currentPath, "build", "site-packages");
-          }
-        } else {
-          sitePackagesRoot = path.join(tempDir.path, defaultSitePackagesDir);
-        }
-
         if (await Directory(sitePackagesRoot).exists()) {
           await for (var f in Directory(sitePackagesRoot)
               .list()
@@ -429,6 +426,21 @@ class PackageCommand extends Command {
             File(path.join(sitePackagesRoot, ".pod", "sync_site_packages.sh"));
         if (await syncSh.exists()) {
           await runExec("/bin/sh", [syncSh.path]);
+        }
+      }
+
+      // copy site packages to temp dir for web platform
+      if (platform == "Pyodide") {
+        final sitePackagesSrcDir = Directory(sitePackagesRoot);
+        if (await sitePackagesSrcDir.exists()) {
+          stdout.writeln("Copying site packages to app archive");
+          final webPkgDir =
+              Directory(path.join(tempDir.path, defaultSitePackagesDir));
+          if (!await webPkgDir.exists()) {
+            await webPkgDir.create(recursive: true);
+          }
+          await copyDirectory(
+              sitePackagesSrcDir, webPkgDir, sitePackagesSrcDir.path, []);
         }
       }
 
