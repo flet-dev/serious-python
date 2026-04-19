@@ -36,3 +36,4 @@ dist/
 # Python
 .venv/
 __pypackages__/
+src/serious_python_android/android/src/main/site-packages/

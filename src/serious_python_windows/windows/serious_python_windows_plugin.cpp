@@ -30,14 +30,16 @@ using flutter::EncodableList;
 using flutter::EncodableMap;
 using flutter::EncodableValue;
 
-static void LogToFile(const std::string& message) {
-    std::ofstream logfile("C:\\temp\\serious_python_debug.log", std::ios::app);
-    if (logfile.is_open()) {
-        auto now = std::chrono::system_clock::now();
-        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
-        logfile << std::ctime(&now_time) << " - " << message << std::endl;
-        logfile.close();
-    }
+static void Log(const std::string& message) {
+  /*
+  std::ofstream logfile("C:\\temp\\serious_python_debug.log", std::ios::app);
+  if (logfile.is_open()) {
+      auto now = std::chrono::system_clock::now();
+      std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+      logfile << std::ctime(&now_time) << " - " << message << std::endl;
+      logfile.close();
+  }
+  */
 }
 
 bool SeriousPythonWindowsPlugin::python_initialized_ = false;
@@ -46,7 +48,7 @@ static PyThreadState* main_thread_state = nullptr;
 
 void SeriousPythonWindowsPlugin::RegisterWithRegistrar(
     flutter::PluginRegistrarWindows* registrar) {
-  LogToFile("RegisterWithRegistrar called");
+  Log("RegisterWithRegistrar called");
 
   auto channel =
       std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
@@ -61,49 +63,49 @@ void SeriousPythonWindowsPlugin::RegisterWithRegistrar(
       });
 
   registrar->AddPlugin(std::move(plugin));
-  LogToFile("RegisterWithRegistrar finished");
+  Log("RegisterWithRegistrar finished");
 }
 
 SeriousPythonWindowsPlugin::SeriousPythonWindowsPlugin() {
-  LogToFile("SeriousPythonWindowsPlugin constructor");
+  Log("SeriousPythonWindowsPlugin constructor");
 }
 
 SeriousPythonWindowsPlugin::~SeriousPythonWindowsPlugin() {
-  LogToFile("Destructor called");
+  Log("Destructor called");
   std::lock_guard<std::mutex> lock(python_mutex_);
   if (python_initialized_) {
     if (main_thread_state) {
-      LogToFile("Restoring main thread state before finalization");
+      Log("Restoring main thread state before finalization");
       PyEval_RestoreThread(main_thread_state);
       main_thread_state = nullptr;
     }
-    LogToFile("Finalizing Python interpreter");
+    Log("Finalizing Python interpreter");
     Py_Finalize();
     python_initialized_ = false;
-    LogToFile("Python finalized");
+    Log("Python finalized");
   }
 }
 
 void SeriousPythonWindowsPlugin::EnsurePythonInitialized() {
   std::lock_guard<std::mutex> lock(python_mutex_);
   if (!python_initialized_) {
-    LogToFile("Initializing Python interpreter...");
+    Log("Initializing Python interpreter...");
     Py_Initialize();
     if (!Py_IsInitialized()) {
-      LogToFile("ERROR: Python initialization failed!");
+      Log("ERROR: Python initialization failed!");
       return;
     }
     // Release GIL and save main thread state to allow other threads to acquire GIL
     main_thread_state = PyEval_SaveThread();
     python_initialized_ = true;
-    LogToFile("Python initialized successfully, GIL released.");
+    Log("Python initialized successfully, GIL released.");
   }
 }
 
 void SeriousPythonWindowsPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  LogToFile("HandleMethodCall called, method: " + method_call.method_name());
+  Log("HandleMethodCall called, method: " + method_call.method_name());
 
   const auto* arguments = std::get_if<EncodableMap>(method_call.arguments());
 
@@ -118,11 +120,11 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
       version_stream << "7";
     }
     result->Success(flutter::EncodableValue(version_stream.str()));
-    LogToFile("getPlatformVersion returned");
+    Log("getPlatformVersion returned");
     return;
   }
   else if (method_call.method_name().compare("runPython") == 0) {
-    LogToFile("runPython method detected");
+    Log("runPython method detected");
 
     std::string exe_path;
     std::string app_path;
@@ -156,15 +158,15 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
       if (sync_it != arguments->end() && !sync_it->second.IsNull())
         sync = std::get<bool>(sync_it->second);
     } else {
-      LogToFile("ERROR: arguments is missing");
+      Log("ERROR: arguments is missing");
       result->Error("ARGUMENT_ERROR", "arguments is missing.");
       return;
     }
 
-    LogToFile("exePath: " + exe_path);
-    LogToFile("appPath: " + app_path);
-    LogToFile("script: " + script);
-    LogToFile("sync: " + std::to_string(sync));
+    Log("exePath: " + exe_path);
+    Log("appPath: " + app_path);
+    Log("script: " + script);
+    Log("sync: " + std::to_string(sync));
 
     std::string exe_dir = std::filesystem::path(exe_path).parent_path().string();
     std::string app_dir = std::filesystem::path(app_path).parent_path().string();
@@ -204,8 +206,8 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
       }
     }
 
-    LogToFile("PYTHONHOME set to: " + exe_dir);
-    LogToFile("PYTHONPATH set to: " + python_path);
+    Log("PYTHONHOME set to: " + exe_dir);
+    Log("PYTHONPATH set to: " + python_path);
 
     EnsurePythonInitialized();
 
@@ -227,80 +229,80 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
     }
 
     result->Success(flutter::EncodableValue(app_path));
-    LogToFile("runPython finished, returning success");
+    Log("runPython finished, returning success");
   }
   else {
     result->NotImplemented();
-    LogToFile("Method not implemented: " + method_call.method_name());
+    Log("Method not implemented: " + method_call.method_name());
   }
 }
 
 void SeriousPythonWindowsPlugin::RunPythonProgramAsync(std::string appPath) {
-  LogToFile("RunPythonProgramAsync starting for: " + appPath);
+  Log("RunPythonProgramAsync starting for: " + appPath);
   std::thread pyThread([this, appPath]() {
     RunPythonProgram(appPath);
   });
   pyThread.detach();
-  LogToFile("RunPythonProgramAsync thread detached");
+  Log("RunPythonProgramAsync thread detached");
 }
 
 void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string script) {
-  LogToFile("RunPythonScriptAsync starting");
+  Log("RunPythonScriptAsync starting");
   std::thread pyThread([this, script]() {
     RunPythonScript(script);
   });
   pyThread.detach();
-  LogToFile("RunPythonScriptAsync thread detached");
+  Log("RunPythonScriptAsync thread detached");
 }
 
 void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath) {
-  LogToFile("RunPythonProgram entered for: " + appPath);
+  Log("RunPythonProgram entered for: " + appPath);
   PyGILState_STATE gstate = PyGILState_Ensure();
-  LogToFile("GIL acquired");
+  Log("GIL acquired");
 
   int ret = PyRun_SimpleString("print('Hello from inline Python')\nimport sys; sys.stdout.flush()");
   if (ret != 0) {
-    LogToFile("Inline Python test failed, code=" + std::to_string(ret));
+    Log("Inline Python test failed, code=" + std::to_string(ret));
     PyErr_Print();
   } else {
-    LogToFile("Inline Python test succeeded");
+    Log("Inline Python test succeeded");
   }
 
   FILE* file;
   errno_t err = fopen_s(&file, appPath.c_str(), "r");
   if (err == 0 && file != nullptr) {
-    LogToFile("File opened successfully: " + appPath);
+    Log("File opened successfully: " + appPath);
     ret = PyRun_SimpleFileEx(file, appPath.c_str(), 1);
     if (ret != 0) {
-      LogToFile("Python file execution failed with code " + std::to_string(ret));
+      Log("Python file execution failed with code " + std::to_string(ret));
       PyErr_Print();
     } else {
-      LogToFile("Python file executed successfully");
+      Log("Python file executed successfully");
     }
     fclose(file);
   } else {
-    LogToFile("Failed to open Python file: " + appPath + ", errno=" + std::to_string(err));
+    Log("Failed to open Python file: " + appPath + ", errno=" + std::to_string(err));
   }
 
   PyGILState_Release(gstate);
-  LogToFile("GIL released, RunPythonProgram finished");
+  Log("GIL released, RunPythonProgram finished");
 }
 
 void SeriousPythonWindowsPlugin::RunPythonScript(std::string script) {
-  LogToFile("RunPythonScript entered");
+  Log("RunPythonScript entered");
   PyGILState_STATE gstate = PyGILState_Ensure();
-  LogToFile("GIL acquired");
+  Log("GIL acquired");
 
   int ret = PyRun_SimpleString(script.c_str());
   if (ret != 0) {
-    LogToFile("Python script execution failed with code " + std::to_string(ret));
+    Log("Python script execution failed with code " + std::to_string(ret));
     PyErr_Print();
   } else {
-    LogToFile("Python script executed successfully");
+    Log("Python script executed successfully");
   }
 
   PyGILState_Release(gstate);
-  LogToFile("GIL released, RunPythonScript finished");
+  Log("GIL released, RunPythonScript finished");
 }
 
 }  // namespace serious_python_windows
