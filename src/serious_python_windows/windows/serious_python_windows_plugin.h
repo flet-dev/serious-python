@@ -3,6 +3,7 @@
 
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
+#include <flutter/standard_method_codec.h>
 
 #include <memory>
 #include <mutex>
@@ -17,7 +18,6 @@ class SeriousPythonWindowsPlugin : public flutter::Plugin {
   SeriousPythonWindowsPlugin();
   virtual ~SeriousPythonWindowsPlugin();
 
-  // Disallow copy and assign.
   SeriousPythonWindowsPlugin(const SeriousPythonWindowsPlugin&) = delete;
   SeriousPythonWindowsPlugin& operator=(const SeriousPythonWindowsPlugin&) = delete;
 
@@ -26,10 +26,10 @@ class SeriousPythonWindowsPlugin : public flutter::Plugin {
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
  private:
-  void RunPythonProgram(std::string appPath);
-  void RunPythonProgramAsync(std::string appPath);
-  void RunPythonScript(std::string script);
-  void RunPythonScriptAsync(std::string script);
+  void RunPythonProgram(std::string appPath, const flutter::EncodableMap& env_vars);
+  void RunPythonProgramAsync(std::string appPath, const flutter::EncodableMap& env_vars);
+  void RunPythonScript(std::string script, const flutter::EncodableMap& env_vars);
+  void RunPythonScriptAsync(std::string script, const flutter::EncodableMap& env_vars);
 
   static void EnsurePythonInitialized();
 

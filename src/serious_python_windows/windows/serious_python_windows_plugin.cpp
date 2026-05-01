@@ -5,8 +5,6 @@
 #include <windows.h>
 #include <VersionHelpers.h>
 
-#include <flutter/method_channel.h>
-#include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
 
 #include <Python.h>
@@ -31,6 +29,7 @@ using flutter::EncodableMap;
 using flutter::EncodableValue;
 
 static void Log(const std::string& message) {
+  // Optional: enable file logging for debugging
   /*
   std::ofstream logfile("C:\\temp\\serious_python_debug.log", std::ios::app);
   if (logfile.is_open()) {
@@ -95,7 +94,6 @@ void SeriousPythonWindowsPlugin::EnsurePythonInitialized() {
       Log("ERROR: Python initialization failed!");
       return;
     }
-    // Release GIL and save main thread state to allow other threads to acquire GIL
     main_thread_state = PyEval_SaveThread();
     python_initialized_ = true;
     Log("Python initialized successfully, GIL released.");
@@ -212,19 +210,18 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
     EnsurePythonInitialized();
 
     if (sync) {
-      // For sync execution, we need to re-acquire GIL because main thread released it.
       PyGILState_STATE gstate = PyGILState_Ensure();
       if (script.empty()) {
-        RunPythonProgram(app_path);
+        RunPythonProgram(app_path, env_vars);
       } else {
-        RunPythonScript(script);
+        RunPythonScript(script, env_vars);
       }
       PyGILState_Release(gstate);
     } else {
       if (script.empty()) {
-        RunPythonProgramAsync(app_path);
+        RunPythonProgramAsync(app_path, env_vars);
       } else {
-        RunPythonScriptAsync(script);
+        RunPythonScriptAsync(script, env_vars);
       }
     }
 
@@ -237,28 +234,53 @@ void SeriousPythonWindowsPlugin::HandleMethodCall(
   }
 }
 
-void SeriousPythonWindowsPlugin::RunPythonProgramAsync(std::string appPath) {
+void SeriousPythonWindowsPlugin::RunPythonProgramAsync(std::string appPath, const EncodableMap& env_vars) {
   Log("RunPythonProgramAsync starting for: " + appPath);
-  std::thread pyThread([this, appPath]() {
-    RunPythonProgram(appPath);
+  std::thread pyThread([this, appPath, env_vars]() {
+    RunPythonProgram(appPath, env_vars);
   });
   pyThread.detach();
   Log("RunPythonProgramAsync thread detached");
 }
 
-void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string script) {
+void SeriousPythonWindowsPlugin::RunPythonScriptAsync(std::string script, const EncodableMap& env_vars) {
   Log("RunPythonScriptAsync starting");
-  std::thread pyThread([this, script]() {
-    RunPythonScript(script);
+  std::thread pyThread([this, script, env_vars]() {
+    RunPythonScript(script, env_vars);
   });
   pyThread.detach();
   Log("RunPythonScriptAsync thread detached");
 }
 
-void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath) {
+void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath, const EncodableMap& env_vars) {
   Log("RunPythonProgram entered for: " + appPath);
   PyGILState_STATE gstate = PyGILState_Ensure();
   Log("GIL acquired");
+
+  // Update os.environ with provided environment variables
+  if (!env_vars.empty()) {
+    std::string updateScript = "import os\n";
+    for (const auto& kv : env_vars) {
+      const auto& key = kv.first;
+      const auto& value = kv.second;
+      if (auto str_key = std::get_if<std::string>(&key);
+          auto str_value = std::get_if<std::string>(&value)) {
+        std::string escaped_value = *str_value;
+        size_t pos = 0;
+        while ((pos = escaped_value.find("'", pos)) != std::string::npos) {
+          escaped_value.replace(pos, 1, "\\'");
+          pos += 2;
+        }
+        updateScript += "os.environ['" + *str_key + "'] = '" + escaped_value + "'\n";
+      }
+    }
+    Log("Updating os.environ:\n" + updateScript);
+    int ret = PyRun_SimpleString(updateScript.c_str());
+    if (ret != 0) {
+      Log("Failed to update os.environ");
+      PyErr_Print();
+    }
+  }
 
   int ret = PyRun_SimpleString("print('Hello from inline Python')\nimport sys; sys.stdout.flush()");
   if (ret != 0) {
@@ -279,7 +301,6 @@ void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath) {
     } else {
       Log("Python file executed successfully");
     }
-    fclose(file);
   } else {
     Log("Failed to open Python file: " + appPath + ", errno=" + std::to_string(err));
   }
@@ -288,10 +309,34 @@ void SeriousPythonWindowsPlugin::RunPythonProgram(std::string appPath) {
   Log("GIL released, RunPythonProgram finished");
 }
 
-void SeriousPythonWindowsPlugin::RunPythonScript(std::string script) {
+void SeriousPythonWindowsPlugin::RunPythonScript(std::string script, const EncodableMap& env_vars) {
   Log("RunPythonScript entered");
   PyGILState_STATE gstate = PyGILState_Ensure();
   Log("GIL acquired");
+
+  if (!env_vars.empty()) {
+    std::string updateScript = "import os\n";
+    for (const auto& kv : env_vars) {
+      const auto& key = kv.first;
+      const auto& value = kv.second;
+      if (auto str_key = std::get_if<std::string>(&key);
+          auto str_value = std::get_if<std::string>(&value)) {
+        std::string escaped_value = *str_value;
+        size_t pos = 0;
+        while ((pos = escaped_value.find("'", pos)) != std::string::npos) {
+          escaped_value.replace(pos, 1, "\\'");
+          pos += 2;
+        }
+        updateScript += "os.environ['" + *str_key + "'] = '" + escaped_value + "'\n";
+      }
+    }
+    Log("Updating os.environ:\n" + updateScript);
+    int ret = PyRun_SimpleString(updateScript.c_str());
+    if (ret != 0) {
+      Log("Failed to update os.environ");
+      PyErr_Print();
+    }
+  }
 
   int ret = PyRun_SimpleString(script.c_str());
   if (ret != 0) {

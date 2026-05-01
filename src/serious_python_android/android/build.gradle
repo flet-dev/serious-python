@@ -84,7 +84,7 @@ def packageTasks = []
 android.defaultConfig.ndk.abiFilters.each { abi ->
 
     // def srcDir = System.getenv('SERIOUS_PYTHON_SITE_PACKAGES')
-    def srcDir = "src/main/site-packages"
+    def srcDir = "E:\\Can1425\\pyrite_ide_plugin_example\\build\\site-packages"
     if (srcDir == null || srcDir.allWhitespace) {
         throw new InvalidUserDataException("SERIOUS_PYTHON_SITE_PACKAGES environment variable is not set.")
     }
