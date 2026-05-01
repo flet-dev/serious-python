@@ -9,6 +9,9 @@ import Python
 
 public class SeriousPythonPlugin: NSObject, FlutterPlugin {
     
+    private static var pythonInitialized = false
+    private static var pythonLock = NSLock()
+    
     public static func register(with registrar: FlutterPluginRegistrar) {
         // Workaround for https://github.com/flutter/flutter/issues/118103.
         #if os(iOS)
@@ -31,13 +34,14 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             #endif
         case "runPython":
             let args: [String: Any] = call.arguments as? [String: Any] ?? [:]
+            let exePath = args["exePath"] as? String ?? ""
             let appPath = args["appPath"] as! String
             let script = args["script"] as? String
             let modulePaths = args["modulePaths"] as? [String] ?? []
             let envVars = args["environmentVariables"] as? [String:String] ?? [:]
             let sync = args["sync"] as? Bool ?? false
             
-            NSLog("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths))")
+            NSLog("Swift runPython(appPath: \(appPath), modulePaths: \(modulePaths), sync: \(sync))")
             
             let appDir = URL(fileURLWithPath: appPath).deletingLastPathComponent().path
             
@@ -82,23 +86,26 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             setenv("PYTHONPATH", pythonPaths.joined(separator: ":"), 1)
             
             // custom env vars
-            envVars.forEach {v in
-                setenv(v.key, v.value, 1)
+            envVars.forEach { key, value in
+                setenv(key, value, 1)
             }
             
+            // ensure Python is initialized only once
+            Self.ensurePythonInitialized()
+            
             // run program either sync or in a thread
-            if (sync) {
-                if (script == nil) {
-                    runPythonFile(appPath: appPath)
+            if sync {
+                if script == nil {
+                    runPythonFile(appPath: appPath, envVars: envVars)
                 } else {
-                    runPythonScript(script: script!)
+                    runPythonScript(script: script!, envVars: envVars)
                 }
             } else {
-                if (script == nil) {
-                    let t = Thread(target: self, selector: #selector(runPythonFile), object: appPath)
+                if script == nil {
+                    let t = Thread(target: self, selector: #selector(runPythonFileAsync(_:)), object: ["appPath": appPath, "envVars": envVars])
                     t.start()
                 } else {
-                    let t = Thread(target: self, selector: #selector(runPythonScript), object: script!)
+                    let t = Thread(target: self, selector: #selector(runPythonScriptAsync(_:)), object: ["script": script!, "envVars": envVars])
                     t.start()
                 }
             }
@@ -109,28 +116,110 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    @objc func runPythonFile(appPath: String) {
-        Py_Initialize()
+    private static func ensurePythonInitialized() {
+        pythonLock.lock()
+        defer { pythonLock.unlock() }
         
-        // run app
+        guard !pythonInitialized else { return }
+        
+        NSLog("Initializing Python interpreter...")
+        Py_Initialize()
+        if Py_IsInitialized() == 0 {
+            NSLog("ERROR: Python initialization failed!")
+            return
+        }
+        // Release GIL and save main thread state to allow other threads to acquire GIL
+        PyEval_SaveThread()
+        pythonInitialized = true
+        NSLog("Python initialized successfully, GIL released.")
+    }
+    
+    @objc func runPythonFile(appPath: String) {
+        runPythonFile(appPath: appPath, envVars: [:])
+    }
+    
+    func runPythonFile(appPath: String, envVars: [String: String]) {
+        NSLog("runPythonFile entered for: \(appPath)")
+        let gstate = PyGILState_Ensure()
+        NSLog("GIL acquired")
+
+        // Update os.environ with provided environment variables
+        if !envVars.isEmpty {
+            var updateScript = "import os\n"
+            for (key, value) in envVars {
+                let escapedValue = value.replacingOccurrences(of: "'", with: "\\'")
+                updateScript += "os.environ['\(key)'] = '\(escapedValue)'\n"
+            }
+            NSLog("Updating os.environ:\n\(updateScript)")
+            let ret = PyRun_SimpleString(updateScript)
+            if ret != 0 {
+                NSLog("Failed to update os.environ")
+                PyErr_Print()
+            }
+        }
+
         let file = fopen(appPath, "r")
         let result = PyRun_SimpleFileEx(file, appPath, 1)
-        if (result != 0) {
-            print("Python program completed with error.")
+        if result != 0 {
+            NSLog("Python program completed with error.")
+            PyErr_Print()
+        } else {
+            NSLog("Python file executed successfully")
         }
         
-        Py_Finalize()
+        PyGILState_Release(gstate)
+        NSLog("GIL released, runPythonFile finished")
+    }
+    
+    @objc func runPythonFileAsync(_ arg: NSDictionary) {
+        let appPath = arg["appPath"] as! String
+        let envVars = arg["envVars"] as! [String: String]
+        NSLog("runPythonFileAsync starting for: \(appPath)")
+        runPythonFile(appPath: appPath, envVars: envVars)
+        NSLog("runPythonFileAsync thread finished")
     }
 
     @objc func runPythonScript(script: String) {
-        Py_Initialize()
-        
-        // run app
+        runPythonScript(script: script, envVars: [:])
+    }
+    
+    func runPythonScript(script: String, envVars: [String: String]) {
+        NSLog("runPythonScript entered")
+        let gstate = PyGILState_Ensure()
+        NSLog("GIL acquired")
+
+        // Update os.environ with provided environment variables
+        if !envVars.isEmpty {
+            var updateScript = "import os\n"
+            for (key, value) in envVars {
+                let escapedValue = value.replacingOccurrences(of: "'", with: "\\'")
+                updateScript += "os.environ['\(key)'] = '\(escapedValue)'\n"
+            }
+            NSLog("Updating os.environ:\n\(updateScript)")
+            let ret = PyRun_SimpleString(updateScript)
+            if ret != 0 {
+                NSLog("Failed to update os.environ")
+                PyErr_Print()
+            }
+        }
+
         let result = PyRun_SimpleString(script)
-        if (result != 0) {
-            print("Python script completed with error.")
+        if result != 0 {
+            NSLog("Python script completed with error.")
+            PyErr_Print()
+        } else {
+            NSLog("Python script executed successfully")
         }
         
-        Py_Finalize()
+        PyGILState_Release(gstate)
+        NSLog("GIL released, runPythonScript finished")
+    }
+    
+    @objc func runPythonScriptAsync(_ arg: NSDictionary) {
+        let script = arg["script"] as! String
+        let envVars = arg["envVars"] as! [String: String]
+        NSLog("runPythonScriptAsync starting")
+        runPythonScript(script: script, envVars: envVars)
+        NSLog("runPythonScriptAsync thread finished")
     }
 }
