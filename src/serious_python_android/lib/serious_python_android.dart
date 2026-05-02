@@ -120,6 +120,9 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     await setenv("PYTHONPATH", moduleSearchPaths.join(":"));
 
     // set environment variables
+
+    updateEnvironmentVariables(environmentVariables);
+
     if (environmentVariables != null) {
       for (var v in environmentVariables.entries) {
         await setenv(v.key, v.value);

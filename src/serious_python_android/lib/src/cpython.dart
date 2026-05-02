@@ -130,7 +130,6 @@ String? _setupLogcatForwarding(CPython cpython) {
 // ----------------------------------------------------------------------
 // Core Python execution (assumes GIL already held)
 // ----------------------------------------------------------------------
-// 这是您需要修改的核心部分
 String _runPythonProgramWithGIL(
   String dynamicLibPath,
   String pythonProgramPath,
@@ -219,6 +218,7 @@ Future<String> runPythonProgramFFI(
           pythonProgramPath,
           script,
         );
+        print(result);
         spDebug("Python run done (resultLength=${result.length})");
         return result;
       } finally {
@@ -305,8 +305,7 @@ String? _formatPythonException(
           final itemObj = cpython.PyList_GetItem(listPtr, i);
           if (itemObj == nullptr) continue;
 
-          final line =
-              _pyUnicodeToDartString(cpython, itemObj) ??
+          final line = _pyUnicodeToDartString(cpython, itemObj) ??
               _pyObjectToDartString(cpython, itemObj);
           if (line == null) continue;
           buffer.write(line);
@@ -339,5 +338,27 @@ String? _pyObjectToDartString(CPython cpython, Pointer<PyObject> objPtr) {
     return _pyUnicodeToDartString(cpython, strObj);
   } finally {
     cpython.Py_DecRef(strObj);
+  }
+}
+
+// Update os.environ with provided environment variables
+void updateEnvironmentVariables(Map<String, String>? environmentVariables) {
+  if (environmentVariables != null) {
+    final gstate = _cpython!.PyGILState_Ensure();
+    final updateBuffer = StringBuffer();
+    updateBuffer.writeln("import os");
+    for (var v in environmentVariables.entries) {
+      updateBuffer.writeln("os.environ['${v.key}'] = '${v.value}'");
+    }
+    final updateScript = updateBuffer.toString();
+    spDebug("Updating os.environ:\n$updateScript");
+    int ret =
+        _cpython!.PyRun_SimpleString(updateScript.toNativeUtf8().cast<Char>());
+    if (ret != 0) {
+      spDebug("Failed to update os.environ");
+      _cpython!.PyErr_Print();
+    }
+    _cpython!.PyGILState_Release(gstate);
+    spDebug("GIL released, RunPythonProgram finished");
   }
 }
