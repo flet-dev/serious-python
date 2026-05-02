@@ -1,3 +1,7 @@
+## 0.9.12
+
+* Fix web packaging to skip `site-packages` when appropriate ([#199](https://github.com/flet-dev/serious-python/pull/199)).
+
 ## 0.9.11
 
 * Disable user-site packages in pip environment ([#195](https://github.com/flet-dev/serious-python/pull/195)).
