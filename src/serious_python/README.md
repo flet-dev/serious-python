@@ -85,7 +85,7 @@ To package Python files for the specific platform:
 dart run serious_python:main package app/src -p {platform}
 ```
 
-where `{platform}` can be one of the following: `Android`, `iOS`, `macOS`, `Windows`, `Linux` or `Pyodide`.
+where `{platform}` can be one of the following: `Android`, `iOS`, `macOS`, `Windows`, `Linux` or `Emscripten`.
 
 By default, the command creates `app/app.zip` asset, but you can change its path/name with `--asset` argument:
 

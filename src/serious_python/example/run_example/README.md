@@ -40,7 +40,7 @@ dart run serious_python:main package app/src -p Linux -r -r -r app/src/requireme
 For Pyodide:
 
 ```
-dart run serious_python:main package app/src -p Pyodide -r -r -r app/src/requirements.txt
+dart run serious_python:main package app/src -p Emscripten -r -r -r app/src/requirements.txt
 ```
 
 For Android:

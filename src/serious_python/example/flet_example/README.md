@@ -37,7 +37,7 @@ dart run serious_python:main package app/src -p Linux --requirements -r,app/src/
 For web:
 
 ```
-dart run serious_python:main package app/src -p Pyodide --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p Emscripten --requirements -r,app/src/requirements.txt
 ```
 
 Important: to make `serious_python` work in your own Android app:
