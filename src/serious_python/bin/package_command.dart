@@ -45,7 +45,7 @@ const platforms = {
     "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
     "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
-  "Pyodide": {
+  "Emscripten": {
     "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""}
   },
   "Darwin": {
@@ -96,7 +96,7 @@ class PackageCommand extends Command {
   PackageCommand() {
     argParser.addOption('platform',
         abbr: "p",
-        allowed: ["iOS", "Android", "Pyodide", "Windows", "Linux", "Darwin"],
+        allowed: ["iOS", "Android", "Emscripten", "Windows", "Linux", "Darwin"],
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
     argParser.addMultiOption('arch',
@@ -195,13 +195,13 @@ class PackageCommand extends Command {
       }
 
       bool isMobile = (platform == "iOS" || platform == "Android");
-      bool isWeb = platform == "Pyodide";
+      bool isWeb = platform == "Emscripten";
 
       var junkFiles = isMobile ? junkFilesMobile : junkFilesDesktop;
 
       // Extra indexs
       List<String> extraPyPiIndexes = [mobilePyPiUrl];
-      if (platform == "Pyodide") {
+      if (platform == "Emscripten") {
         pyodidePyPiServer = await startSimpleServer();
         extraPyPiIndexes.add(
             "http://${pyodidePyPiServer.address.host}:${pyodidePyPiServer.port}/simple");
@@ -430,7 +430,7 @@ class PackageCommand extends Command {
       }
 
       // copy site packages to temp dir for web platform
-      if (platform == "Pyodide" && requirements.isNotEmpty) {
+      if (platform == "Emscripten" && requirements.isNotEmpty) {
         final sitePackagesSrcDir = Directory(sitePackagesRoot);
         if (await sitePackagesSrcDir.exists()) {
           stdout.writeln("Copying site packages to app archive");
