@@ -321,6 +321,9 @@ class PackageCommand extends Command {
               // Prevent importing user-site packages (e.g. ~/.local/.../site-packages)
               // which can shadow bundled pip in build Python.
               "PYTHONNOUSERSITE": "1",
+              // Override any user-set `require-virtualenv = true` (pip.conf or
+              // PIP_REQUIRE_VIRTUALENV) which otherwise aborts the install.
+              "PIP_REQUIRE_VIRTUALENV": "false",
             };
 
             sitePackagesDir = arch.key.isNotEmpty
