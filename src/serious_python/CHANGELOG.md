@@ -1,3 +1,7 @@
+## 1.0.1
+
+* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` so the package command works when `require-virtualenv = true` is set in pip config ([#202](https://github.com/flet-dev/serious-python/issues/202)).
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.
