@@ -1,5 +1,5 @@
 group 'com.flet.serious_python_android'
-version '1.0.0'
+version '1.0.1'
     
 def python_version = '3.12'
 
@@ -71,6 +71,12 @@ android {
 
 import de.undercouch.gradle.tasks.download.Download
 
+def fletCacheRoot = System.getenv('FLET_CACHE_DIR')
+def pythonCacheDir = new File(
+    fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
+    "python-build/v${python_version}"
+)
+
 task copyBuildDist(type: Copy) {
     def srcDir = System.getenv('SERIOUS_PYTHON_BUILD_DIST')
     if (srcDir != null) {
@@ -97,7 +103,11 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
 
     tasks.register("downloadDistArchive_$abi", Download) {
         src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
-        dest new File(buildDir, "python-android-${abi}.tar.gz")
+        dest new File(pythonCacheDir, "python-android-dart-${python_version}-${abi}.tar.gz")
+        onlyIfModified true
+        useETag "all"
+        tempAndMove true
+        doFirst { dest.parentFile.mkdirs() }
     }
     tasks.register("untarFile_$abi", Copy) {
         from tarTree(tasks.named("downloadDistArchive_$abi").get().dest)
