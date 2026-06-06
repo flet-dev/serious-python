@@ -17,8 +17,14 @@ env:
 
 jobs:
   macos:
-    name: Test on macOS
+    name: Test on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,12 +38,18 @@ jobs:
       - name: Run tests
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform Darwin --requirements flet==0.28.3
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           flutter test integration_test --device-id macos
 
   ios:
-    name: Test on iOS
+    name: Test on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -62,12 +74,18 @@ jobs:
       - name: Run tests
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --requirements flet==0.28.3
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
 
   android:
-    name: Test on Android
+    name: Test on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -115,12 +133,18 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --requirements flet==0.28.3
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
             cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
 
   windows:
-    name: Test on Windows
+    name: Test on Windows (Python ${{ matrix.python_version }})
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -134,15 +158,17 @@ jobs:
       - name: Run tests
         working-directory:  "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform Windows --requirements flet==0.28.3
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           flutter test integration_test -d windows
 
   linux:
-    name: Test on Linux ${{ matrix.title }}
+    name: Test on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
+        python_version: ['3.12', '3.13', '3.14']
+        arch: [arm64, amd64]
         include:
           - arch: arm64
             runner: ubuntu-24.04-arm
@@ -150,6 +176,8 @@ jobs:
           - arch: amd64
             runner: ubuntu-24.04
             title: AMD64
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -205,7 +233,7 @@ jobs:
         working-directory: src/serious_python/example/flet_example
         run: |
           flutter pub get
-          dart run serious_python:main package app/src --platform Linux --requirements flet==0.28.3
+          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           xvfb-run flutter test integration_test -d linux
 
   publish:

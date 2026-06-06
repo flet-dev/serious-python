@@ -16,7 +16,22 @@ Serious Python is part of [Flet](https://flet.dev) project - the fastest way to 
 
 ### Python versions
 
-* Python 3.12.6 on all platforms.
+The plugin can bundle one of several Python releases per build, selected via
+the `--python-version X.Y` flag of `serious_python:main package` (or the
+`SERIOUS_PYTHON_VERSION` env var picked up by the Android/Darwin/Linux/Windows
+plugin build scripts). Defaults to the latest supported version when nothing
+is specified.
+
+| Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag |
+| ----- | --------------- | ------------- | -------------------------- |
+| 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`     |
+| 3.13  | 3.13.13         | 0.29.4        | `pyodide-2025.0-wasm32`     |
+| 3.14  | 3.14.5          | 314.0.0a2     | `pyemscripten-2026.0-wasm32`|
+
+Source of truth: the `_pythonReleases` map in
+[`bin/package_command.dart`](bin/package_command.dart) (Dart side) and
+`flet_cli/utils/python_versions.py` (Python side). Adding a new short version
+means appending a row to both — there is no separate pre-release gate.
 
 ## Usage
 

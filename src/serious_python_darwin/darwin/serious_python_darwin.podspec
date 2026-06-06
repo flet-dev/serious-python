@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_version = "3.12"
+  python_version = ENV['SERIOUS_PYTHON_VERSION'] || "3.14"
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"

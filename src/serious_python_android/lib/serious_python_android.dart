@@ -48,7 +48,25 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       spDebug("Unable to load libpyjni.so library: $e");
     }
 
-    const pythonSharedLib = "libpython3.12.so";
+    // unpack python bundle
+    final nativeLibraryDir =
+        await methodChannel.invokeMethod<String>('getNativeLibraryDir');
+    spDebug("getNativeLibraryDir: $nativeLibraryDir");
+
+    // The bundled libpython filename moves with the Python version
+    // (e.g. libpython3.12.so vs libpython3.13.so), so resolve it by
+    // scanning nativeLibraryDir rather than hardcoding a constant — the
+    // plugin only ever bundles one libpython per build.
+    final libpythonRe = RegExp(r'^libpython3\.\d+\.so$');
+    final pythonSharedLib = Directory(nativeLibraryDir!)
+        .listSync()
+        .map((e) => p.basename(e.path))
+        .firstWhere(
+          libpythonRe.hasMatch,
+          orElse: () => throw Exception(
+              "No libpython3.*.so found in $nativeLibraryDir"),
+        );
+    spDebug("Resolved Python shared library: $pythonSharedLib");
 
     String? getPythonFullVersion() {
       try {
@@ -69,11 +87,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
         return null;
       }
     }
-
-    // unpack python bundle
-    final nativeLibraryDir =
-        await methodChannel.invokeMethod<String>('getNativeLibraryDir');
-    spDebug("getNativeLibraryDir: $nativeLibraryDir");
 
     var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
     var sitePackagesZipPath = "$nativeLibraryDir/libpythonsitepackages.so";

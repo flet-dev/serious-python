@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Multi-version Python support. `PYTHON_VERSION` in `windows/CMakeLists.txt` is now read from `SERIOUS_PYTHON_VERSION` (default `3.14`); the `python-build` download URL and the `python312.lib` / `python312.dll` filenames are derived from it (e.g. `python313.lib`, `python314.dll`).
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.

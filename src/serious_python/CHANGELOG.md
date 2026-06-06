@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Multi-version Python support. The `package` command now accepts `--python-version` (or `SERIOUS_PYTHON_VERSION` env var) to select between Python 3.12 / 3.13 / 3.14. Defaults to the latest supported version (3.14). The matching CPython-standalone build and Pyodide release are looked up from a new `_pythonReleases` table; the Emscripten wheel platform tag is derived from it too, so each Python release picks the right `pyodide-XXXX.X-wasm32` / `pyemscripten-XXXX.X-wasm32` tag automatically.
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.

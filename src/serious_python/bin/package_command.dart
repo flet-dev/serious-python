@@ -15,17 +15,57 @@ import 'macos_utils.dart' as macos_utils;
 import 'sitecustomize.dart';
 
 const mobilePyPiUrl = "https://pypi.flet.dev";
-const pyodideRootUrl = "https://cdn.jsdelivr.net/pyodide/v0.27.7/full";
 const pyodideLockFile = "pyodide-lock.json";
 
-const buildPythonVersion = "3.12.9";
-const buildPythonReleaseDate = "20250205";
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
 const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
+
+const pythonVersionEnvironmentVariable = "SERIOUS_PYTHON_VERSION";
+const pythonDistReleaseEnvironmentVariable = "SERIOUS_PYTHON_DIST_RELEASE";
+const pyodideVersionEnvironmentVariable = "SERIOUS_PYTHON_PYODIDE_VERSION";
+
+const defaultPythonVersion = "3.14";
+
+class _PythonRelease {
+  const _PythonRelease({
+    required this.standaloneVersion,
+    required this.standaloneReleaseDate,
+    required this.pyodideVersion,
+    required this.pyodidePlatformTag,
+  });
+
+  final String standaloneVersion;
+  final String standaloneReleaseDate;
+  final String pyodideVersion;
+  final String pyodidePlatformTag;
+}
+
+// Source of truth for the Python <-> CPython standalone <-> Pyodide mapping.
+// Mirror any change here in flet-cli's python_versions.py.
+const _pythonReleases = <String, _PythonRelease>{
+  "3.12": _PythonRelease(
+    standaloneVersion: "3.12.13",
+    standaloneReleaseDate: "20260602",
+    pyodideVersion: "0.27.7",
+    pyodidePlatformTag: "pyodide-2024.0-wasm32",
+  ),
+  "3.13": _PythonRelease(
+    standaloneVersion: "3.13.13",
+    standaloneReleaseDate: "20260602",
+    pyodideVersion: "0.29.4",
+    pyodidePlatformTag: "pyodide-2025.0-wasm32",
+  ),
+  "3.14": _PythonRelease(
+    standaloneVersion: "3.14.5",
+    standaloneReleaseDate: "20260602",
+    pyodideVersion: "314.0.0a2",
+    pyodidePlatformTag: "pyemscripten-2026.0-wasm32",
+  ),
+};
 
 const platforms = {
   "iOS": {
@@ -46,7 +86,10 @@ const platforms = {
     "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
   "Emscripten": {
-    "": {"tag": "pyodide-2024.0-wasm32", "mac_ver": ""}
+    // The actual wheel platform tag is resolved per Python release from
+    // `_pythonReleases[...].pyodidePlatformTag` (see sitecustomize wiring
+    // below) since it changes with each Pyodide ABI bump.
+    "": {"tag": "", "mac_ver": ""}
   },
   "Darwin": {
     "arm64": {"tag": "", "mac_ver": "arm64"},
@@ -86,6 +129,11 @@ class PackageCommand extends Command {
   bool _verbose = false;
   Directory? _buildDir;
   Directory? _pythonDir;
+  late String _pythonShortVersion;
+  late _PythonRelease _release;
+
+  String get _pyodideRootUrl =>
+      "https://cdn.jsdelivr.net/pyodide/v${_release.pyodideVersion}/full";
 
   @override
   final name = "package";
@@ -99,6 +147,11 @@ class PackageCommand extends Command {
         allowed: ["iOS", "Android", "Emscripten", "Windows", "Linux", "Darwin"],
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
+    argParser.addOption('python-version',
+        allowed: _pythonReleases.keys.toList(),
+        help: "Short Python version to bundle (e.g. 3.13). Defaults to "
+            "\$$pythonVersionEnvironmentVariable env var or "
+            "'$defaultPythonVersion'.");
     argParser.addMultiOption('arch',
         help:
             "Install dependencies for specific architectures only. Leave empty to install all supported architectures.");
@@ -171,6 +224,29 @@ class PackageCommand extends Command {
       bool cleanupPackages = argResults?["cleanup-packages"];
       List<String> cleanupPackageFiles = argResults?['cleanup-package-files'];
       _verbose = argResults?["verbose"];
+
+      _pythonShortVersion = argResults?['python-version'] ??
+          Platform.environment[pythonVersionEnvironmentVariable] ??
+          defaultPythonVersion;
+      final baseRelease = _pythonReleases[_pythonShortVersion];
+      if (baseRelease == null) {
+        stderr.writeln(
+            "Unknown Python version: $_pythonShortVersion. Supported: ${_pythonReleases.keys.join(", ")}");
+        exit(2);
+      }
+      _release = _PythonRelease(
+        standaloneVersion: baseRelease.standaloneVersion,
+        standaloneReleaseDate:
+            Platform.environment[pythonDistReleaseEnvironmentVariable] ??
+                baseRelease.standaloneReleaseDate,
+        pyodideVersion:
+            Platform.environment[pyodideVersionEnvironmentVariable] ??
+                baseRelease.pyodideVersion,
+        pyodidePlatformTag: baseRelease.pyodidePlatformTag,
+      );
+      stdout.writeln(
+          "Python $_pythonShortVersion (CPython ${_release.standaloneVersion}, "
+          "Pyodide ${_release.pyodideVersion})");
 
       if (path.isRelative(sourceDirPath)) {
         sourceDirPath = path.join(currentPath, sourceDirPath);
@@ -307,10 +383,17 @@ class PackageCommand extends Command {
                   "Configured $platform/${arch.key} platform with sitecustomize.py");
             }
 
+            // Emscripten's wheel platform tag changes between Pyodide ABI
+            // bumps (e.g. pyodide-2024.0 -> pyodide-2025.0 -> pyemscripten-2026.0),
+            // so resolve it from the chosen Python release instead of the
+            // static `platforms` map.
+            final platformTag = platform == "Emscripten"
+                ? _release.pyodidePlatformTag
+                : arch.value["tag"]!;
             await File(sitecustomizePath).writeAsString(sitecustomizePy
                 .replaceAll(
-                    "{platform}", arch.value["tag"]!.isNotEmpty ? platform : "")
-                .replaceAll("{tag}", arch.value["tag"]!)
+                    "{platform}", platformTag.isNotEmpty ? platform : "")
+                .replaceAll("{tag}", platformTag)
                 .replaceAll("{mac_ver}", arch.value["mac_ver"]!));
 
             // print(File(sitecustomizePath).readAsStringSync());
@@ -552,8 +635,8 @@ class PackageCommand extends Command {
   Future<int> runPython(List<String> args,
       {Map<String, String>? environment}) async {
     if (_pythonDir == null) {
-      _pythonDir = Directory(
-          path.join(_buildDir!.path, "build_python_$buildPythonVersion"));
+      _pythonDir = Directory(path.join(
+          _buildDir!.path, "build_python_${_release.standaloneVersion}"));
 
       if (!await _pythonDir!.exists()) {
         await _pythonDir!.create();
@@ -574,7 +657,7 @@ class PackageCommand extends Command {
         }
 
         var pythonArchiveFilename =
-            "cpython-$buildPythonVersion+$buildPythonReleaseDate-$arch-install_only_stripped.tar.gz";
+            "cpython-${_release.standaloneVersion}+${_release.standaloneReleaseDate}-$arch-install_only_stripped.tar.gz";
 
         var pythonArchivePath =
             path.join(_buildDir!.path, pythonArchiveFilename);
@@ -582,7 +665,7 @@ class PackageCommand extends Command {
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
           final url =
-              "https://github.com/astral-sh/python-build-standalone/releases/download/$buildPythonReleaseDate/$pythonArchiveFilename";
+              "https://github.com/astral-sh/python-build-standalone/releases/download/${_release.standaloneReleaseDate}/$pythonArchiveFilename";
 
           if (_verbose) {
             verbose(
@@ -649,7 +732,7 @@ class PackageCommand extends Command {
     const htmlFooter = "</body></html>\n";
 
     var pyodidePackages =
-        await fetchJsonFromUrl("$pyodideRootUrl/$pyodideLockFile");
+        await fetchJsonFromUrl("$_pyodideRootUrl/$pyodideLockFile");
 
     var wheels = Map.from(pyodidePackages["packages"])
       ..removeWhere((k, p) => !p["file_name"].endsWith(".whl"));
@@ -671,7 +754,7 @@ class PackageCommand extends Command {
         wheels.forEach((k, p) {
           if (k == parts[1].toLowerCase()) {
             links.add(
-                "<a href=\"$pyodideRootUrl/${p['file_name']}#sha256=${p['sha256']}\">${p['file_name']}</a></br>");
+                "<a href=\"$_pyodideRootUrl/${p['file_name']}#sha256=${p['sha256']}\">${p['file_name']}</a></br>");
           }
         });
         return Response.ok(htmlHeader + links.join("\n") + htmlFooter,

@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Multi-version Python support. `python_version` in `serious_python_darwin.podspec` is now read from `SERIOUS_PYTHON_VERSION` (default `3.14`), so `prepare_ios.sh` / `prepare_macos.sh` download the matching python-build tarballs (`python-ios-dart-3.13.tar.gz` etc.).
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.

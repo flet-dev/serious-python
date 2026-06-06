@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Multi-version Python support. `PYTHON_VERSION` in `linux/CMakeLists.txt` is now read from `SERIOUS_PYTHON_VERSION` (default `3.14`), and all hardcoded `python3.12` / `libpython3.12.so.1.0` / `lib/python3.12` paths are derived from it. The plugin source receives the version via a `SERIOUS_PYTHON_VERSION` compile-time macro so the runtime module path matches the bundled distro.
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.

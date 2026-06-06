@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Version bump for the multi-version Python support release across the `serious_python_*` platform plugins. No interface changes.
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.

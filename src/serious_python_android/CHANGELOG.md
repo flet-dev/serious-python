@@ -1,3 +1,8 @@
+## 1.1.0
+
+* Multi-version Python support. `python_version` in `android/build.gradle` is now read from `SERIOUS_PYTHON_VERSION` (default `3.14`), so the python-build distribution URL points at `v3.12` / `v3.13` / `v3.14` depending on the `flet build` selection.
+* The Dart runtime no longer hardcodes `libpython3.12.so` — it scans `nativeLibraryDir` for `libpython3.*.so` so whichever libpython the plugin bundled is loaded automatically.
+
 ## 1.0.0
 
 * **Breaking change:** `--platform` argument value `Pyodide` has been renamed to `Emscripten` to match what `platform.system()` returns in the Pyodide runtime, so PEP 508 markers like `platform_system != 'Emscripten'` work consistently.
