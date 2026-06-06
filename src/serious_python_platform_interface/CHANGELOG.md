@@ -1,6 +1,7 @@
 ## 2.0.0
 
 * Version bump aligning with the major release of the `serious_python_*` platform plugins (multi-version Python support, default Python now 3.14). No interface changes.
+* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` so the package command works when `require-virtualenv = true` is set in pip config ([#202](https://github.com/flet-dev/serious-python/issues/202)).
 
 ## 1.0.0
 

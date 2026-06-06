@@ -7,6 +7,7 @@
 * The Emscripten pip platform tag is now derived per Python release (e.g. `pyodide-2024.0-wasm32` for 0.27.7, `pyemscripten-2026.0-wasm32` for 314.0.0a2), via a `pyodide_platform_tag` field in the version registry. The previous static `pyodide-2024.0-wasm32` entry in `platforms["Emscripten"]` has been removed.
 * `sitecustomize.py` now shims `platform.android_ver` so the new pip / packaging that ships with python-build-standalone 20260602+ can compute Android wheel tags on Python 3.12 hosts (where `android_ver` didn't exist) and on Python 3.13+ hosts (where it returns `api_level=0` off-device).
 * Skip 32-bit Android ABIs (`armeabi-v7a`, `x86`) when Python ≥ 3.13 — PEP 738 dropped 32-bit Android support, and `flet-dev/python-build` no longer publishes those runtimes for those versions.
+* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` so the package command works when `require-virtualenv = true` is set in pip config ([#202](https://github.com/flet-dev/serious-python/issues/202)).
 
 ## 1.0.0
 

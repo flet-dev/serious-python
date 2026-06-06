@@ -2,6 +2,7 @@
 
 * **Breaking change:** default bundled Python version is now 3.14 (was 3.12). Apps built without an explicit `SERIOUS_PYTHON_VERSION` env var pull `python-ios-dart-3.14.tar.gz` / `python-macos-dart-3.14.tar.gz` from `flet-dev/python-build`. Set `SERIOUS_PYTHON_VERSION=3.12` to preserve the previous default.
 * Multi-version Python support. `python_version` in `serious_python_darwin.podspec` reads from `SERIOUS_PYTHON_VERSION`; `prepare_ios.sh` / `prepare_macos.sh` already took the version as `$1` and download the matching tarballs.
+* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` so the package command works when `require-virtualenv = true` is set in pip config ([#202](https://github.com/flet-dev/serious-python/issues/202)).
 
 ## 1.0.0
 
