@@ -4,7 +4,7 @@ A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
 
 Serious Python embeds Python runtime into a mobile or desktop Flutter app to run a Python program on a background, without blocking UI. Processing files, working with SQLite databases, calling REST APIs, image processing, ML, AI and other heavy lifting tasks can be conveniently done in Python and run directly on a mobile device.
 
-Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environmnent via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
+Build app backend service in Python and host it inside a Flutter app. Flutter app is not directly calling Python functions or modules, but instead communicating with Python environment via some API provided by a Python program, such as: REST API, sockets, SQLite database or files.
 
 Serious Python is part of [Flet](https://flet.dev) project - the fastest way to build multi-platform apps in Python. The motivation for building Serious Python was having a re-usable easy-to-use plugin, maintained and supported, to run real-world Python apps, not just "1+2" or "hello world" examples, on iOS or Android devices and hence the name "Serious Python".
 
@@ -28,10 +28,19 @@ is specified.
 | 3.13  | 3.13.13         | 0.29.4        | `pyodide-2025.0-wasm32`     |
 | 3.14  | 3.14.5          | 314.0.0a2     | `pyemscripten-2026.0-wasm32`|
 
+The default is the latest stable row (currently **3.14**) when neither
+`--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
+[`flet build`](https://flet.dev/docs/publish/), the same resolution is
+applied to `[project].requires-python` in your `pyproject.toml`, so most
+users never need to touch this flag directly.
+
 Source of truth: the `_pythonReleases` map in
 [`bin/package_command.dart`](bin/package_command.dart) (Dart side) and
 `flet_cli/utils/python_versions.py` (Python side). Adding a new short version
-means appending a row to both — there is no separate pre-release gate.
+means appending a row to both. Pre-release CPython lines (e.g. 3.15) can be
+listed with `prerelease: true` so they're opt-in via explicit
+`--python-version 3.15` (or `requires-python = "==3.15.*"`) without becoming
+the auto-resolved default.
 
 ## Usage
 
@@ -47,11 +56,11 @@ Import Serious Python package into your app:
 
 `import 'package:serious_python/serious_python.dart';`
 
-The plugin is built against iOS 12.0, so you might need to update iOS version in `ios/Podfile`:
+The plugin is built against iOS 13.0, so you might need to update iOS version in `ios/Podfile`:
 
 ```bash
 # Uncomment this line to define a global platform for your project
-platform :ios, '12.0'
+platform :ios, '13.0'
 ```
 
 Create an instance of `SeriousPython` class and call its `run()` method:
@@ -84,7 +93,15 @@ SeriousPython.run("app/app.zip",
     modulePaths: ["/absolute/path/to/my/site-packages"]);
 ```
 
+By default the Python program runs in a background thread so the Flutter UI stays responsive. Pass `sync: true` to run it on the calling thread instead — useful for short utility programs or when calling from a Dart isolate; long-running synchronous programs will freeze the UI on the main isolate:
+
+```dart
+SeriousPython.run("app/app.zip", sync: true);
+```
+
 ### Packaging Python app
+
+> **Tip:** `serious_python` is also driven automatically by [`flet build`](https://flet.dev/docs/publish/), which threads `--python-version` and friends through for you. The instructions below cover direct standalone usage for non-Flet Flutter apps.
 
 To simplify the packaging of your Python app Serious Python provides a CLI which can be run with the following command:
 
@@ -100,7 +117,7 @@ To package Python files for the specific platform:
 dart run serious_python:main package app/src -p {platform}
 ```
 
-where `{platform}` can be one of the following: `Android`, `iOS`, `macOS`, `Windows`, `Linux` or `Emscripten`.
+where `{platform}` can be one of the following: `Android`, `iOS`, `Darwin`, `Windows`, `Linux` or `Emscripten`. (`Darwin` covers both macOS apps and is the value used internally by `platform.system()` in the bundled Python; it is **not** spelled `macOS`.)
 
 By default, the command creates `app/app.zip` asset, but you can change its path/name with `--asset` argument:
 
@@ -108,7 +125,40 @@ By default, the command creates `app/app.zip` asset, but you can change its path
 dart run serious_python:main package --asset assets/myapp.zip app/src -p {platform}
 ```
 
-Python app dependencies can be installed with `--requirements` option. The value of `--requirements` option is passed "as is" to `pip` command. For example, `--requirements flet,numpy==2.1.1` will install two requirements directly, or `--requirements -r,requirements.txt` installs deps from `requirements.txt` file.
+#### Selecting a Python version
+
+Pick which CPython line to bundle with `--python-version` (or set
+`SERIOUS_PYTHON_VERSION` in the build environment):
+
+```
+dart run serious_python:main package app/src -p Android --python-version 3.13 -r flet
+```
+
+Supported short versions today are **3.12**, **3.13**, **3.14**; the default
+is the latest stable. The same env var (`SERIOUS_PYTHON_VERSION`) is also
+read by each platform plugin's build script (`build.gradle`, the
+`serious_python_darwin` podspec, the Linux/Windows `CMakeLists.txt`) when
+`flutter build` runs later, so a single `export` covers both the packaging
+phase and the Flutter build phase. See the [Python versions](#python-versions)
+table above for the matching CPython and Pyodide releases.
+
+#### Installing requirements
+
+Python app dependencies are installed with the `--requirements` option (alias `-r`). The value is passed verbatim to `pip`, so any flag pip accepts works. Pass each dependency as its own option to support specifiers that contain commas:
+
+```
+dart run serious_python:main package app/src -p Darwin \
+    -r flet -r 'pandas>=2.2,<3' -r numpy==2.1.1
+```
+
+To install from a `requirements.txt` file, pass `-r` three times (twice for pip's own `-r` flag, once more for the file path) so the Dart CLI hands the literal `-r requirements.txt` invocation to pip:
+
+```
+dart run serious_python:main package app/src -p iOS \
+    -r -r -r app/src/requirements.txt
+```
+
+> The comma-separated form (`--requirements flet,numpy==2.1.1`) was removed in **0.9.2** as a breaking change so dependency specifiers containing `,` (like `pandas>=2.2,<3`) can be expressed; use the per-option form shown above instead.
 
 To package for `iOS` and `Android` platforms developer should set `SERIOUS_PYTHON_SITE_PACKAGES` environment variable with a path to a temp directory for installed app packages. The contents of that directory is embedded into app bundle during app compilation.
 
@@ -116,7 +166,7 @@ For example:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
-dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirements.txt
 ```
 
 For macOS, Linux and Windows app packages are installed into `__pypackages__` inside app package asset zip.
@@ -198,8 +248,8 @@ dart run serious_python:main package app/src -p Darwin --verbose
 
 ## Examples
 
-[Python REPL with Flask backend](src/serious_python/example/flask_example).
+[Python REPL with Flask backend](example/flask_example).
 
-[Flet app](src/serious_python/example/flet_example).
+[Flet app](example/flet_example).
 
-[Run Python app](src/serious_python/example/run_example).
+[Run Python app](example/run_example).
