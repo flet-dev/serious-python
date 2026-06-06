@@ -368,6 +368,14 @@ class PackageCommand extends Command {
           if (archArg.isNotEmpty && !archArg.contains(arch.key)) {
             continue;
           }
+          // python-build dropped 32-bit Android in 3.13 (PEP 738); the
+          // platform plugin only bundles arm64-v8a + x86_64 for those
+          // versions, so installing 32-bit wheels would be wasted work.
+          if (platform == "Android" &&
+              _pythonShortVersion != "3.12" &&
+              (arch.key == "armeabi-v7a" || arch.key == "x86")) {
+            continue;
+          }
           String? sitePackagesDir;
           Map<String, String>? pipEnv;
           Directory? sitecustomizeDir;
