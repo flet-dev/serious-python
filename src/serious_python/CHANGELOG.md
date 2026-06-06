@@ -1,6 +1,12 @@
-## 1.1.0
+## 2.0.0
 
-* Multi-version Python support. The `package` command now accepts `--python-version` (or `SERIOUS_PYTHON_VERSION` env var) to select between Python 3.12 / 3.13 / 3.14. Defaults to the latest supported version (3.14). The matching CPython-standalone build and Pyodide release are looked up from a new `_pythonReleases` table; the Emscripten wheel platform tag is derived from it too, so each Python release picks the right `pyodide-XXXX.X-wasm32` / `pyemscripten-XXXX.X-wasm32` tag automatically.
+* **Breaking change:** the `package` command's default Python is now the latest supported stable (3.14), up from the previously implicit 3.12. Scripts that ran `dart run serious_python:main package …` without `--python-version` will now download CPython 3.14, install 3.14 wheels, and use the matching Pyodide / Android platform tags. Pin explicitly with `--python-version 3.12` (or `SERIOUS_PYTHON_VERSION=3.12`) to preserve the old behavior.
+* **Breaking change:** Android `sysconfig.get_platform()` tag format changed from `android-24-arm64-v8a` to `android-24-arm64_v8a` (and similarly for `armeabi-v7a`). The emitted wheel tag (`android_24_arm64_v8a`) is unchanged, but anything reading the raw `sysconfig.get_platform()` string from `sitecustomize.py` should switch separators.
+* **Breaking change:** Windows host arch identifier dropped the `-shared` suffix (`x86_64-pc-windows-msvc-shared` → `x86_64-pc-windows-msvc`); follows astral-sh/python-build-standalone, which only publishes the combined (already shared) `install_only_stripped` build.
+* Multi-version Python support. The `package` command accepts `--python-version` (or `SERIOUS_PYTHON_VERSION` env var) to select between Python 3.12 / 3.13 / 3.14. The matching CPython-standalone build, Pyodide release, and Emscripten wheel platform tag are looked up from a new `_pythonReleases` table. Adding a future pre-release line (e.g. 3.15 beta) is a one-row append with `prerelease: true`; the Flet CLI uses that flag to keep open-ended `requires-python` specifiers (`>=3.14`) on stable, while still letting `--python-version 3.15` or `==3.15.*` opt in.
+* The Emscripten pip platform tag is now derived per Python release (e.g. `pyodide-2024.0-wasm32` for 0.27.7, `pyemscripten-2026.0-wasm32` for 314.0.0a2), via a `pyodide_platform_tag` field in the version registry. The previous static `pyodide-2024.0-wasm32` entry in `platforms["Emscripten"]` has been removed.
+* `sitecustomize.py` now shims `platform.android_ver` so the new pip / packaging that ships with python-build-standalone 20260602+ can compute Android wheel tags on Python 3.12 hosts (where `android_ver` didn't exist) and on Python 3.13+ hosts (where it returns `api_level=0` off-device).
+* Skip 32-bit Android ABIs (`armeabi-v7a`, `x86`) when Python ≥ 3.13 — PEP 738 dropped 32-bit Android support, and `flet-dev/python-build` no longer publishes those runtimes for those versions.
 
 ## 1.0.0
 

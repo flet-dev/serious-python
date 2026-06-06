@@ -1,7 +1,9 @@
-## 1.1.0
+## 2.0.0
 
-* Multi-version Python support. `python_version` in `android/build.gradle` is now read from `SERIOUS_PYTHON_VERSION` (default `3.14`), so the python-build distribution URL points at `v3.12` / `v3.13` / `v3.14` depending on the `flet build` selection.
+* **Breaking change:** default bundled Python version is now 3.14 (was 3.12). Apps built without an explicit `SERIOUS_PYTHON_VERSION` env var pull the 3.14 python-build distribution and ship `libpython3.14.so`. Set `SERIOUS_PYTHON_VERSION=3.12` (typically threaded through `flet build`) to preserve the previous default.
+* Multi-version Python support. `python_version` in `android/build.gradle` reads from `SERIOUS_PYTHON_VERSION` and drives the `flet-dev/python-build` download URL.
 * The Dart runtime no longer hardcodes `libpython3.12.so` — it scans `nativeLibraryDir` for `libpython3.*.so` so whichever libpython the plugin bundled is loaded automatically.
+* `abiFilters` now branches on `python_version`: keep `armeabi-v7a` for 3.12, restrict to `arm64-v8a` + `x86_64` for 3.13+ (python-build dropped 32-bit Android per PEP 738).
 
 ## 1.0.0
 

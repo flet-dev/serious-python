@@ -36,12 +36,18 @@ class _PythonRelease {
     required this.standaloneReleaseDate,
     required this.pyodideVersion,
     required this.pyodidePlatformTag,
+    required this.prerelease,
   });
 
   final String standaloneVersion;
   final String standaloneReleaseDate;
   final String pyodideVersion;
   final String pyodidePlatformTag;
+
+  // When true, this release is supported by `--python-version` but is not
+  // picked automatically by the default or by `[project].requires-python`
+  // resolution on the Flet CLI side. Use for beta CPython lines.
+  final bool prerelease;
 }
 
 // Source of truth for the Python <-> CPython standalone <-> Pyodide mapping.
@@ -52,19 +58,34 @@ const _pythonReleases = <String, _PythonRelease>{
     standaloneReleaseDate: "20260602",
     pyodideVersion: "0.27.7",
     pyodidePlatformTag: "pyodide-2024.0-wasm32",
+    prerelease: false,
   ),
   "3.13": _PythonRelease(
     standaloneVersion: "3.13.13",
     standaloneReleaseDate: "20260602",
     pyodideVersion: "0.29.4",
     pyodidePlatformTag: "pyodide-2025.0-wasm32",
+    prerelease: false,
   ),
   "3.14": _PythonRelease(
     standaloneVersion: "3.14.5",
     standaloneReleaseDate: "20260602",
     pyodideVersion: "314.0.0a2",
     pyodidePlatformTag: "pyemscripten-2026.0-wasm32",
+    prerelease: false,
   ),
+  // Add future pre-release CPython lines by setting `prerelease: true`. They
+  // become opt-in via `--python-version 3.15` (or an explicit
+  // `requires-python = "==3.15.*"` on the Flet CLI side) without becoming
+  // the default or matching open-ended `requires-python` specifiers.
+  //
+  // "3.15": _PythonRelease(
+  //   standaloneVersion: "3.15.0",
+  //   standaloneReleaseDate: "...",
+  //   pyodideVersion: "...",
+  //   pyodidePlatformTag: "...",
+  //   prerelease: true,
+  // ),
 };
 
 const platforms = {
@@ -247,9 +268,11 @@ class PackageCommand extends Command {
             Platform.environment[pyodideVersionEnvironmentVariable] ??
                 baseRelease.pyodideVersion,
         pyodidePlatformTag: baseRelease.pyodidePlatformTag,
+        prerelease: baseRelease.prerelease,
       );
+      final preNote = _release.prerelease ? " — pre-release" : "";
       stdout.writeln(
-          "Python $_pythonShortVersion (CPython ${_release.standaloneVersion}, "
+          "Python $_pythonShortVersion$preNote (CPython ${_release.standaloneVersion}, "
           "Pyodide ${_release.pyodideVersion})");
 
       if (path.isRelative(sourceDirPath)) {
