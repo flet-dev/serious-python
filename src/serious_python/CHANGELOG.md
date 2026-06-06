@@ -7,7 +7,16 @@
 * The Emscripten pip platform tag is now derived per Python release (e.g. `pyodide-2024.0-wasm32` for 0.27.7, `pyemscripten-2026.0-wasm32` for 314.0.0a2), via a `pyodide_platform_tag` field in the version registry. The previous static `pyodide-2024.0-wasm32` entry in `platforms["Emscripten"]` has been removed.
 * `sitecustomize.py` now shims `platform.android_ver` so the new pip / packaging that ships with python-build-standalone 20260602+ can compute Android wheel tags on Python 3.12 hosts (where `android_ver` didn't exist) and on Python 3.13+ hosts (where it returns `api_level=0` off-device).
 * Skip 32-bit Android ABIs (`armeabi-v7a`, `x86`) when Python ≥ 3.13 — PEP 738 dropped 32-bit Android support, and `flet-dev/python-build` no longer publishes those runtimes for those versions.
-* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` so the package command works when `require-virtualenv = true` is set in pip config ([#202](https://github.com/flet-dev/serious-python/issues/202)).
+
+## 1.0.1
+
+### Improvements
+
+* Cache downloaded Python distribution tarballs (`python-android-dart-<py>-<abi>.tar.gz`) across builds. The `downloadDistArchive_*` Gradle tasks now write to a persistent cache directory — `$FLET_CACHE_DIR/python-build/v<python_version>/` if the env var is set, otherwise `~/.flet/cache/python-build/v<python_version>/` — and use `onlyIfModified true` + `useETag "all"` so subsequent builds issue a conditional GET (`If-None-Match` / `If-Modified-Since`) against `objects.githubusercontent.com` instead of re-downloading 30–100 MB per ABI per build. When the upstream release republishes a tarball at the same URL (e.g. a Python patch update under the existing `v<py>` release), the validators flip and the cache refreshes automatically; otherwise the build skips the download entirely. `tempAndMove true` guards against partial downloads being kept in the cache ([flet-dev/flet#6555](https://github.com/flet-dev/flet/discussions/6555), [#208](https://github.com/flet-dev/serious-python/pull/208)) by @FeodorFitsner.
+
+### Bug fixes
+
+* Set `PIP_REQUIRE_VIRTUALENV=false` for `pip install` in the `package` command so packaging works in environments where users have globally exported `PIP_REQUIRE_VIRTUALENV=true` ([#202](https://github.com/flet-dev/serious-python/pull/202), [#204](https://github.com/flet-dev/serious-python/pull/204)) by @FeodorFitsner.
 
 ## 1.0.0
 
