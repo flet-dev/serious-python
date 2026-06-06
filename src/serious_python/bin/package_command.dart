@@ -80,8 +80,12 @@ const platforms = {
     }
   },
   "Android": {
-    "arm64-v8a": {"tag": "android-24-arm64-v8a", "mac_ver": ""},
-    "armeabi-v7a": {"tag": "android-24-armeabi-v7a", "mac_ver": ""},
+    // The ABI segment uses '_' so that packaging.tags.android_platforms (3.13+
+    // pip vendored packaging) — which derives the abi from
+    // `sysconfig.get_platform().split("-")[-1]` — picks up the full ABI
+    // (e.g. "arm64_v8a") rather than just the trailing token.
+    "arm64-v8a": {"tag": "android-24-arm64_v8a", "mac_ver": ""},
+    "armeabi-v7a": {"tag": "android-24-armeabi_v7a", "mac_ver": ""},
     "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
     "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
@@ -653,7 +657,9 @@ class PackageCommand extends Command {
         } else if (Platform.isLinux && isArm64) {
           arch = 'aarch64-unknown-linux-gnu';
         } else if (Platform.isWindows) {
-          arch = 'x86_64-pc-windows-msvc-shared';
+          // python-build-standalone dropped the explicit `-shared` MSVC
+          // variant; the remaining install_only_stripped build is shared.
+          arch = 'x86_64-pc-windows-msvc';
         }
 
         var pythonArchiveFilename =

@@ -20,6 +20,12 @@ def main(page: ft.Page):
     page.title = "Flet counter example"
     page.vertical_alignment = ft.MainAxisAlignment.CENTER
 
+    py_ver = sys.version_info
+    python_version_text = (
+        f"Python version: {py_ver.major}.{py_ver.minor}.{py_ver.micro}"
+    )
+    print(python_version_text)
+
     txt_number = ft.TextField(value="0", text_align=ft.TextAlign.RIGHT, width=100)
 
     def minus_click(e):
@@ -63,6 +69,7 @@ def main(page: ft.Page):
         ),
         ft.Text(f"App data dir: {app_data}"),
         ft.Text(f"App temp dir: {app_temp}"),
+        ft.Text(python_version_text),
     )
 
     print("This is inside main() method!")
