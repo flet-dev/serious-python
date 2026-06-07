@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '1.0.1'
+  s.version          = '2.0.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -27,7 +27,7 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_version = "3.12"
+  python_version = ENV['SERIOUS_PYTHON_VERSION'] || "3.14"
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"

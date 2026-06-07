@@ -37,6 +37,27 @@ void main() {
       await tester.tap(decrementButton);
       await tester.pumpAndSettle();
       expect(find.text('-1'), findsOneWidget);
+
+      // Verify the bundled Python runtime matches what CI requested. Skipped
+      // outside CI (no --dart-define).
+      const expectedPyVersion =
+          String.fromEnvironment('EXPECTED_PYTHON_VERSION');
+      if (expectedPyVersion.isNotEmpty) {
+        bool versionFound = false;
+        for (int i = 0; i < 20; i++) {
+          await tester.pump(const Duration(seconds: 1));
+          if (find
+              .textContaining('Python version: $expectedPyVersion.')
+              .evaluate()
+              .isNotEmpty) {
+            versionFound = true;
+            break;
+          }
+        }
+        expect(versionFound, isTrue,
+            reason:
+                'Expected `Python version: $expectedPyVersion.x` in the app UI');
+      }
     });
   });
 }

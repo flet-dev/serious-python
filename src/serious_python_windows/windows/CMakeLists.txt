@@ -6,6 +6,12 @@ cmake_minimum_required(VERSION 3.14)
 
 # Project-level configuration.
 set(PROJECT_NAME "serious_python_windows")
+if(DEFINED ENV{SERIOUS_PYTHON_VERSION})
+  set(PYTHON_VERSION "$ENV{SERIOUS_PYTHON_VERSION}")
+else()
+  set(PYTHON_VERSION "3.14")
+endif()
+string(REPLACE "." "" PYTHON_VERSION_NODOT "${PYTHON_VERSION}")
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
@@ -17,7 +23,7 @@ cmake_policy(VERSION 3.14...3.25)
 set(PLUGIN_NAME "serious_python_windows_plugin")
 
 set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
-set(PYTHON_URL "https://github.com/flet-dev/python-build/releases/download/v3.12/python-windows-for-dart-3.12.zip")
+set(PYTHON_URL "https://github.com/flet-dev/python-build/releases/download/v${PYTHON_VERSION}/python-windows-for-dart-${PYTHON_VERSION}.zip")
 set(PYTHON_FILE ${CMAKE_BINARY_DIR}/python-windows-for-dart.zip)
 if (NOT EXISTS ${PYTHON_FILE})
   file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
@@ -63,7 +69,7 @@ include_directories(
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE
-  "${PYTHON_PACKAGE}/libs/python312$<$<CONFIG:Debug>:_d>.lib"
+  "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.lib"
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin.
@@ -71,7 +77,7 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
 # external build triggered from this build file.
 string(REPLACE "\\" "/" SERIOUS_PYTHON_WINDIR "$ENV{WINDIR}")
 set(serious_python_windows_bundled_libraries
-  "${PYTHON_PACKAGE}/python312$<$<CONFIG:Debug>:_d>.dll"
+  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.dll"
   "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/msvcp140.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140.dll"

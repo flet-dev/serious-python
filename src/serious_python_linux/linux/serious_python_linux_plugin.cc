@@ -11,6 +11,14 @@
 
 #include <Python.h>
 
+// Defined by linux/CMakeLists.txt to match the bundled libpython
+// (e.g. "3.13"). The fallback only matters if this file is ever compiled
+// outside the plugin's own CMake — defaults to the same version CMakeLists
+// falls back to when SERIOUS_PYTHON_VERSION env var is unset.
+#ifndef SERIOUS_PYTHON_VERSION
+#define SERIOUS_PYTHON_VERSION "3.14"
+#endif
+
 #define SERIOUS_PYTHON_LINUX_PLUGIN(obj)                                     \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), serious_python_linux_plugin_get_type(), \
                               SeriousPythonLinuxPlugin))
@@ -102,7 +110,8 @@ static void serious_python_linux_plugin_handle_method_call(
     module_paths_str_array[i++] = g_strdup_printf("%s", app_dir);
     module_paths_str_array[i++] = g_strdup_printf("%s/__pypackages__", app_dir);
     module_paths_str_array[i++] = g_strdup_printf("%s/site-packages", exe_dir);
-    module_paths_str_array[i++] = g_strdup_printf("%s/python3.12", exe_dir);
+    module_paths_str_array[i++] =
+        g_strdup_printf("%s/python" SERIOUS_PYTHON_VERSION, exe_dir);
     module_paths_str_array[i++] = NULL;
 
     gchar *module_paths_str = g_strjoinv(":", module_paths_str_array); // join with comma and space as separators
