@@ -18,16 +18,16 @@ Pod::Spec.new do |s|
   s.author           = { 'Appveyor Systems Inc.' => 'hello@flet.dev' }
   s.source           = { :path => '.' }
 
-  # Swift plugin class + C sources from ../native.
-  s.source_files = [
-    'Classes/**/*.{h,m,swift}',
-    '../native/dart_bridge.c',
-    '../native/dart_api/dart_api_dl.c',
-    '../native/dart_api/*.h',
-    '../native/dart_api/internal/*.h',
-  ]
-  s.public_header_files = 'Classes/**/*.h'
-  s.preserve_paths = '../native/dart_api/**/*.h'
+  # CocoaPods silently drops `s.source_files` entries that traverse outside
+  # the podspec's directory (`../native/*.c`), so Classes/ contains committed
+  # symlinks to the canonical native/ sources. Symlinks (rather than copies)
+  # keep native/ as the single source of truth shared with linux/, windows/,
+  # android/ CMakeLists builds. The darwin/ pod is only built on Apple
+  # platforms where symlinks-in-git work fine.
+  #
+  # No public headers exposed — Swift accesses PyInit_dart_bridge via
+  # dlsym(RTLD_DEFAULT, ...), keeping <Python.h> out of the umbrella modulemap.
+  s.source_files = 'Classes/**/*.{swift,c,h}'
 
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
@@ -38,9 +38,13 @@ Pod::Spec.new do |s|
 
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    # dart_bridge.c does `#include "dart_api/dart_api_dl.h"`; surface the
-    # vendored Dart SDK headers.
-    'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/../native"',
+    # First entry: dart_bridge.c does `#include "dart_api/dart_api_dl.h"`.
+    # Second entry: dart_bridge.c does `#include <Python.h>` (standard,
+    # non-framework form). The Python xcframework's slice is extracted by
+    # CocoaPods into PODS_XCFRAMEWORKS_BUILD_DIR/serious_python_darwin/
+    # Python.framework, so pointing at its Headers/ subdirectory lets the
+    # unprefixed include resolve without changing the .c source.
+    'HEADER_SEARCH_PATHS' => '"${PODS_TARGET_SRCROOT}/../native" "${PODS_XCFRAMEWORKS_BUILD_DIR}/serious_python_darwin/Python.framework/Headers"',
     # Py* symbols are resolved at the final app link against the Python
     # framework provided by serious_python_darwin's vendored xcframework.
     'OTHER_LDFLAGS' => '$(inherited) -undefined dynamic_lookup',

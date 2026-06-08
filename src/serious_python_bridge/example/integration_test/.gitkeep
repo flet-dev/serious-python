@@ -1,3 +1,0 @@
-# Placeholder. Step 5 of the FFI bridge plan fills this directory with the
-# round-trip echo test that drives main.dart and asserts byte-identical
-# replies from Python.

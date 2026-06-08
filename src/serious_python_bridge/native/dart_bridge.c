@@ -27,6 +27,14 @@ EXPORT intptr_t DartBridge_InitDartApiDL(void* data) {
 }
 
 EXPORT void DartBridge_EnqueueMessage(const char* data, size_t len) {
+    // Drop messages sent before Python has finished Py_Initialize. Acquiring
+    // the GIL against an uninitialized interpreter triggers a fatal
+    // PyMUTEX_LOCK failure (the gil->mutex is uninitialized). Dart's retry
+    // loop will resend until Python is up.
+    if (!Py_IsInitialized()) {
+        return;
+    }
+
     PyGILState_STATE gstate = PyGILState_Ensure();
 
     if (!global_enqueue_handler_func) {

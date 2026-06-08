@@ -1,12 +1,14 @@
 """Echo loop exercising serious_python_bridge.
 
-Protocol used by this example (NOT the Flet protocol — this is just the
-simplest possible thing that proves the byte transport works):
+Protocol used by this example (NOT the Flet protocol — just the simplest
+thing that proves the byte transport works):
 
 * First frame from Dart: 8-byte little-endian int64 = the Dart native port id
-  that Python should reply to. Captured into ``native_port`` and not echoed.
-* Subsequent frames: arbitrary bytes; echoed back unchanged, prefixed with
-  ``b"echo: "``.
+  that Python should reply to. On receipt, Python echoes the same 8 bytes
+  back via the captured port — Dart uses that echo to detect readiness
+  (because the `set_enqueue_handler_func` registration may not have run by
+  the time Dart's first send arrives).
+* Subsequent frames: arbitrary bytes; echoed back prefixed with ``b"echo: "``.
 
 Python keeps the interpreter alive indefinitely so messages can keep arriving;
 Dart drives the lifetime (when the app exits, the embedded Python is torn down).
@@ -21,7 +23,6 @@ import threading
 import dart_bridge
 
 native_port: int | None = None
-_ready = threading.Event()
 
 
 def on_dart_message(data: bytes) -> None:
@@ -36,8 +37,9 @@ def on_dart_message(data: bytes) -> None:
             )
             return
         native_port = struct.unpack("<q", data)[0]
-        print(f"[bridge_example] handshake complete, native_port={native_port}", flush=True)
-        _ready.set()
+        print(f"[bridge_example] handshake captured, native_port={native_port}", flush=True)
+        # Echo the handshake bytes back as the readiness signal.
+        dart_bridge.send_bytes(native_port, data)
         return
 
     print(f"[bridge_example] received {data!r}", flush=True)
