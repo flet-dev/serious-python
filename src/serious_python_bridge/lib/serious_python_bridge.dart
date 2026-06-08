@@ -83,9 +83,11 @@ class PythonBridge {
   }
 
   static DynamicLibrary _openNativeLibrary() {
-    // iOS: the bridge is statically linked into the serious_python framework.
-    if (Platform.isIOS) return DynamicLibrary.process();
-    if (Platform.isMacOS) return DynamicLibrary.open('libflet_bridge.dylib');
+    // Apple platforms (iOS + macOS desktop): the bridge is linked into the
+    // app process by the serious_python_bridge pod and registered with CPython
+    // via inittab. DynamicLibrary.process() resolves DartBridge_* via dlsym
+    // on the host process; no separate dylib open is needed.
+    if (Platform.isIOS || Platform.isMacOS) return DynamicLibrary.process();
     if (Platform.isWindows) return DynamicLibrary.open('flet_bridge.dll');
     if (Platform.isLinux || Platform.isAndroid) {
       return DynamicLibrary.open('libflet_bridge.so');
