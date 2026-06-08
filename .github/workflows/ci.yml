@@ -298,7 +298,13 @@ jobs:
       - name: Run integration test
         working-directory: "src/serious_python_bridge/example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }}
+          # certifi placeholder: serious_python_darwin's sync_site_packages.sh
+          # only populates dist_ios/site-xcframeworks when iOS-specific
+          # site-packages subdirs exist (i.e., requirements installed for
+          # iphoneos.arm64 + iphonesimulator.arm64 + iphonesimulator.x86_64).
+          # An empty --requirements skips that branch and bundle-python-
+          # frameworks-ios.sh later fails finding site-xcframeworks.
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
 
   bridge_example_linux:

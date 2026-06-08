@@ -11,6 +11,12 @@ on:
     branches: [dart-bridge]
   workflow_dispatch:
 
+env:
+  # Mirrors ci.yml's workflow-level env: serious_python_darwin's
+  # sync_site_packages.sh and the Linux CMakeLists.txt both read this to know
+  # where package_command.dart staged the bundled site-packages.
+  SERIOUS_PYTHON_SITE_PACKAGES: "${{ github.workspace }}/site-packages"
+
 jobs:
   test_wheel_build:
     name: cibuildwheel (${{ matrix.os }})
@@ -35,12 +41,13 @@ jobs:
           echo
           echo "Wheel filenames (expect cp312-abi3-<plat>):"
           ls wheelhouse/*.whl
-          echo
-          echo "Wheel contents (expect dart_bridge.abi3.so):"
-          for whl in wheelhouse/*.whl; do
-            echo "--- $whl ---"
-            python -m zipfile -l "$whl"
-          done
+
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
 
   test_android_build:
     name: Android cross-build (${{ matrix.abi }})
@@ -169,7 +176,12 @@ jobs:
       - name: Package + run integration test
         working-directory: "src/serious_python_bridge/example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }}
+          # certifi is a placeholder requirement: serious_python_darwin's
+          # sync_site_packages.sh only populates dist_ios/site-xcframeworks
+          # (which bundle-python-frameworks-ios.sh then requires at build
+          # time) when iOS-specific site-packages subdirs exist. Empty
+          # --requirements skips that branch and the build fails.
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
 
   test_bridge_example_linux:
