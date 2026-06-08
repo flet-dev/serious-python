@@ -269,6 +269,7 @@ jobs:
   bridge_example_ios:
     name: Test bridge example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

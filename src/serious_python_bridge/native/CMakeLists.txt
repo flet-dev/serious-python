@@ -18,7 +18,17 @@ project(flet_bridge VERSION 0.0.1 LANGUAGES C)
 if(NOT DEFINED FLET_BRIDGE_PYTHON_INCLUDE_DIRS)
   find_package(Python3 REQUIRED COMPONENTS Development.Module)
   set(FLET_BRIDGE_PYTHON_INCLUDE_DIRS ${Python3_INCLUDE_DIRS})
-  set(FLET_BRIDGE_PYTHON_LIBRARIES Python3::Module)
+  if(WIN32)
+    # Python3::Module picks pythonXY.lib (or pythonXY_d.lib in Debug builds),
+    # but python-build-standalone for Windows doesn't ship a Debug variant
+    # so Flutter's debug builds fail with LNK1104. Link the abi3 stable-ABI
+    # stub python3.lib instead — it's version-agnostic AND has no debug
+    # variant requirement (matches our Py_LIMITED_API choice).
+    get_filename_component(_flet_bridge_python_root "${Python3_INCLUDE_DIRS}" DIRECTORY)
+    set(FLET_BRIDGE_PYTHON_LIBRARIES "${_flet_bridge_python_root}/libs/python3.lib")
+  else()
+    set(FLET_BRIDGE_PYTHON_LIBRARIES Python3::Module)
+  endif()
 endif()
 
 add_library(flet_bridge SHARED

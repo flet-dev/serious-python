@@ -31,4 +31,6 @@ Issues = "https://github.com/flet-dev/serious-python/issues"
 # Limited API / abi3: a single wheel built against Python 3.12's stable ABI
 # loads on any Python 3.12+ minor version, so we only need cp312-* here.
 build = "cp312-*"
-skip = ["pp*", "*-musllinux_*"]
+# Flet targets only 64-bit desktop, so skip 32-bit (i686 / win32). Also skip
+# PyPy and musllinux (alternative libc, not what python-build-standalone uses).
+skip = ["pp*", "*-musllinux_*", "*-linux_i686", "*-win32"]

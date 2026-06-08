@@ -147,6 +147,7 @@ jobs:
   test_bridge_example_ios:
     name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
     runs-on: macos-latest
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
