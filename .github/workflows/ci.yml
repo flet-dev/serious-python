@@ -236,6 +236,57 @@ jobs:
           dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
+  release_build:
+    name: Build dart_bridge wheel (${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      fail-fast: false
+      matrix:
+        # Apple platforms use static-link + inittab (see serious_python_bridge/
+        # darwin/), so no macOS/iOS wheel. Android needs an NDK cross-build
+        # that's deferred to a follow-up CI change.
+        os: [ubuntu-24.04, ubuntu-24.04-arm, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        with:
+          package-dir: src/serious_python_bridge/python
+
+      - name: Upload wheel artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-wheels-${{ matrix.os }}
+          path: wheelhouse/*.whl
+          if-no-files-found: error
+
+  collect_release:
+    name: Attach bridge wheels to GitHub Release
+    needs: release_build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bridge-wheels-*
+          merge-multiple: true
+          path: wheels
+
+      - name: List collected wheels
+        run: ls -la wheels/
+
+      - name: Create or update GitHub Release with wheel assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: wheels/*.whl
+          fail_on_unmatched_files: true
+
   publish:
     name: Publish to pub.dev
     needs:
@@ -244,6 +295,7 @@ jobs:
       - android
       - windows
       - linux
+      - collect_release
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -301,14 +353,15 @@ jobs:
             "serious_python_android" \
             "serious_python_darwin" \
             "serious_python_windows" \
-            "serious_python_linux"; do
-            
+            "serious_python_linux" \
+            "serious_python_bridge"; do
+
             uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
           done
 
       - name: Publish packages
         run: |
-          publish_pkg () { 
+          publish_pkg () {
             pushd "$1" >/dev/null
             dart pub publish --force
             popd >/dev/null
@@ -322,3 +375,7 @@ jobs:
           publish_pkg src/serious_python_linux
           sleep 600
           publish_pkg src/serious_python
+          sleep 600
+          # Bridge depends on serious_python + serious_python_darwin; publish
+          # last so all its path-deps already resolve on pub.dev.
+          publish_pkg src/serious_python_bridge
