@@ -236,6 +236,31 @@ jobs:
           dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
+  bridge_example_macos:
+    name: Test bridge example on macOS (Python ${{ matrix.python_version }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Run integration test
+        working-directory: "src/serious_python_bridge/example"
+        run: |
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          flutter test integration_test -d macos
+
   release_build:
     name: Build dart_bridge wheel (${{ matrix.os }})
     if: startsWith(github.ref, 'refs/tags/v')
@@ -394,6 +419,7 @@ jobs:
       - android
       - windows
       - linux
+      - bridge_example_macos
       - collect_release
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
