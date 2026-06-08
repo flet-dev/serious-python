@@ -1,8 +1,10 @@
-name: Test bridge build (no publish)
+name: Test bridge (no publish, no slow platform tests)
 
-# Throwaway workflow that exercises the cibuildwheel matrix and Android NDK
-# cross-build added for serious_python_bridge without triggering the publish
-# or GitHub Release steps in ci.yml. Delete before merging to main.
+# Throwaway workflow that exercises just the new serious_python_bridge work —
+# the cibuildwheel matrix, the Android NDK cross-build, and the macOS bridge
+# example integration test — without triggering the slow flet_example
+# platform matrix or the publish/release steps in ci.yml. Delete before
+# merging to main.
 
 on:
   push:
@@ -109,3 +111,28 @@ jobs:
         run: |
           ls -lh dart_bridge.abi3-android-*.so
           file dart_bridge.abi3-android-*.so
+
+  test_bridge_example_macos:
+    name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Package + run integration test
+        working-directory: "src/serious_python_bridge/example"
+        run: |
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          flutter test integration_test -d macos

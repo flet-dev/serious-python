@@ -1,9 +1,14 @@
 name: CI
 
+# TEMPORARY (dart-bridge branch only): scoped to main + tags + dispatch so
+# iteration pushes to dart-bridge don't fire the slow flet_example platform
+# matrix (~20-30 min per run). The throwaway test-bridge-build.yml covers
+# the new bridge work fast. REVERT to `branches: '**'` before merging.
 on:
   push:
     branches:
-      - '**'
+      - main
+      - master
     tags:
       - '*'
   pull_request:
