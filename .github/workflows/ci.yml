@@ -263,28 +263,124 @@ jobs:
           path: wheelhouse/*.whl
           if-no-files-found: error
 
+  release_build_android:
+    name: Build dart_bridge.abi3.so (Android ${{ matrix.abi }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # Single abi3 binary per ABI works across all Python 3.12+ versions;
+        # we only need to pin a Python version for the headers + libpython to
+        # link against, not for the matrix dimension. 3.12 chosen for header
+        # parity with the abi3 floor in pyproject.toml. armeabi-v7a is still
+        # included because PEP 738 dropped it in 3.13, so 3.12 headers are
+        # the only ones with that ABI tarball.
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+    env:
+      PYTHON_VERSION: "3.12"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download python-android-dart tarball
+        run: |
+          set -euo pipefail
+          VER="$PYTHON_VERSION"
+          ABI="${{ matrix.abi }}"
+          ARCHIVE="python-android-dart-${VER}-${ABI}.tar.gz"
+          curl -fL -o "$ARCHIVE" \
+            "https://github.com/flet-dev/python-build/releases/download/v${VER}/${ARCHIVE}"
+          mkdir -p pydist
+          tar -xzf "$ARCHIVE" -C pydist
+          echo "tarball contents:"
+          find pydist -maxdepth 3 -type d
+          echo "libpython candidates:"
+          find pydist -name "libpython*.so" -maxdepth 3
+
+      - name: Cross-compile dart_bridge.abi3.so
+        run: |
+          set -euxo pipefail
+          VER="$PYTHON_VERSION"
+          ABI="${{ matrix.abi }}"
+
+          case "$ABI" in
+            arm64-v8a)    TARGET=aarch64-linux-android ;;
+            armeabi-v7a)  TARGET=armv7a-linux-androideabi ;;
+            x86_64)       TARGET=x86_64-linux-android ;;
+            *) echo "unsupported ABI: $ABI" >&2 ; exit 1 ;;
+          esac
+
+          # Android API 21 matches serious_python_android's minSdkVersion.
+          API=21
+          NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME}}"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
+          test -x "$CC"
+
+          INCLUDE_DIR=$(find pydist -name "Python.h" -exec dirname {} \; | head -n1)
+          LIBPYTHON=$(find pydist -name "libpython${VER}.so" | head -n1)
+          test -n "$INCLUDE_DIR" -a -n "$LIBPYTHON"
+
+          # ABI in the filename so all three coexist as Release assets without
+          # collision. package_command.dart renames back to dart_bridge.abi3.so
+          # when placing into the bundled site-packages (CPython's import
+          # mechanism requires the canonical name).
+          OUT="dart_bridge.abi3-android-${ABI}.so"
+
+          $CC -shared -fPIC -fvisibility=hidden \
+            -DPy_LIMITED_API=0x030c0000 \
+            -I"$INCLUDE_DIR" \
+            -I"src/serious_python_bridge/native" \
+            src/serious_python_bridge/native/dart_bridge.c \
+            src/serious_python_bridge/native/dart_api/dart_api_dl.c \
+            "$LIBPYTHON" \
+            -Wl,-z,max-page-size=16384 \
+            -o "$OUT"
+
+          file "$OUT"
+          ls -lh "$OUT"
+
+      - name: Upload .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-android-${{ matrix.abi }}
+          path: dart_bridge.abi3-android-*.so
+          if-no-files-found: error
+
   collect_release:
-    name: Attach bridge wheels to GitHub Release
-    needs: release_build
+    name: Attach bridge binaries to GitHub Release
+    needs:
+      - release_build
+      - release_build_android
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
     steps:
-      - name: Download all wheel artifacts
+      - name: Download wheel artifacts (Linux / Windows)
         uses: actions/download-artifact@v4
         with:
           pattern: bridge-wheels-*
           merge-multiple: true
-          path: wheels
+          path: release-assets
 
-      - name: List collected wheels
-        run: ls -la wheels/
+      - name: Download Android .so artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bridge-android-*
+          merge-multiple: true
+          path: release-assets
 
-      - name: Create or update GitHub Release with wheel assets
+      - name: List collected assets
+        run: ls -la release-assets/
+
+      - name: Create or update GitHub Release with bridge binaries
         uses: softprops/action-gh-release@v2
         with:
-          files: wheels/*.whl
+          files: |
+            release-assets/*.whl
+            release-assets/dart_bridge.abi3-android-*.so
           fail_on_unmatched_files: true
 
   publish:

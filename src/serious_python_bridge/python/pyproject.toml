@@ -28,5 +28,7 @@ Homepage = "https://github.com/flet-dev/serious-python"
 Issues = "https://github.com/flet-dev/serious-python/issues"
 
 [tool.cibuildwheel]
-build = "cp312-* cp313-* cp314-*"
+# Limited API / abi3: a single wheel built against Python 3.12's stable ABI
+# loads on any Python 3.12+ minor version, so we only need cp312-* here.
+build = "cp312-*"
 skip = ["pp*", "*-musllinux_*"]

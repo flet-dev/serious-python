@@ -1,4 +1,8 @@
 #define PY_SSIZE_T_CLEAN
+// Build against the CPython Limited API so a single compiled .so works across
+// all Python 3.12+ minor versions (abi3 stable ABI). Every Py* symbol used
+// below is in the Limited API since 3.2 (3.4 for PyGILState_*).
+#define Py_LIMITED_API 0x030c0000
 #include <Python.h>
 #include <stdint.h>
 #include <stdio.h>
