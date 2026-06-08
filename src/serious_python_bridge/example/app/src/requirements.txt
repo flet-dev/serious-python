@@ -1,0 +1,4 @@
+# No external dependencies — dart_bridge is statically linked into the app on
+# iOS + macOS desktop via serious_python_darwin's registerPythonExtension hook,
+# and provided as a pre-built shim wheel on Linux/Windows/Android by
+# `dart run serious_python:main package --bridge` at build time.
