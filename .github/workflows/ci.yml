@@ -283,20 +283,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download python-android-dart tarball
+      - name: Download python-android-mobile-forge tarball (one tarball, all ABIs)
         run: |
           set -euo pipefail
           VER="$PYTHON_VERSION"
           ABI="${{ matrix.abi }}"
-          ARCHIVE="python-android-dart-${VER}-${ABI}.tar.gz"
+          ARCHIVE="python-android-mobile-forge-${VER}.tar.gz"
           curl -fL -o "$ARCHIVE" \
             "https://github.com/flet-dev/python-build/releases/download/v${VER}/${ARCHIVE}"
+          # Extract only the python-*/include and python-*/lib subtrees for our
+          # target ABI — the full archive is ~314MB and includes openssl/sqlite
+          # builds we don't need.
           mkdir -p pydist
-          tar -xzf "$ARCHIVE" -C pydist
-          echo "tarball contents:"
-          find pydist -maxdepth 3 -type d
-          echo "libpython candidates:"
-          find pydist -name "libpython*.so" -maxdepth 3
+          tar -xzf "$ARCHIVE" -C pydist \
+            "install/android/${ABI}/python-${VER}.13/include/" \
+            "install/android/${ABI}/python-${VER}.13/lib/"
+          find pydist -name "Python.h"
+          find pydist -name "libpython*.so" | head -5
 
       - name: Cross-compile dart_bridge.abi3.so
         run: |
@@ -318,8 +321,8 @@ jobs:
           CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
           test -x "$CC"
 
-          INCLUDE_DIR=$(find pydist -name "Python.h" -exec dirname {} \; | head -n1)
-          LIBPYTHON=$(find pydist -name "libpython${VER}.so" | head -n1)
+          INCLUDE_DIR=$(find pydist -path "*/python-${VER}.13/include/python${VER}" | head -n1)
+          LIBPYTHON=$(find pydist -path "*/python-${VER}.13/lib/libpython${VER}.so" | head -n1)
           test -n "$INCLUDE_DIR" -a -n "$LIBPYTHON"
 
           # ABI in the filename so all three coexist as Release assets without
