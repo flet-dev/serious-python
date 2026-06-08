@@ -1,0 +1,108 @@
+group 'com.flet.serious_python_bridge'
+version '2.0.0'
+
+def python_version = System.getenv('SERIOUS_PYTHON_VERSION') ?: '3.14'
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'de.undercouch:gradle-download-task:4.1.2'
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'de.undercouch.download'
+
+android {
+    namespace "com.flet.serious_python_bridge"
+
+    compileSdkVersion 31
+
+    externalNativeBuild {
+        cmake {
+            path "CMakeLists.txt"
+            // CMake 3.10.2 is the AGP default; do not raise (Flutter docs).
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        minSdkVersion 21
+
+        ndk {
+            // Match the ABI set serious_python_android supports for the same
+            // python_version (32-bit dropped for 3.13+ per PEP 738).
+            if (python_version == '3.12') {
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            } else {
+                abiFilters 'arm64-v8a', 'x86_64'
+            }
+        }
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DPYTHON_VERSION=${python_version}"
+            }
+        }
+    }
+}
+
+import de.undercouch.gradle.tasks.download.Download
+
+def fletCacheRoot = System.getenv('FLET_CACHE_DIR')
+def pythonCacheDir = new File(
+    fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
+    "python-build/v${python_version}"
+)
+
+// Headers and libpython3.so are extracted from the same python-android-dart
+// tarball that serious_python_android uses. We extract into a build-time
+// scratch dir (not jniLibs/) because we do NOT want to ship libpython
+// ourselves — serious_python_android ships it; we just link against it at
+// build time.
+def pythonStagingRoot = new File(buildDir, 'python-dist')
+
+def prepareTasks = []
+android.defaultConfig.ndk.abiFilters.each { abi ->
+    def archiveName = "python-android-dart-${python_version}-${abi}.tar.gz"
+    def stagingDir = new File(pythonStagingRoot, abi)
+
+    tasks.register("downloadPythonDist_${abi}", Download) {
+        src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/${archiveName}"
+        dest new File(pythonCacheDir, archiveName)
+        onlyIfModified true
+        useETag "all"
+        tempAndMove true
+        doFirst { dest.parentFile.mkdirs() }
+    }
+
+    tasks.register("extractPythonDist_${abi}", Copy) {
+        dependsOn "downloadPythonDist_${abi}"
+        from tarTree(tasks.named("downloadPythonDist_${abi}").get().dest)
+        into stagingDir
+        // Headers + libpython only; everything else is dead weight for our
+        // build-time link (serious_python_android ships the runtime copy).
+        include "include/**", "lib/libpython*.so"
+    }
+
+    prepareTasks.add("extractPythonDist_${abi}")
+}
+
+task preparePythonDist { dependsOn prepareTasks }
+preBuild.dependsOn preparePythonDist
