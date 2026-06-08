@@ -1,0 +1,111 @@
+name: Test bridge build (no publish)
+
+# Throwaway workflow that exercises the cibuildwheel matrix and Android NDK
+# cross-build added for serious_python_bridge without triggering the publish
+# or GitHub Release steps in ci.yml. Delete before merging to main.
+
+on:
+  push:
+    branches: [dart-bridge]
+  workflow_dispatch:
+
+jobs:
+  test_wheel_build:
+    name: cibuildwheel (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.21.3
+        with:
+          package-dir: src/serious_python_bridge/python
+
+      - name: List built wheels
+        shell: bash
+        run: |
+          ls -la wheelhouse/
+          echo
+          echo "Wheel filenames (expect cp312-abi3-<plat>):"
+          ls wheelhouse/*.whl
+          echo
+          echo "Wheel contents (expect dart_bridge.abi3.so):"
+          for whl in wheelhouse/*.whl; do
+            echo "--- $whl ---"
+            python -m zipfile -l "$whl"
+          done
+
+  test_android_build:
+    name: Android cross-build (${{ matrix.abi }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64]
+    env:
+      PYTHON_VERSION: "3.12"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download python-android-dart tarball
+        run: |
+          set -euo pipefail
+          VER="$PYTHON_VERSION"
+          ABI="${{ matrix.abi }}"
+          ARCHIVE="python-android-dart-${VER}-${ABI}.tar.gz"
+          curl -fL -o "$ARCHIVE" \
+            "https://github.com/flet-dev/python-build/releases/download/v${VER}/${ARCHIVE}"
+          mkdir -p pydist
+          tar -xzf "$ARCHIVE" -C pydist
+          echo "tarball top-level layout:"
+          find pydist -maxdepth 3 -type d
+          echo "Python.h candidates:"
+          find pydist -name "Python.h"
+          echo "libpython candidates:"
+          find pydist -name "libpython*.so"
+
+      - name: Cross-compile dart_bridge.abi3.so
+        run: |
+          set -euxo pipefail
+          VER="$PYTHON_VERSION"
+          ABI="${{ matrix.abi }}"
+
+          case "$ABI" in
+            arm64-v8a)    TARGET=aarch64-linux-android ;;
+            armeabi-v7a)  TARGET=armv7a-linux-androideabi ;;
+            x86_64)       TARGET=x86_64-linux-android ;;
+            *) echo "unsupported ABI: $ABI" >&2 ; exit 1 ;;
+          esac
+
+          API=21
+          NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME}}"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
+          test -x "$CC"
+
+          INCLUDE_DIR=$(find pydist -name "Python.h" -exec dirname {} \; | head -n1)
+          LIBPYTHON=$(find pydist -name "libpython${VER}.so" | head -n1)
+          test -n "$INCLUDE_DIR" -a -n "$LIBPYTHON"
+
+          OUT="dart_bridge.abi3-android-${ABI}.so"
+
+          $CC -shared -fPIC -fvisibility=hidden \
+            -DPy_LIMITED_API=0x030c0000 \
+            -I"$INCLUDE_DIR" \
+            -I"src/serious_python_bridge/native" \
+            src/serious_python_bridge/native/dart_bridge.c \
+            src/serious_python_bridge/native/dart_api/dart_api_dl.c \
+            "$LIBPYTHON" \
+            -Wl,-z,max-page-size=16384 \
+            -o "$OUT"
+
+      - name: Inspect output
+        run: |
+          ls -lh dart_bridge.abi3-android-*.so
+          file dart_bridge.abi3-android-*.so
