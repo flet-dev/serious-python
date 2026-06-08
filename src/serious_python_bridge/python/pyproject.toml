@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "dart_bridge"
 version = "0.0.0"
 description = "Python C extension exposing the dart_bridge module — bidirectional Dart ↔ Python byte transport for serious_python_bridge."
-readme = "../README.md"
 authors = [
     { name = "Flet Team", email = "hello@flet.dev" },
 ]
