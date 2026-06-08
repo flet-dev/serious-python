@@ -8,7 +8,48 @@ import FlutterMacOS
 import Python
 
 public class SeriousPythonPlugin: NSObject, FlutterPlugin {
-    
+
+    public typealias PyInitFunction = @convention(c) () -> UnsafeMutablePointer<PyObject>?
+
+    private struct PythonExtensionEntry {
+        // PyImport_AppendInittab does not copy the name string; the storage must
+        // outlive the interpreter. We strdup on register and intentionally leak.
+        let name: UnsafeMutablePointer<CChar>
+        let initFn: PyInitFunction
+    }
+
+    private static var registeredExtensions: [PythonExtensionEntry] = []
+    private static let registrationLock = NSLock()
+
+    /// Register a statically linked Python C extension to be made available as a
+    /// built-in module on every Py_Initialize. Intended for iOS, where dlopen of
+    /// late-loaded .so extensions is forbidden, but available on macOS too so
+    /// callers don't need platform conditionals.
+    ///
+    /// Must be called before serious_python's first runPython invocation. Calling
+    /// twice with the same name is the caller's responsibility to avoid.
+    public static func registerPythonExtension(name: String, initFn: PyInitFunction) {
+        registrationLock.lock()
+        defer { registrationLock.unlock() }
+        guard let copied = strdup(name) else {
+            NSLog("[SeriousPython] strdup failed for extension name \(name)")
+            return
+        }
+        registeredExtensions.append(PythonExtensionEntry(name: copied, initFn: initFn))
+    }
+
+    private func applyRegisteredExtensions() {
+        SeriousPythonPlugin.registrationLock.lock()
+        let entries = SeriousPythonPlugin.registeredExtensions
+        SeriousPythonPlugin.registrationLock.unlock()
+
+        for entry in entries {
+            if PyImport_AppendInittab(entry.name, entry.initFn) != 0 {
+                NSLog("[SeriousPython] PyImport_AppendInittab failed for \(String(cString: entry.name))")
+            }
+        }
+    }
+
     public static func register(with registrar: FlutterPluginRegistrar) {
         // Workaround for https://github.com/flutter/flutter/issues/118103.
         #if os(iOS)
@@ -110,27 +151,29 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
     }
     
     @objc func runPythonFile(appPath: String) {
+        applyRegisteredExtensions()
         Py_Initialize()
-        
+
         // run app
         let file = fopen(appPath, "r")
         let result = PyRun_SimpleFileEx(file, appPath, 1)
         if (result != 0) {
             print("Python program completed with error.")
         }
-        
+
         Py_Finalize()
     }
 
     @objc func runPythonScript(script: String) {
+        applyRegisteredExtensions()
         Py_Initialize()
-        
+
         // run app
         let result = PyRun_SimpleString(script)
         if (result != 0) {
             print("Python script completed with error.")
         }
-        
+
         Py_Finalize()
     }
 }
