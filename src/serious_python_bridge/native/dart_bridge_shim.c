@@ -1,0 +1,131 @@
+// Python-callable shim for the dart_bridge module.
+//
+// This file is the *only* source compiled into the dart_bridge wheel built by
+// cibuildwheel. It contains no Dart-callable symbols and no copy of the
+// shared `dart_bridge_global_enqueue_handler_func` cell — instead it resolves
+// the core's exports (defined in dart_bridge.c, linked into libflet_bridge)
+// at PyInit time via dlsym/GetProcAddress. That keeps Dart's view and
+// Python's view of the global as the SAME cell on Linux/Windows/Android.
+//
+// On Apple platforms this same file is also static-linked into the
+// serious_python framework alongside dart_bridge.c — the runtime lookup
+// then resolves to the symbols statically linked into the host binary
+// (dlopen of libflet_bridge is skipped because there's no such file).
+
+#define PY_SSIZE_T_CLEAN
+#define Py_LIMITED_API 0x030c0000
+#include <Python.h>
+#include <stdint.h>
+#include <stdio.h>
+
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <dlfcn.h>
+#endif
+
+// Function-pointer + global types resolved at PyInit time.
+typedef int (*PostToDartFn)(int64_t port, const char* buffer, size_t length);
+
+static PyObject** g_handler_slot = NULL;   // points at dart_bridge_global_enqueue_handler_func in libflet_bridge
+static PostToDartFn g_post_to_dart = NULL; // dart_bridge_post_to_dart in libflet_bridge
+
+#if defined(_WIN32)
+static void* shim_sym_lookup(const char* name) {
+    // LoadLibraryA returns the existing handle if flet_bridge.dll is already
+    // loaded by Flutter (single instance, same memory, just bumps refcount).
+    // The DLL search path includes the executable's directory, where Flutter
+    // places plugin DLLs.
+    HMODULE flet = LoadLibraryA("flet_bridge.dll");
+    if (!flet) return NULL;
+    return (void*)GetProcAddress(flet, name);
+}
+#else
+static void* shim_sym_lookup(const char* name) {
+    // RTLD_DEFAULT searches every library already loaded into the process
+    // including ones loaded with RTLD_LOCAL by Dart's DynamicLibrary.open.
+    void* p = dlsym(RTLD_DEFAULT, name);
+    if (p) return p;
+    // Not visible globally (Dart loaded libflet_bridge with RTLD_LOCAL). Try
+    // an explicit RTLD_GLOBAL dlopen so subsequent lookups see it. dlopen of
+    // an already-loaded library returns the existing handle — single instance,
+    // same memory, just promoted into the global namespace.
+#if defined(__APPLE__)
+    void* h = dlopen("libflet_bridge.dylib", RTLD_NOW | RTLD_GLOBAL);
+#else
+    void* h = dlopen("libflet_bridge.so", RTLD_NOW | RTLD_GLOBAL);
+#endif
+    if (!h) return NULL;
+    return dlsym(h, name);
+}
+#endif
+
+static PyObject* set_enqueue_handler_func(PyObject* self, PyObject* args) {
+    PyObject* func;
+
+    if (!PyArg_ParseTuple(args, "O:set_enqueue_handler_func", &func)) {
+        return NULL;
+    }
+    if (!PyCallable_Check(func)) {
+        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
+        return NULL;
+    }
+    if (!g_handler_slot) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "dart_bridge: libflet_bridge symbol not resolved (was the bridge plugin loaded?)");
+        return NULL;
+    }
+
+    Py_XINCREF(func);
+    Py_XDECREF(*g_handler_slot);
+    *g_handler_slot = func;
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* send_bytes(PyObject* self, PyObject* args) {
+    int64_t port;
+    const char* buffer;
+    Py_ssize_t length;
+
+    if (!PyArg_ParseTuple(args, "Ly#", &port, &buffer, &length)) {
+        return NULL;
+    }
+    if (!g_post_to_dart) {
+        PyErr_SetString(PyExc_RuntimeError,
+                        "dart_bridge: libflet_bridge symbol not resolved (was the bridge plugin loaded?)");
+        return NULL;
+    }
+    if (g_post_to_dart(port, buffer, (size_t)length) != 0) {
+        // Helper sets the exception.
+        return NULL;
+    }
+    Py_RETURN_TRUE;
+}
+
+static PyMethodDef methods[] = {
+    {"send_bytes", send_bytes, METH_VARARGS, "Post a bytes payload to a Dart ReceivePort."},
+    {"set_enqueue_handler_func", set_enqueue_handler_func, METH_VARARGS,
+     "Register the Python callable that receives bytes posted from Dart."},
+    {NULL, NULL, 0, NULL}
+};
+
+static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "dart_bridge", NULL, -1, methods
+};
+
+PyMODINIT_FUNC PyInit_dart_bridge(void) {
+    // Resolve the libflet_bridge exports we depend on. Surface a clean
+    // ImportError if the lookup fails — typically means the bridge plugin's
+    // native library wasn't loaded into the process before Python ran.
+    g_handler_slot = (PyObject**)shim_sym_lookup("dart_bridge_global_enqueue_handler_func");
+    g_post_to_dart = (PostToDartFn)shim_sym_lookup("dart_bridge_post_to_dart");
+    if (!g_handler_slot || !g_post_to_dart) {
+        PyErr_SetString(PyExc_ImportError,
+                        "dart_bridge: failed to resolve libflet_bridge symbols "
+                        "(is serious_python_bridge's native library loaded into the process?)");
+        return NULL;
+    }
+    return PyModule_Create(&moduledef);
+}

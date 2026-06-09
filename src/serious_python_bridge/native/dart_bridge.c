@@ -15,12 +15,21 @@
 #endif
 
 // ---------------------------------------------------------------------------
-// Core: symbols called from Dart via FFI. On platforms with the shared-lib
-// split these live in libflet_bridge; on iOS they're linked statically into
-// the serious_python framework.
+// Core: symbols called from Dart via FFI plus exported helpers the Python-side
+// shim (dart_bridge_shim.c) resolves at runtime via dlsym. Compiled into
+// libflet_bridge.{so,dll,dylib} by the Flutter plugin build. On Apple
+// platforms also compiled into the static archive linked into the
+// serious_python framework alongside dart_bridge_shim.c.
+//
+// The shim NEVER defines its own copy of these symbols — it always looks them
+// up at runtime. That keeps Dart's view of `global_enqueue_handler_func` and
+// the Python shim's view as a single shared cell on every platform.
 // ---------------------------------------------------------------------------
 
-static PyObject* global_enqueue_handler_func = NULL;
+// Exported (non-static) so dart_bridge_shim.c's set_enqueue_handler_func can
+// write to it via dlsym. Initialised to NULL; the shim swaps in a PyObject*
+// callable when Python registers a handler.
+EXPORT PyObject* dart_bridge_global_enqueue_handler_func = NULL;
 
 EXPORT intptr_t DartBridge_InitDartApiDL(void* data) {
     return Dart_InitializeApiDL(data);
@@ -37,7 +46,7 @@ EXPORT void DartBridge_EnqueueMessage(const char* data, size_t len) {
 
     PyGILState_STATE gstate = PyGILState_Ensure();
 
-    if (!global_enqueue_handler_func) {
+    if (!dart_bridge_global_enqueue_handler_func) {
         fprintf(stderr, "[dart_bridge] enqueue handler is not registered\n");
         PyGILState_Release(gstate);
         return;
@@ -50,7 +59,8 @@ EXPORT void DartBridge_EnqueueMessage(const char* data, size_t len) {
         return;
     }
 
-    PyObject* result = PyObject_CallFunctionObjArgs(global_enqueue_handler_func, arg, NULL);
+    PyObject* result = PyObject_CallFunctionObjArgs(
+        dart_bridge_global_enqueue_handler_func, arg, NULL);
     if (!result) {
         PyErr_Print();
     }
@@ -60,41 +70,14 @@ EXPORT void DartBridge_EnqueueMessage(const char* data, size_t len) {
     PyGILState_Release(gstate);
 }
 
-// ---------------------------------------------------------------------------
-// Shim: Python-callable methods exposed by the `dart_bridge` module.
-// ---------------------------------------------------------------------------
-
-static PyObject* set_enqueue_handler_func(PyObject* self, PyObject* args) {
-    PyObject* func;
-
-    if (!PyArg_ParseTuple(args, "O:set_enqueue_handler_func", &func)) {
-        return NULL;
-    }
-
-    if (!PyCallable_Check(func)) {
-        PyErr_SetString(PyExc_TypeError, "parameter must be callable");
-        return NULL;
-    }
-
-    Py_XINCREF(func);
-    Py_XDECREF(global_enqueue_handler_func);
-    global_enqueue_handler_func = func;
-
-    Py_RETURN_NONE;
-}
-
-static PyObject* send_bytes(PyObject* self, PyObject* args) {
-    int64_t port;
-    const char* buffer;
-    Py_ssize_t length;
-
-    if (!PyArg_ParseTuple(args, "Ly#", &port, &buffer, &length)) {
-        return NULL;
-    }
-
+// Exported helper called by the shim's send_bytes(). Keeps the
+// Dart_PostCObject_DL invocation in this translation unit so the shim doesn't
+// need its own copy of dart_api_dl.c. Returns 0 on success, -1 on failure with
+// a Python exception set.
+EXPORT int dart_bridge_post_to_dart(int64_t port, const char* buffer, size_t length) {
     if (port == 0) {
         PyErr_SetString(PyExc_RuntimeError, "Dart port is 0 (invalid)");
-        return NULL;
+        return -1;
     }
 
     // Dart_PostCObject_DL is a function pointer populated by Dart_InitializeApiDL.
@@ -102,7 +85,7 @@ static PyObject* send_bytes(PyObject* self, PyObject* args) {
     if (Dart_PostCObject_DL == NULL) {
         PyErr_SetString(PyExc_RuntimeError,
                         "Dart API DL not initialized (call DartBridge_InitDartApiDL from Dart first)");
-        return NULL;
+        return -1;
     }
 
     Dart_CObject obj;
@@ -113,24 +96,7 @@ static PyObject* send_bytes(PyObject* self, PyObject* args) {
 
     if (!Dart_PostCObject_DL(port, &obj)) {
         PyErr_SetString(PyExc_RuntimeError, "Dart_PostCObject_DL failed");
-        return NULL;
+        return -1;
     }
-
-    Py_RETURN_TRUE;
-}
-
-static PyMethodDef methods[] = {
-    {"send_bytes", send_bytes, METH_VARARGS, "Post a bytes payload to a Dart ReceivePort."},
-    {"set_enqueue_handler_func", set_enqueue_handler_func, METH_VARARGS,
-     "Register the Python callable that receives bytes posted from Dart."},
-    {NULL, NULL, 0, NULL}
-};
-
-static struct PyModuleDef moduledef = {
-    PyModuleDef_HEAD_INIT,
-    "dart_bridge", NULL, -1, methods
-};
-
-PyMODINIT_FUNC PyInit_dart_bridge(void) {
-    return PyModule_Create(&moduledef);
+    return 0;
 }
