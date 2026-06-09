@@ -95,10 +95,16 @@ jobs:
             if (Test-Path $unpackDir) { Remove-Item -Recurse -Force $unpackDir }
             python -m wheel unpack -d $unpackDir $whl.FullName
             $unpackedRoot = Get-ChildItem $unpackDir -Directory | Select-Object -First 1
-            # Find where the existing dart_bridge.cp312-win_amd64.pyd lives —
-            # wheel/setuptools puts top-level extensions at the wheel root.
-            $existing = Get-ChildItem -Recurse -Path $unpackedRoot.FullName -Filter 'dart_bridge.cp*-win_amd64.pyd' | Select-Object -First 1
-            if (-not $existing) { throw "Release .pyd not found inside $($whl.FullName)" }
+            Write-Host "Unpacked tree:"
+            Get-ChildItem -Recurse -Path $unpackedRoot.FullName | ForEach-Object {
+              Write-Host "  $($_.FullName.Substring($unpackedRoot.FullName.Length))"
+            }
+            # Find any existing dart_bridge*.pyd to know where to place the Debug
+            # sibling. setuptools may name it dart_bridge.pyd, dart_bridge.abi3.pyd,
+            # dart_bridge.cp312-win_amd64.pyd, etc., depending on the build setup.
+            $existing = Get-ChildItem -Recurse -Path $unpackedRoot.FullName -Filter 'dart_bridge*.pyd' | Select-Object -First 1
+            if (-not $existing) { throw "No dart_bridge*.pyd found inside $($whl.FullName)" }
+            Write-Host "Found Release pyd: $($existing.Name)"
             $debugDest = Join-Path $existing.DirectoryName "dart_bridge_d.cp$pyverNodot-win_amd64.pyd"
             Copy-Item $outPyd $debugDest
             Write-Host "Injected: $debugDest"
