@@ -57,7 +57,12 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DPYTHON_VERSION=${python_version}"
+                // PYTHON_DIST_DIR is read by android/CMakeLists.txt — must
+                // match the pythonStagingRoot the extract task writes to
+                // (which is `buildDir/python-dist`, where buildDir is the
+                // consumer module's gradle build dir — NOT plugin source).
+                arguments "-DPYTHON_VERSION=${python_version}",
+                          "-DPYTHON_DIST_DIR=${pythonStagingRoot}"
             }
         }
     }

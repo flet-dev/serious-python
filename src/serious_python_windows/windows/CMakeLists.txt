@@ -68,17 +68,29 @@ include_directories(
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
+# Always link/bundle the Release Python regardless of Flutter's build config.
+# Reason: Python C extension wheels (including the cibuildwheel-built abi3
+# dart_bridge shim downloaded by `package_command.dart --bridge`) are compiled
+# against Release CPython and reference Release python3.dll / pythonXY.dll. A
+# Debug Flutter build that bundled pythonXY_d.dll couldn't load those wheels.
+# python-build-standalone also doesn't ship a Debug variant in the same shape,
+# so a single Release Python is the consistent ABI target.
+#
+# Py_NO_LINK_LIB (set on the plugin target) suppresses pyconfig.h's
+# `#pragma comment(lib, "pythonXY_d.lib")` that fires in Debug builds, so the
+# explicit link to pythonXY.lib below is honored.
 target_link_libraries(${PLUGIN_NAME} PRIVATE
-  "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.lib"
+  "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}.lib"
 )
+target_compile_definitions(${PLUGIN_NAME} PRIVATE Py_NO_LINK_LIB)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 string(REPLACE "\\" "/" SERIOUS_PYTHON_WINDIR "$ENV{WINDIR}")
 set(serious_python_windows_bundled_libraries
-  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.dll"
-  "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
+  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}.dll"
+  "${PYTHON_PACKAGE}/python3.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/msvcp140.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140_1.dll"
@@ -96,7 +108,7 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
     "${PYTHON_PACKAGE}/DLLs"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
-  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
+  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*_d.*\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
