@@ -286,6 +286,16 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      # serious_python_darwin's prepare_ios.sh downloads python-ios-dart-<ver>.tar.gz
+      # (~100MB) into src/serious_python_darwin/darwin/dist_ios/ and skips the
+      # download if the directory already exists. Cache it so reruns and
+      # subsequent matrix jobs don't re-fetch from GitHub Releases.
+      - name: Cache iOS Python framework
+        uses: actions/cache@v4
+        with:
+          path: src/serious_python_darwin/darwin/dist_ios
+          key: ios-python-dist-${{ matrix.python_version }}-v1
+
       - name: Setup iOS Simulator
         id: simulator
         uses: futureware-tech/simulator-action@v4
@@ -299,13 +309,17 @@ jobs:
       - name: Package + run integration test
         working-directory: "src/serious_python_bridge/example"
         run: |
+          ts() { date '+%H:%M:%S'; }
+          echo "[$(ts)] >>> dart run serious_python:main package"
           # certifi is a placeholder requirement: serious_python_darwin's
           # sync_site_packages.sh only populates dist_ios/site-xcframeworks
           # (which bundle-python-frameworks-ios.sh then requires at build
           # time) when iOS-specific site-packages subdirs exist. Empty
           # --requirements skips that branch and the build fails.
           dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
+          echo "[$(ts)] >>> flutter test integration_test"
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
+          echo "[$(ts)] >>> done"
 
   test_bridge_example_linux:
     name: Bridge example Linux ${{ matrix.title }} round-trip (Python ${{ matrix.python_version }})
