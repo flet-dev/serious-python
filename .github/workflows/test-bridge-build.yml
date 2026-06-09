@@ -443,6 +443,34 @@ jobs:
             cd src/serious_python_bridge/example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
             cd src/serious_python_bridge/example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
 
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          REPO="$GITHUB_WORKSPACE"
+          ABI=x86_64
+          echo "=== serious_python_android/android/src/main/jniLibs/$ABI/ (post-extract source) ==="
+          ls -la "$REPO/src/serious_python_android/android/src/main/jniLibs/$ABI/" 2>/dev/null || echo "(not found)"
+          echo
+          echo "=== serious_python_bridge/android/src/main/jniLibs/$ABI/ ==="
+          ls -la "$REPO/src/serious_python_bridge/android/src/main/jniLibs/$ABI/" 2>/dev/null || echo "(not found)"
+          echo
+          echo "=== example/build/app/intermediates/merged_native_libs/.../$ABI/ ==="
+          find "$REPO/src/serious_python_bridge/example/build/app/intermediates/merged_native_libs" -type f 2>/dev/null
+          echo
+          echo "=== example/build/app/outputs/apk/debug/*.apk ==="
+          APK=$(find "$REPO/src/serious_python_bridge/example/build" -name "*-debug.apk" 2>/dev/null | head -n1)
+          echo "APK: $APK"
+          if [ -n "$APK" ]; then
+            echo "Native libs inside APK:"
+            unzip -l "$APK" | grep -E "lib/$ABI/" || echo "(no lib/$ABI/ entries)"
+          fi
+          echo
+          echo "=== installed app native lib dir (adb) ==="
+          adb shell run-as com.flet.serious_python_bridge_example ls -la /data/data/com.flet.serious_python_bridge_example/lib/ 2>/dev/null || true
+          adb shell pm path com.flet.serious_python_bridge_example 2>/dev/null || true
+
   test_bridge_example_windows:
     name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
     runs-on: windows-latest
