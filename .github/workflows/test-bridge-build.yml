@@ -190,13 +190,22 @@ jobs:
 
           OUT="dart_bridge.abi3-android-${ABI}.so"
 
+          # Compile dart_bridge_shim.c (the Python-callable module) — same
+          # source used by the Linux/Windows wheels. Symbols from the core
+          # (dart_bridge_global_enqueue_handler_func, dart_bridge_post_to_dart)
+          # are resolved at PyInit time via dlsym/dlopen against
+          # libflet_bridge.so, which the Flutter plugin builds + bundles
+          # separately. Linking dart_bridge.c directly into this .so would
+          # produce a second, isolated copy of the global handler cell —
+          # Dart's side and Python's side would never see the same value.
+          # -ldl gives dart_bridge_shim.c its dlsym/dlopen.
           $CC -shared -fPIC -fvisibility=hidden \
             -DPy_LIMITED_API=0x030c0000 \
             -I"$INCLUDE_DIR" \
             -I"src/serious_python_bridge/native" \
-            src/serious_python_bridge/native/dart_bridge.c \
-            src/serious_python_bridge/native/dart_api/dart_api_dl.c \
+            src/serious_python_bridge/native/dart_bridge_shim.c \
             "$LIBPYTHON" \
+            -ldl \
             -Wl,-z,max-page-size=16384 \
             -o "$OUT"
 
