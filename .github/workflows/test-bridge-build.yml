@@ -136,14 +136,23 @@ jobs:
           if-no-files-found: error
 
   test_android_build:
-    name: Android cross-build (${{ matrix.abi }})
+    name: Android cross-build (${{ matrix.abi }}, Py ${{ matrix.python_version }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         abi: [arm64-v8a, armeabi-v7a, x86_64]
+        python_version: ['3.12', '3.13', '3.14']
+        exclude:
+          # 32-bit Android was dropped in CPython 3.13+ (PEP 738) — the
+          # python-android-mobile-forge tarball doesn't ship an armeabi-v7a
+          # install for those versions.
+          - abi: armeabi-v7a
+            python_version: '3.13'
+          - abi: armeabi-v7a
+            python_version: '3.14'
     env:
-      PYTHON_VERSION: "3.12"
+      PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -200,23 +209,19 @@ jobs:
           # Dart's side and Python's side would never see the same value.
           # -ldl gives dart_bridge_shim.c its dlsym/dlopen.
           #
-          # Intentionally NOT linking $LIBPYTHON: hardcoding it would emit
-          # DT_NEEDED for the version-specific libpython3.X.so used at build
-          # time (we build once with 3.12), and Android's linker would then
-          # fail to load this .so under 3.13/3.14 Python (which ship
-          # libpython3.13.so / libpython3.14.so but not libpython3.12.so).
-          # `-shared` allows undefined Python symbols; they resolve at import
-          # time because dlopen flags propagate from the already-loaded
-          # libpython into the new module's symbol lookup.
-          # `-Wl,--allow-shlib-undefined` makes the linker tolerate the
-          # unresolved Python C API references during the link itself.
+          # Link $LIBPYTHON for this specific Python version so DT_NEEDED
+          # references libpythonX.Y.so and matches the libpython
+          # serious_python_android bundles at runtime for the same version.
+          # abi3 makes the *symbol set* portable, but Android's linker still
+          # needs the DT_NEEDED entry to resolve to a file that exists in the
+          # APK at load time — which is why we build per-version (matrix).
           $CC -shared -fPIC -fvisibility=hidden \
             -DPy_LIMITED_API=0x030c0000 \
             -I"$INCLUDE_DIR" \
             -I"src/serious_python_bridge/native" \
             src/serious_python_bridge/native/dart_bridge_shim.c \
+            "$LIBPYTHON" \
             -ldl \
-            -Wl,--allow-shlib-undefined \
             -Wl,-z,max-page-size=16384 \
             -o "$OUT"
 
@@ -228,7 +233,7 @@ jobs:
       - name: Upload .so artifact
         uses: actions/upload-artifact@v4
         with:
-          name: bridge-android-${{ matrix.abi }}
+          name: bridge-android-${{ matrix.abi }}-py${{ matrix.python_version }}
           path: dart_bridge.abi3-android-*.so
           if-no-files-found: error
 
@@ -422,7 +427,7 @@ jobs:
       - name: Download Android bridge .so for x86_64
         uses: actions/download-artifact@v4
         with:
-          name: bridge-android-x86_64
+          name: bridge-android-x86_64-py${{ matrix.python_version }}
           path: ${{ runner.temp }}/dart_bridge_android
 
       - name: Inject dart_bridge.abi3.so into bundled site-packages
