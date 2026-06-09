@@ -76,13 +76,19 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # python-build-standalone also doesn't ship a Debug variant in the same shape,
 # so a single Release Python is the consistent ABI target.
 #
-# Py_NO_LINK_LIB (set on the plugin target) suppresses pyconfig.h's
-# `#pragma comment(lib, "pythonXY_d.lib")` that fires in Debug builds, so the
-# explicit link to pythonXY.lib below is honored.
+# In Debug Flutter builds, pyconfig.h emits `#pragma comment(lib,
+# "pythonXY_d.lib")` to ask MSVC to auto-link the Debug Python lib. That lib
+# isn't shipped by python-build-standalone, so the link fails with LNK1104.
+# Py_NO_LINK_LIB (Python 3.14+) would suppress that pragma but 3.12 and 3.13
+# pyconfig.h doesn't honor it — so use /NODEFAULTLIB to explicitly exclude
+# the Debug lib request at link time. Works across all supported versions.
 target_link_libraries(${PLUGIN_NAME} PRIVATE
   "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}.lib"
 )
 target_compile_definitions(${PLUGIN_NAME} PRIVATE Py_NO_LINK_LIB)
+target_link_options(${PLUGIN_NAME} PRIVATE
+  "/NODEFAULTLIB:python${PYTHON_VERSION_NODOT}_d.lib"
+)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an

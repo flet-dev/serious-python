@@ -55,6 +55,13 @@ if(WIN32)
   # Debug builds, which makes MSVC auto-link the Debug variant of libpython
   # even though we explicitly linked python3.lib above. python-build-standalone
   # doesn't ship a Debug lib, so the link fails (LNK1104). Py_NO_LINK_LIB
-  # suppresses that pragma (Python 3.12+).
+  # suppresses the pragma in Python 3.14+, but 3.12 and 3.13 pyconfig.h don't
+  # honor it — use /NODEFAULTLIB:pythonXY_d.lib to explicitly exclude the
+  # Debug lib at link time. Works on every supported version.
   target_compile_definitions(flet_bridge PRIVATE Py_NO_LINK_LIB)
+  if(Python3_VERSION_MAJOR AND Python3_VERSION_MINOR)
+    target_link_options(flet_bridge PRIVATE
+      "/NODEFAULTLIB:python${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}_d.lib"
+    )
+  endif()
 endif()

@@ -25,6 +25,10 @@ rootProject.allprojects {
 apply plugin: 'com.android.library'
 apply plugin: 'de.undercouch.download'
 
+// Hoisted before `android { ... }` so the cmake.arguments block below can
+// reference it. Mirrors the same expression used later for the extract task.
+def pythonStagingRoot = new File(buildDir, 'python-dist')
+
 android {
     namespace "com.flet.serious_python_bridge"
 
@@ -80,8 +84,8 @@ def pythonCacheDir = new File(
 // tarball that serious_python_android uses. We extract into a build-time
 // scratch dir (not jniLibs/) because we do NOT want to ship libpython
 // ourselves — serious_python_android ships it; we just link against it at
-// build time.
-def pythonStagingRoot = new File(buildDir, 'python-dist')
+// build time. (`pythonStagingRoot` is defined above the android{} block so
+// it can be passed into the cmake arguments.)
 
 // Single tarball contains all 4 Android ABIs' Python installs WITH headers
 // and the libpython3.so abi3 stub. The python-android-dart variant is just
