@@ -119,6 +119,13 @@ jobs:
           ls -lh dart_bridge.abi3-android-*.so
           file dart_bridge.abi3-android-*.so
 
+      - name: Upload .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bridge-android-${{ matrix.abi }}
+          path: dart_bridge.abi3-android-*.so
+          if-no-files-found: error
+
   test_bridge_example_macos:
     name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
     runs-on: macos-latest

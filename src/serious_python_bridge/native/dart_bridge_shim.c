@@ -37,8 +37,19 @@ static void* shim_sym_lookup(const char* name) {
     // The DLL search path includes the executable's directory, where Flutter
     // places plugin DLLs.
     HMODULE flet = LoadLibraryA("flet_bridge.dll");
-    if (!flet) return NULL;
-    return (void*)GetProcAddress(flet, name);
+    if (!flet) {
+        DWORD err = GetLastError();
+        fprintf(stderr, "[dart_bridge_shim] LoadLibraryA(flet_bridge.dll) failed, err=%lu\n", (unsigned long)err);
+        fflush(stderr);
+        return NULL;
+    }
+    void* p = (void*)GetProcAddress(flet, name);
+    if (!p) {
+        DWORD err = GetLastError();
+        fprintf(stderr, "[dart_bridge_shim] GetProcAddress(%s) failed, err=%lu\n", name, (unsigned long)err);
+        fflush(stderr);
+    }
+    return p;
 }
 #else
 static void* shim_sym_lookup(const char* name) {
