@@ -33,4 +33,4 @@ Issues = "https://github.com/flet-dev/serious-python/issues"
 build = "cp312-*"
 # Flet targets only 64-bit desktop, so skip 32-bit (i686 / win32). Also skip
 # PyPy and musllinux (alternative libc, not what python-build-standalone uses).
-skip = ["pp*", "*-musllinux_*", "*-linux_i686", "*-win32"]
+skip = ["pp*", "*-musllinux_*", "*_i686", "*-win32"]
