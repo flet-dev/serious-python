@@ -199,13 +199,24 @@ jobs:
           # produce a second, isolated copy of the global handler cell —
           # Dart's side and Python's side would never see the same value.
           # -ldl gives dart_bridge_shim.c its dlsym/dlopen.
+          #
+          # Intentionally NOT linking $LIBPYTHON: hardcoding it would emit
+          # DT_NEEDED for the version-specific libpython3.X.so used at build
+          # time (we build once with 3.12), and Android's linker would then
+          # fail to load this .so under 3.13/3.14 Python (which ship
+          # libpython3.13.so / libpython3.14.so but not libpython3.12.so).
+          # `-shared` allows undefined Python symbols; they resolve at import
+          # time because dlopen flags propagate from the already-loaded
+          # libpython into the new module's symbol lookup.
+          # `-Wl,--allow-shlib-undefined` makes the linker tolerate the
+          # unresolved Python C API references during the link itself.
           $CC -shared -fPIC -fvisibility=hidden \
             -DPy_LIMITED_API=0x030c0000 \
             -I"$INCLUDE_DIR" \
             -I"src/serious_python_bridge/native" \
             src/serious_python_bridge/native/dart_bridge_shim.c \
-            "$LIBPYTHON" \
             -ldl \
+            -Wl,--allow-shlib-undefined \
             -Wl,-z,max-page-size=16384 \
             -o "$OUT"
 
