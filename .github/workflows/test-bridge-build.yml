@@ -166,9 +166,13 @@ jobs:
           curl -fL -o "$ARCHIVE" \
             "https://github.com/flet-dev/python-build/releases/download/v${VER}/${ARCHIVE}"
           mkdir -p pydist
+          # The patch version inside the tarball path (python-X.Y.Z/) shifts
+          # over time, so extract by ABI/include + ABI/lib prefix and let
+          # tar pick whatever python-X.Y.* directory is there.
           tar -xzf "$ARCHIVE" -C pydist \
-            "install/android/${ABI}/python-${VER}.13/include/" \
-            "install/android/${ABI}/python-${VER}.13/lib/"
+            --wildcards \
+            "install/android/${ABI}/python-${VER}.*/include/" \
+            "install/android/${ABI}/python-${VER}.*/lib/"
           echo "Python.h candidates:"
           find pydist -name "Python.h"
           echo "libpython candidates:"
@@ -193,8 +197,8 @@ jobs:
           CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
           test -x "$CC"
 
-          INCLUDE_DIR=$(find pydist -path "*/python-${VER}.13/include/python${VER}" | head -n1)
-          LIBPYTHON=$(find pydist -path "*/python-${VER}.13/lib/libpython${VER}.so" | head -n1)
+          INCLUDE_DIR=$(find pydist -path "*/python-${VER}.*/include/python${VER}" | head -n1)
+          LIBPYTHON=$(find pydist -path "*/python-${VER}.*/lib/libpython${VER}.so" | head -n1)
           test -n "$INCLUDE_DIR" -a -n "$LIBPYTHON"
 
           OUT="dart_bridge.abi3-android-${ABI}.so"
