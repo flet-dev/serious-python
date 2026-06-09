@@ -193,6 +193,7 @@ jobs:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
+        arch: [arm64, amd64]
         include:
           - arch: arm64
             runner: ubuntu-24.04-arm
@@ -264,6 +265,91 @@ jobs:
             --python-version ${{ matrix.python_version }} \
             --requirements ${{ steps.wheel.outputs.path }}
           xvfb-run flutter test integration_test -d linux
+
+  test_bridge_example_android:
+    name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    runs-on: ubuntu-latest
+    needs: test_android_build
+    strategy:
+      fail-fast: false
+      matrix:
+        # x86_64 matches the emulator architecture below; only build/install
+        # for that ABI to keep CI fast.
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-bridge
+
+      - name: Download Android bridge .so for x86_64
+        uses: actions/download-artifact@v4
+        with:
+          name: bridge-android-x86_64
+          path: ${{ runner.temp }}/dart_bridge_android
+
+      - name: Inject dart_bridge.abi3.so into bundled site-packages
+        run: |
+          # serious_python_android's gradle takes everything from
+          # SERIOUS_PYTHON_SITE_PACKAGES/<abi>/ and zips it as
+          # libpythonsitepackages.so, which ends up in the APK. Drop our
+          # cross-compiled dart_bridge.abi3.so there so Python finds it at
+          # runtime. The .so name has to be the canonical 'dart_bridge.abi3.so'
+          # for CPython's import to match.
+          set -euxo pipefail
+          ABI=x86_64
+          DEST="$SERIOUS_PYTHON_SITE_PACKAGES/$ABI"
+          mkdir -p "$DEST"
+          cp "${{ runner.temp }}/dart_bridge_android/dart_bridge.abi3-android-$ABI.so" \
+             "$DEST/dart_bridge.abi3.so"
+          ls -lh "$DEST"
+
+      - name: Setup Android Emulator + Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
+        with:
+          avd-name: android_emulator
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          emulator-port: ${{ env.EMULATOR_PORT }}
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
+          pre-emulator-launch-script: |
+            sdkmanager --list_installed
+          script: |
+            cd src/serious_python_bridge/example
+            dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
+            flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
 
   test_bridge_example_windows:
     name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})

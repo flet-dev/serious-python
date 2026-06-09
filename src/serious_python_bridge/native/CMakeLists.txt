@@ -49,3 +49,12 @@ set_target_properties(flet_bridge PROPERTIES
 )
 
 target_compile_definitions(flet_bridge PRIVATE DART_SHARED_LIB)
+
+if(WIN32)
+  # Python's pyconfig.h emits `#pragma comment(lib, "pythonXY_d.lib")` in
+  # Debug builds, which makes MSVC auto-link the Debug variant of libpython
+  # even though we explicitly linked python3.lib above. python-build-standalone
+  # doesn't ship a Debug lib, so the link fails (LNK1104). Py_NO_LINK_LIB
+  # suppresses that pragma (Python 3.12+).
+  target_compile_definitions(flet_bridge PRIVATE Py_NO_LINK_LIB)
+endif()
