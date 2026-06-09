@@ -68,7 +68,7 @@ jobs:
           $libDir = (Resolve-Path "pywin-$pyver/libs").Path
           $outDir = "$PWD\debug_build"
           New-Item -ItemType Directory -Force -Path $outDir | Out-Null
-          $outPyd = "$outDir\dart_bridge_d.cp$pyverNodot-win_amd64.pyd"
+          $outPyd = "$outDir\dart_bridge_d.pyd"
 
           # /LD = build DLL. /MDd = link Debug CRT (vcruntime140d/msvcp140d).
           # /D_DEBUG = trigger pyconfig.h's Debug branch + match Debug CRT.
@@ -105,7 +105,7 @@ jobs:
             $existing = Get-ChildItem -Recurse -Path $unpackedRoot.FullName -Filter 'dart_bridge*.pyd' | Select-Object -First 1
             if (-not $existing) { throw "No dart_bridge*.pyd found inside $($whl.FullName)" }
             Write-Host "Found Release pyd: $($existing.Name)"
-            $debugDest = Join-Path $existing.DirectoryName "dart_bridge_d.cp$pyverNodot-win_amd64.pyd"
+            $debugDest = Join-Path $existing.DirectoryName "dart_bridge_d.pyd"
             Copy-Item $outPyd $debugDest
             Write-Host "Injected: $debugDest"
             Remove-Item $whl.FullName
