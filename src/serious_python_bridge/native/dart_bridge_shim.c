@@ -37,12 +37,29 @@ static PostToDartFn g_post_to_dart = NULL; // dart_bridge_post_to_dart in libfle
 
 // Diagnostic log file — Python's stderr is not captured by flutter test on
 // Windows, so we tee the shim's progress to a known absolute path the
-// workflow can dump after the test fails.
+// workflow can dump after the test fails. We write next to the running
+// .exe (runner/Debug/) since GetTempPathA's return value varies depending
+// on how the embedded Python's environment is set up.
+static void shim_log_path(char* out) {
+    DWORD n = GetModuleFileNameA(NULL, out, MAX_PATH);
+    if (n == 0 || n >= MAX_PATH) { out[0] = '\0'; return; }
+    for (DWORD i = n; i > 0; i--) {
+        if (out[i - 1] == '\\' || out[i - 1] == '/') {
+            out[i] = '\0';
+            break;
+        }
+    }
+    if (strlen(out) + strlen("dart_bridge_shim.log") + 1 >= MAX_PATH) {
+        out[0] = '\0';
+        return;
+    }
+    strcat(out, "dart_bridge_shim.log");
+}
+
 static void shim_log(const char* fmt, ...) {
     char path[MAX_PATH];
-    DWORD n = GetTempPathA(MAX_PATH, path);
-    if (n == 0 || n + 25 > MAX_PATH) return;
-    strcat(path, "dart_bridge_shim.log");
+    shim_log_path(path);
+    if (!path[0]) return;
     FILE* f = fopen(path, "a");
     if (!f) return;
     va_list ap;
@@ -57,9 +74,8 @@ static void shim_log(const char* fmt, ...) {
 // because the .pyd failed to load").
 static void shim_log_init(const char* phase) {
     char path[MAX_PATH];
-    DWORD n = GetTempPathA(MAX_PATH, path);
-    if (n == 0 || n + 25 > MAX_PATH) return;
-    strcat(path, "dart_bridge_shim.log");
+    shim_log_path(path);
+    if (!path[0]) return;
     FILE* f = fopen(path, "a");
     if (!f) return;
     fprintf(f, "[shim] === %s ===\n", phase);

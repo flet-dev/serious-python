@@ -404,21 +404,25 @@ jobs:
         shell: bash
         working-directory: "src/serious_python_bridge/example"
         run: |
+          DBG_DIR=build/windows/x64/runner/Debug
           echo "=== runner/Debug dir ==="
-          ls -la build/windows/x64/runner/Debug/ || true
+          ls -la $DBG_DIR/ || true
           echo
           echo "=== runner/Debug/site-packages ==="
-          ls -la build/windows/x64/runner/Debug/site-packages/ || true
+          ls -la $DBG_DIR/site-packages/ || true
           echo
-          echo "=== shim log at %TEMP%\\dart_bridge_shim.log ==="
-          cat "$TEMP/dart_bridge_shim.log" 2>/dev/null || cat "$RUNNER_TEMP/dart_bridge_shim.log" 2>/dev/null || echo "(log not found)"
+          echo "=== shim log next to .exe ==="
+          cat $DBG_DIR/dart_bridge_shim.log 2>/dev/null || echo "(log not found)"
+          echo
+          echo "=== direct import test (catches the actual ImportError) ==="
+          # Try to import dart_bridge using the bundled Python so we can see
+          # the actual error. Python search paths the bundle uses.
+          PY_BUNDLED=$(find $DBG_DIR -maxdepth 1 -name "python.exe" -o -name "python3*.exe" 2>/dev/null | head -n1)
+          if [ -z "$PY_BUNDLED" ]; then
+            echo "(no python.exe in $DBG_DIR — trying system python)"
+            PY_BUNDLED=python
+          fi
+          (cd $DBG_DIR && PYTHONPATH="site-packages;." "$PY_BUNDLED" -c "import sys; print('sys.path:', sys.path); import dart_bridge; print('imported OK:', dart_bridge)") 2>&1 || true
           echo
           echo "=== look for stray flet_bridge.dll / dart_bridge.pyd ==="
           find build -name "flet_bridge.dll" -o -name "dart_bridge*.pyd" || true
-          echo
-          echo "=== run dart_bridge.pyd dependency check via dumpbin ==="
-          # Verify what python.exe sees when trying to load the .pyd.
-          DUMPBIN=$(find "/c/Program Files" -name "dumpbin.exe" 2>/dev/null | head -n1)
-          if [ -n "$DUMPBIN" ]; then
-            "$DUMPBIN" //dependents build/windows/x64/runner/Debug/site-packages/dart_bridge.pyd | head -30 || true
-          fi
