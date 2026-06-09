@@ -354,9 +354,8 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python_bridge/example
-            dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
-            flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
+            cd src/serious_python_bridge/example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
+            cd src/serious_python_bridge/example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
 
   test_bridge_example_windows:
     name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
@@ -399,3 +398,20 @@ jobs:
         run: |
           dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements ${{ steps.wheel.outputs.path }}
           flutter test integration_test -d windows
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        working-directory: "src/serious_python_bridge/example"
+        run: |
+          echo "=== runner/Debug dir ==="
+          ls -la build/windows/x64/runner/Debug/ || true
+          echo
+          echo "=== runner/Debug/site-packages ==="
+          ls -la build/windows/x64/runner/Debug/site-packages/ || true
+          echo
+          echo "=== shim log (if any) ==="
+          find . -name "dart_bridge_shim.log" -exec echo {} \; -exec cat {} \; || true
+          echo
+          echo "=== look for stray flet_bridge.dll / dart_bridge.pyd ==="
+          find build -name "flet_bridge.dll" -o -name "dart_bridge*.pyd" || true

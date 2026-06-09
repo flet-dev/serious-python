@@ -18,6 +18,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include <stdarg.h>
+
 #if defined(_WIN32)
 #include <windows.h>
 #else
@@ -33,23 +35,49 @@ static PostToDartFn g_post_to_dart = NULL; // dart_bridge_post_to_dart in libfle
 #if defined(_WIN32)
 #include <string.h>
 
+// Diagnostic log file — Python's stderr is not captured by flutter test on
+// Windows, so we tee the shim's progress to a known file the workflow can
+// dump after the test fails. Path is in CWD so it lands in the .exe's dir.
+static void shim_log(const char* fmt, ...) {
+    FILE* f = fopen("dart_bridge_shim.log", "a");
+    if (!f) return;
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(f, fmt, ap);
+    va_end(ap);
+    fclose(f);
+}
+
 static HMODULE shim_find_flet_bridge_module(void) {
     // 1. GetModuleHandleA looks at modules already loaded into the process
     //    (e.g. by Dart's DynamicLibrary.open). Returns NULL without loading
     //    anything if not already mapped.
     HMODULE flet = GetModuleHandleA("flet_bridge.dll");
-    if (flet) return flet;
+    if (flet) {
+        shim_log("[shim] GetModuleHandleA(flet_bridge.dll) -> %p\n", (void*)flet);
+        return flet;
+    }
+    shim_log("[shim] GetModuleHandleA(flet_bridge.dll) -> NULL (err=%lu)\n",
+             (unsigned long)GetLastError());
 
     // 2. LoadLibraryA with default DLL search. Reaches the calling module's
     //    directory (dart_bridge.pyd's dir) + system paths + PATH.
     flet = LoadLibraryA("flet_bridge.dll");
-    if (flet) return flet;
+    if (flet) {
+        shim_log("[shim] LoadLibraryA(flet_bridge.dll) -> %p\n", (void*)flet);
+        return flet;
+    }
+    shim_log("[shim] LoadLibraryA(flet_bridge.dll) -> NULL (err=%lu)\n",
+             (unsigned long)GetLastError());
 
     // 3. Construct an absolute path next to the running .exe (where Flutter
     //    places plugin DLLs) and try that.
     char exePath[MAX_PATH];
     DWORD len = GetModuleFileNameA(NULL, exePath, MAX_PATH);
-    if (len == 0 || len >= MAX_PATH) return NULL;
+    if (len == 0 || len >= MAX_PATH) {
+        shim_log("[shim] GetModuleFileNameA failed (len=%lu)\n", (unsigned long)len);
+        return NULL;
+    }
     for (DWORD i = len; i > 0; i--) {
         if (exePath[i - 1] == '\\' || exePath[i - 1] == '/') {
             exePath[i] = '\0';
@@ -58,23 +86,29 @@ static HMODULE shim_find_flet_bridge_module(void) {
     }
     if (strlen(exePath) + strlen("flet_bridge.dll") + 1 >= MAX_PATH) return NULL;
     strcat(exePath, "flet_bridge.dll");
-    return LoadLibraryA(exePath);
+    shim_log("[shim] trying absolute path: %s\n", exePath);
+    flet = LoadLibraryA(exePath);
+    if (!flet) {
+        shim_log("[shim] LoadLibraryA(absolute) -> NULL (err=%lu)\n",
+                 (unsigned long)GetLastError());
+    } else {
+        shim_log("[shim] LoadLibraryA(absolute) -> %p\n", (void*)flet);
+    }
+    return flet;
 }
 
 static void* shim_sym_lookup(const char* name) {
     HMODULE flet = shim_find_flet_bridge_module();
     if (!flet) {
-        DWORD err = GetLastError();
-        fprintf(stderr, "[dart_bridge_shim] could not locate flet_bridge.dll (last error %lu)\n",
-                (unsigned long)err);
-        fflush(stderr);
+        shim_log("[shim] flet_bridge.dll not found anywhere\n");
         return NULL;
     }
     void* p = (void*)GetProcAddress(flet, name);
     if (!p) {
-        DWORD err = GetLastError();
-        fprintf(stderr, "[dart_bridge_shim] GetProcAddress(%s) failed, err=%lu\n", name, (unsigned long)err);
-        fflush(stderr);
+        shim_log("[shim] GetProcAddress(%s) -> NULL (err=%lu)\n", name,
+                 (unsigned long)GetLastError());
+    } else {
+        shim_log("[shim] GetProcAddress(%s) -> %p\n", name, p);
     }
     return p;
 }
