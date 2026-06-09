@@ -395,9 +395,16 @@ jobs:
 
       - name: Package + run integration test
         working-directory: "src/serious_python_bridge/example"
+        # --profile (vs default --debug) is essential on Windows: serious_python_
+        # windows links/bundles the Debug python3XY_d.dll suffix only on Debug
+        # configs, and the cibuildwheel-built abi3 wheel's python3.dll stub
+        # forwards to the Release python3XY.dll. With --debug we'd need both
+        # python3XY.dll AND python3XY_d.dll bundled, plus python3.dll AND
+        # python3_d.dll — fragile. Profile uses Release Python on the embed
+        # side which matches the abi3 wheel.
         run: |
           dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements ${{ steps.wheel.outputs.path }}
-          flutter test integration_test -d windows
+          flutter test integration_test -d windows --profile
 
       - name: Diagnostics on failure
         if: failure()

@@ -112,6 +112,22 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
             fcd.path = fcd.path.replaceAll("^install/android/[^/]+/python-[^/]+/", "")
         }
         includeEmptyDirs = false
+
+        doFirst {
+            println "[serious_python_bridge] extractPythonDist_${abi}: staging to ${stagingDir}"
+            println "[serious_python_bridge]   tar: ${archiveCachePath} (exists=${archiveCachePath.exists()})"
+        }
+        doLast {
+            def libpython = new File(stagingDir, "lib/libpython3.so")
+            def header = new File(stagingDir, "include/python${python_version}/Python.h")
+            println "[serious_python_bridge] extractPythonDist_${abi} done"
+            println "[serious_python_bridge]   ${libpython}: exists=${libpython.exists()}"
+            println "[serious_python_bridge]   ${header}: exists=${header.exists()}"
+            if (!libpython.exists() || !header.exists()) {
+                println "[serious_python_bridge] STAGED CONTENTS:"
+                stagingDir.eachFileRecurse { f -> println "    ${f}" }
+            }
+        }
     }
 
     prepareTasks.add("extractPythonDist_${abi}")
