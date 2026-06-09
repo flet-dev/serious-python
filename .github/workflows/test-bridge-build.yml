@@ -34,6 +34,74 @@ jobs:
         with:
           package-dir: src/serious_python_bridge/python
 
+      # Windows ships two CPython variants (Release pythonXY.dll and Debug
+      # pythonXY_d.dll). The cibuildwheel-built abi3 .pyd is Release-CRT; a
+      # Debug Flutter app loads Debug Python and tries to import
+      # dart_bridge_d.cp<XY>-win_amd64.pyd (CPython appends _d to EXT_SUFFIX
+      # when built in Debug mode). Compile a Debug-CRT variant of the same
+      # dart_bridge_shim.c and pack it alongside the Release .pyd in each
+      # wheel. Released wheels then work in both `flutter build` (Release)
+      # and `fvm flutter run` (Debug) without a serious_python_windows split.
+      - name: Build Debug-variant dart_bridge.pyd and inject into Windows wheels
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # Use 3.12 headers — abi3 (Py_LIMITED_API=0x030c0000) means one .pyd
+          # built against the minimum supported version works for every
+          # 3.12+ runtime.
+          $pyver = '3.12'
+          $pyverNodot = '312'
+          $pywinZip = "python-windows-for-dart-$pyver.zip"
+          $pywinUrl = "https://github.com/flet-dev/python-build/releases/download/v$pyver/$pywinZip"
+          Write-Host "Downloading $pywinUrl"
+          Invoke-WebRequest -Uri $pywinUrl -OutFile $pywinZip
+          Expand-Archive -Path $pywinZip -DestinationPath "pywin-$pyver" -Force
+
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vsPath = & $vswhere -latest -property installationPath
+          $vcvars = "$vsPath\VC\Auxiliary\Build\vcvars64.bat"
+          Write-Host "vcvars: $vcvars"
+
+          $shimSrc = (Resolve-Path 'src/serious_python_bridge/native/dart_bridge_shim.c').Path
+          $includeDir = (Resolve-Path "pywin-$pyver/include").Path
+          $libDir = (Resolve-Path "pywin-$pyver/libs").Path
+          $outDir = "$PWD\debug_build"
+          New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+          $outPyd = "$outDir\dart_bridge_d.cp$pyverNodot-win_amd64.pyd"
+
+          # /LD = build DLL. /MDd = link Debug CRT (vcruntime140d/msvcp140d).
+          # /D_DEBUG = trigger pyconfig.h's Debug branch + match Debug CRT.
+          # /DPy_LIMITED_API = mirror the Release wheel's abi3 contract.
+          # Link the Debug abi3 stub python3_d.lib (forwards to python3_d.dll
+          # which serious_python_windows ships in Debug Flutter builds).
+          $clCmd = "cl /nologo /LD /MDd /D_DEBUG /DPy_LIMITED_API=0x030c0000 /I `"$includeDir`" `"$shimSrc`" /link /OUT:`"$outPyd`" `"$libDir\python3_d.lib`""
+          Write-Host "Running: $clCmd"
+          cmd /c "`"$vcvars`" >NUL && $clCmd"
+          if (-not (Test-Path $outPyd)) {
+            throw "Debug .pyd not produced: $outPyd"
+          }
+          Write-Host "Built: $outPyd"
+          Get-Item $outPyd | Format-List FullName, Length
+
+          # Inject the Debug .pyd into each Windows wheel.
+          python -m pip install --quiet wheel
+          foreach ($whl in Get-ChildItem "wheelhouse\dart_bridge-*-cp312-abi3-win_amd64.whl") {
+            $unpackDir = Join-Path $env:RUNNER_TEMP ("unpack_" + [IO.Path]::GetFileNameWithoutExtension($whl.Name))
+            if (Test-Path $unpackDir) { Remove-Item -Recurse -Force $unpackDir }
+            python -m wheel unpack -d $unpackDir $whl.FullName
+            $unpackedRoot = Get-ChildItem $unpackDir -Directory | Select-Object -First 1
+            # Find where the existing dart_bridge.cp312-win_amd64.pyd lives —
+            # wheel/setuptools puts top-level extensions at the wheel root.
+            $existing = Get-ChildItem -Recurse -Path $unpackedRoot.FullName -Filter 'dart_bridge.cp*-win_amd64.pyd' | Select-Object -First 1
+            if (-not $existing) { throw "Release .pyd not found inside $($whl.FullName)" }
+            $debugDest = Join-Path $existing.DirectoryName "dart_bridge_d.cp$pyverNodot-win_amd64.pyd"
+            Copy-Item $outPyd $debugDest
+            Write-Host "Injected: $debugDest"
+            Remove-Item $whl.FullName
+            python -m wheel pack -d wheelhouse $unpackedRoot.FullName
+          }
+
       - name: List built wheels
         shell: bash
         run: |
@@ -41,6 +109,14 @@ jobs:
           echo
           echo "Wheel filenames (expect cp312-abi3-<plat>):"
           ls wheelhouse/*.whl
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            echo
+            echo "Wheel contents (verify Debug + Release .pyd both present):"
+            for w in wheelhouse/*.whl; do
+              echo "--- $w ---"
+              python -m zipfile -l "$w" | grep -E "dart_bridge.*\.pyd" || true
+            done
+          fi
 
       - name: Upload wheel artifacts
         uses: actions/upload-artifact@v4

@@ -68,26 +68,8 @@ include_directories(
 
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 
-# Always link/bundle the Release Python regardless of Flutter's build config.
-# Reason: Python C extension wheels (including the cibuildwheel-built abi3
-# dart_bridge shim downloaded by `package_command.dart --bridge`) are compiled
-# against Release CPython and reference Release python3.dll / pythonXY.dll. A
-# Debug Flutter build that bundled pythonXY_d.dll couldn't load those wheels.
-# python-build-standalone also doesn't ship a Debug variant in the same shape,
-# so a single Release Python is the consistent ABI target.
-#
-# In Debug Flutter builds, pyconfig.h emits `#pragma comment(lib,
-# "pythonXY_d.lib")` to ask MSVC to auto-link the Debug Python lib. That lib
-# isn't shipped by python-build-standalone, so the link fails with LNK1104.
-# Py_NO_LINK_LIB (Python 3.14+) would suppress that pragma but 3.12 and 3.13
-# pyconfig.h doesn't honor it — so use /NODEFAULTLIB to explicitly exclude
-# the Debug lib request at link time. Works across all supported versions.
 target_link_libraries(${PLUGIN_NAME} PRIVATE
-  "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}.lib"
-)
-target_compile_definitions(${PLUGIN_NAME} PRIVATE Py_NO_LINK_LIB)
-target_link_options(${PLUGIN_NAME} PRIVATE
-  "/NODEFAULTLIB:python${PYTHON_VERSION_NODOT}_d.lib"
+  "${PYTHON_PACKAGE}/libs/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.lib"
 )
 
 # List of absolute paths to libraries that should be bundled with the plugin.
@@ -95,8 +77,8 @@ target_link_options(${PLUGIN_NAME} PRIVATE
 # external build triggered from this build file.
 string(REPLACE "\\" "/" SERIOUS_PYTHON_WINDIR "$ENV{WINDIR}")
 set(serious_python_windows_bundled_libraries
-  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}.dll"
-  "${PYTHON_PACKAGE}/python3.dll"
+  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.dll"
+  "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/msvcp140.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140.dll"
   "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140_1.dll"
@@ -114,7 +96,7 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory 
     "${PYTHON_PACKAGE}/DLLs"
     "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*_d.*\" /S /Q
+  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
   COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
