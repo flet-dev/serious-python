@@ -36,15 +36,33 @@ static PostToDartFn g_post_to_dart = NULL; // dart_bridge_post_to_dart in libfle
 #include <string.h>
 
 // Diagnostic log file — Python's stderr is not captured by flutter test on
-// Windows, so we tee the shim's progress to a known file the workflow can
-// dump after the test fails. Path is in CWD so it lands in the .exe's dir.
+// Windows, so we tee the shim's progress to a known absolute path the
+// workflow can dump after the test fails.
 static void shim_log(const char* fmt, ...) {
-    FILE* f = fopen("dart_bridge_shim.log", "a");
+    char path[MAX_PATH];
+    DWORD n = GetTempPathA(MAX_PATH, path);
+    if (n == 0 || n + 25 > MAX_PATH) return;
+    strcat(path, "dart_bridge_shim.log");
+    FILE* f = fopen(path, "a");
     if (!f) return;
     va_list ap;
     va_start(ap, fmt);
     vfprintf(f, fmt, ap);
     va_end(ap);
+    fclose(f);
+}
+
+// Marker call so we can detect whether PyInit ran at all (helps distinguish
+// "PyInit ran but flet_bridge.dll lookup failed" from "PyInit never ran
+// because the .pyd failed to load").
+static void shim_log_init(const char* phase) {
+    char path[MAX_PATH];
+    DWORD n = GetTempPathA(MAX_PATH, path);
+    if (n == 0 || n + 25 > MAX_PATH) return;
+    strcat(path, "dart_bridge_shim.log");
+    FILE* f = fopen(path, "a");
+    if (!f) return;
+    fprintf(f, "[shim] === %s ===\n", phase);
     fclose(f);
 }
 
@@ -188,6 +206,9 @@ static struct PyModuleDef moduledef = {
 };
 
 PyMODINIT_FUNC PyInit_dart_bridge(void) {
+#if defined(_WIN32)
+    shim_log_init("PyInit_dart_bridge entered");
+#endif
     // Resolve the libflet_bridge exports we depend on. Surface a clean
     // ImportError if the lookup fails — typically means the bridge plugin's
     // native library wasn't loaded into the process before Python ran.

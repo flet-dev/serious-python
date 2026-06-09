@@ -410,8 +410,15 @@ jobs:
           echo "=== runner/Debug/site-packages ==="
           ls -la build/windows/x64/runner/Debug/site-packages/ || true
           echo
-          echo "=== shim log (if any) ==="
-          find . -name "dart_bridge_shim.log" -exec echo {} \; -exec cat {} \; || true
+          echo "=== shim log at %TEMP%\\dart_bridge_shim.log ==="
+          cat "$TEMP/dart_bridge_shim.log" 2>/dev/null || cat "$RUNNER_TEMP/dart_bridge_shim.log" 2>/dev/null || echo "(log not found)"
           echo
           echo "=== look for stray flet_bridge.dll / dart_bridge.pyd ==="
           find build -name "flet_bridge.dll" -o -name "dart_bridge*.pyd" || true
+          echo
+          echo "=== run dart_bridge.pyd dependency check via dumpbin ==="
+          # Verify what python.exe sees when trying to load the .pyd.
+          DUMPBIN=$(find "/c/Program Files" -name "dumpbin.exe" 2>/dev/null | head -n1)
+          if [ -n "$DUMPBIN" ]; then
+            "$DUMPBIN" //dependents build/windows/x64/runner/Debug/site-packages/dart_bridge.pyd | head -30 || true
+          fi
