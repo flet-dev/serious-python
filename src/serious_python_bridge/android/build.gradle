@@ -78,27 +78,40 @@ def pythonCacheDir = new File(
 // build time.
 def pythonStagingRoot = new File(buildDir, 'python-dist')
 
+// Single tarball contains all 4 Android ABIs' Python installs WITH headers
+// and the libpython3.so abi3 stub. The python-android-dart variant is just
+// runtime libs (no headers), which can't satisfy dart_bridge.c's
+// `#include <Python.h>` at build time.
+def archiveName = "python-android-mobile-forge-${python_version}.tar.gz"
+def archiveCachePath = new File(pythonCacheDir, archiveName)
+
+tasks.register("downloadPythonDist", Download) {
+    src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/${archiveName}"
+    dest archiveCachePath
+    onlyIfModified true
+    useETag "all"
+    tempAndMove true
+    doFirst { dest.parentFile.mkdirs() }
+}
+
 def prepareTasks = []
 android.defaultConfig.ndk.abiFilters.each { abi ->
-    def archiveName = "python-android-dart-${python_version}-${abi}.tar.gz"
     def stagingDir = new File(pythonStagingRoot, abi)
 
-    tasks.register("downloadPythonDist_${abi}", Download) {
-        src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/${archiveName}"
-        dest new File(pythonCacheDir, archiveName)
-        onlyIfModified true
-        useETag "all"
-        tempAndMove true
-        doFirst { dest.parentFile.mkdirs() }
-    }
-
     tasks.register("extractPythonDist_${abi}", Copy) {
-        dependsOn "downloadPythonDist_${abi}"
-        from tarTree(tasks.named("downloadPythonDist_${abi}").get().dest)
+        dependsOn "downloadPythonDist"
+        from tarTree(archiveCachePath)
         into stagingDir
-        // Headers + libpython only; everything else is dead weight for our
-        // build-time link (serious_python_android ships the runtime copy).
-        include "include/**", "lib/libpython*.so"
+        // mobile-forge layout: install/android/<abi>/python-<X.Y.Z>/...
+        include "install/android/${abi}/python-${python_version}.*/include/**"
+        include "install/android/${abi}/python-${python_version}.*/lib/libpython*.so"
+        // Flatten the install/android/<abi>/python-<X.Y.Z>/ prefix so the
+        // result is python-dist/<abi>/{include,lib}/... — matches what
+        // android/CMakeLists.txt expects.
+        eachFile { fcd ->
+            fcd.path = fcd.path.replaceAll("^install/android/[^/]+/python-[^/]+/", "")
+        }
+        includeEmptyDirs = false
     }
 
     prepareTasks.add("extractPythonDist_${abi}")
