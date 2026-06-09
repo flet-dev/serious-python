@@ -75,7 +75,11 @@ jobs:
           # /DPy_LIMITED_API = mirror the Release wheel's abi3 contract.
           # Link the Debug abi3 stub python3_d.lib (forwards to python3_d.dll
           # which serious_python_windows ships in Debug Flutter builds).
-          $clCmd = "cl /nologo /LD /MDd /D_DEBUG /DPy_LIMITED_API=0x030c0000 /I `"$includeDir`" `"$shimSrc`" /link /OUT:`"$outPyd`" `"$libDir\python3_d.lib`""
+          # /LIBPATH puts python-windows-for-dart's libs/ folder on the
+          # linker search path so pyconfig.h's auto-link `#pragma comment(
+          # lib, "pythonXY_d.lib")` resolves (it asks for python312_d.lib by
+          # name; that file ships in the same libs/ folder).
+          $clCmd = "cl /nologo /LD /MDd /D_DEBUG /DPy_LIMITED_API=0x030c0000 /I `"$includeDir`" `"$shimSrc`" /link /LIBPATH:`"$libDir`" /OUT:`"$outPyd`" `"$libDir\python3_d.lib`""
           Write-Host "Running: $clCmd"
           cmd /c "`"$vcvars`" >NUL && $clCmd"
           if (-not (Test-Path $outPyd)) {
