@@ -13,7 +13,12 @@ Pod::Spec.new do |s|
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Appveyor Systems Inc.' => 'hello@flet.dev' }
   s.source           = { :path => '.' }
-  #s.static_framework = true
+  # dart_bridge.xcframework (vendored below) contains static .a archives.
+  # CocoaPods 1.16+ refuses to install vendored xcframeworks with static
+  # libraries unless the consuming pod is itself declared as a static
+  # framework. Python.xcframework is also static, so this was always
+  # implicitly the case — just being explicit now.
+  s.static_framework = true
   s.source_files = ['Classes/**/*']
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
