@@ -197,9 +197,14 @@ jobs:
 
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
+        shell: bash
         run: |
           dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }}
-          flutter test integration_test -d windows -v 2>&1 | tail -200
+          # bash + pipefail so the test step actually fails when flutter fails
+          # (default PowerShell shell on windows runners eats the failure when
+          # piping into tail).
+          set -o pipefail
+          flutter test integration_test -d windows -v 2>&1 | tail -300
 
       - name: Diagnostics on failure
         if: failure()

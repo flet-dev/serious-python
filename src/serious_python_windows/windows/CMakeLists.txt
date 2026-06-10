@@ -139,14 +139,17 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
 )
 
-if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
+# Mirror the user's external site-packages dir into runner/site-packages if
+# the env var is set AND points at an existing directory. (The CI env var
+# may be set workflow-wide while specific jobs don't actually create the
+# directory — `cmake -E copy_directory` against a missing source fails,
+# which used to wedge CopyPythonDLLs.)
+if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES} AND EXISTS "$ENV{SERIOUS_PYTHON_SITE_PACKAGES}")
   add_custom_command(TARGET CopyPythonDLLs POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E remove_directory
-      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${SP_RUNNER_OUT}/site-packages"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SP_RUNNER_OUT}/site-packages"
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       "$ENV{SERIOUS_PYTHON_SITE_PACKAGES}"
-      "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/site-packages"
+      "${SP_RUNNER_OUT}/site-packages"
   )
 endif()
