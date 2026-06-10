@@ -63,11 +63,11 @@ class PythonBridge {
 
   /// Send [bytes] to the Python handler registered for this bridge's [port].
   ///
-  /// Returns `true` on successful delivery, `false` if no Python handler is
-  /// currently registered for this port (typical reason: Python hasn't yet
-  /// called `dart_bridge.set_enqueue_handler_func`). The caller may retry.
-  ///
-  /// Throws [StateError] if the Python interpreter is not running.
+  /// Returns `true` on successful delivery, `false` if delivery isn't yet
+  /// possible: either the Python interpreter hasn't finished `Py_Initialize`
+  /// yet, or Python hasn't called `dart_bridge.set_enqueue_handler_func`
+  /// for this port. Both states are transient on app startup — the caller
+  /// typically retries until `true`.
   bool send(Uint8List bytes) {
     if (_closed) {
       throw StateError('PythonBridge is closed');
@@ -78,10 +78,9 @@ class PythonBridge {
       if (len > 0) {
         buf.asTypedList(len).setAll(0, bytes);
       }
+      // rc: 0=delivered, -1=no handler yet, -2=Py_Initialize not finished.
+      // Both negative cases are transient retry signals on app startup.
       final rc = _bridge.enqueueMessage(port, buf, len);
-      if (rc == -2) {
-        throw StateError('Python interpreter is not initialized');
-      }
       return rc == 0;
     } finally {
       malloc.free(buf);
