@@ -49,16 +49,27 @@ set(DART_BRIDGE_DIR ${CMAKE_BINARY_DIR}/dart_bridge)
 set(DART_BRIDGE_RELEASE_DLL "${DART_BRIDGE_DIR}/dart_bridge.dll")
 set(DART_BRIDGE_DEBUG_DLL   "${DART_BRIDGE_DIR}/dart_bridge_d.dll")
 file(MAKE_DIRECTORY ${DART_BRIDGE_DIR})
-if(NOT EXISTS "${DART_BRIDGE_RELEASE_DLL}")
-  file(DOWNLOAD
-    "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge-windows-x86_64.dll"
-    "${DART_BRIDGE_RELEASE_DLL}")
-endif()
-if(NOT EXISTS "${DART_BRIDGE_DEBUG_DLL}")
-  file(DOWNLOAD
-    "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge_d-windows-x86_64.dll"
-    "${DART_BRIDGE_DEBUG_DLL}")
-endif()
+
+function(_sp_download url dest)
+  if(EXISTS "${dest}")
+    return()
+  endif()
+  message(STATUS "Downloading dart_bridge: ${url}")
+  file(DOWNLOAD "${url}" "${dest}" STATUS _dl_status SHOW_PROGRESS)
+  list(GET _dl_status 0 _dl_code)
+  list(GET _dl_status 1 _dl_message)
+  if(NOT _dl_code EQUAL 0)
+    file(REMOVE "${dest}")
+    message(FATAL_ERROR "Failed to download ${url}: ${_dl_message}")
+  endif()
+endfunction()
+
+_sp_download(
+  "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge-windows-x86_64.dll"
+  "${DART_BRIDGE_RELEASE_DLL}")
+_sp_download(
+  "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge_d-windows-x86_64.dll"
+  "${DART_BRIDGE_DEBUG_DLL}")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
@@ -108,22 +119,24 @@ set(serious_python_windows_bundled_libraries
   PARENT_SCOPE
 )
 
-# Copy Python libraries
-add_custom_target(CopyPythonDLLs ALL DEPENDS PYTHON_PACKAGE_DOWNLOAD)
+# Copy Python libraries.
+#
+# Replaced the prior cmd.exe `DEL` invocations with `cmake -E rm -f --` which
+# is forgiving about missing globs / missing files. MSBuild's CustomBuild
+# wrapper treats any non-zero exit code as a hard failure, and `DEL <missing>`
+# returns 1, which made the whole CopyPythonDLLs target fragile.
+set(SP_RUNNER_OUT "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>")
+add_custom_target(CopyPythonDLLs ALL)
 add_custom_command(TARGET CopyPythonDLLs POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E make_directory
-    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${PYTHON_PACKAGE}/Lib"
-    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/Lib"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${PYTHON_PACKAGE}/DLLs"
-    "${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs"
-  COMMAND IF \"$<$<CONFIG:Release>:release>\" == \"release\" DEL \"${CMAKE_BINARY_DIR}/runner/Release/DLLs\\*_d.*\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.ico\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\*.cat\" /S /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tcl86t.dll\" /Q
-  COMMAND DEL \"${CMAKE_BINARY_DIR}/runner/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/DLLs\\tk86t.dll\" /Q
+  COMMAND ${CMAKE_COMMAND} -E make_directory   "${SP_RUNNER_OUT}"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory   "${PYTHON_PACKAGE}/Lib"  "${SP_RUNNER_OUT}/Lib"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory   "${PYTHON_PACKAGE}/DLLs" "${SP_RUNNER_OUT}/DLLs"
+  # Strip Debug-only PYDs from Release builds (best effort — missing files OK).
+  COMMAND ${CMAKE_COMMAND} -E rm -f --
+    "${SP_RUNNER_OUT}/DLLs/tcl86t.dll"
+    "${SP_RUNNER_OUT}/DLLs/tk86t.dll"
+  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*.ico\;*.cat
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
 )
 
 if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES})
