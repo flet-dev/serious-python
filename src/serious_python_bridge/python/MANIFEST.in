@@ -1,4 +1,0 @@
-include ../native/dart_bridge.c
-include ../native/dart_api/*.h
-include ../native/dart_api/*.c
-include ../native/dart_api/internal/*.h

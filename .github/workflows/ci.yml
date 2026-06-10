@@ -1,16 +1,9 @@
 name: CI
 
-# TEMPORARY (dart-bridge branch only): scoped to main + tags + dispatch so
-# iteration pushes to dart-bridge don't fire the slow flet_example platform
-# matrix (~20-30 min per run). The throwaway test-bridge-build.yml covers
-# the new bridge work fast. REVERT to `branches: '**'` before merging.
 on:
   push:
-    branches:
-      - main
-      - master
-    tags:
-      - '*'
+    branches: ['**']
+    tags: ['*']
   pull_request:
   workflow_dispatch:
 
@@ -242,7 +235,7 @@ jobs:
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_macos:
-    name: Test bridge example on macOS (Python ${{ matrix.python_version }})
+    name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -260,14 +253,14 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Run integration test
-        working-directory: "src/serious_python_bridge/example"
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
         run: |
           dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
           flutter test integration_test -d macos
 
   bridge_example_ios:
-    name: Test bridge example on iOS (Python ${{ matrix.python_version }})
+    name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
     runs-on: macos-latest
     timeout-minutes: 25
     strategy:
@@ -286,6 +279,16 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      # serious_python_darwin's prepare_ios.sh downloads python-ios-dart-<ver>.tar.gz
+      # (~100MB) into src/serious_python_darwin/darwin/dist_ios/ and skips the
+      # download if the directory already exists. Cache it so reruns and
+      # subsequent matrix jobs don't re-fetch from GitHub Releases.
+      - name: Cache iOS Python framework
+        uses: actions/cache@v4
+        with:
+          path: src/serious_python_darwin/darwin/dist_ios
+          key: ios-python-dist-${{ matrix.python_version }}-v2
+
       - name: Setup iOS Simulator
         id: simulator
         uses: futureware-tech/simulator-action@v4
@@ -296,47 +299,167 @@ jobs:
           shutdown_after_job: true
           wait_for_boot: true
 
-      - name: Run integration test
-        working-directory: "src/serious_python_bridge/example"
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
         run: |
-          # certifi placeholder: serious_python_darwin's sync_site_packages.sh
-          # only populates dist_ios/site-xcframeworks when iOS-specific
-          # site-packages subdirs exist (i.e., requirements installed for
-          # iphoneos.arm64 + iphonesimulator.arm64 + iphonesimulator.x86_64).
-          # An empty --requirements skips that branch and bundle-python-
-          # frameworks-ios.sh later fails finding site-xcframeworks.
+          ts() { date '+%H:%M:%S'; }
+          echo "[$(ts)] >>> dart run serious_python:main package"
+          # certifi is a placeholder requirement: serious_python_darwin's
+          # sync_site_packages.sh only populates dist_ios/site-xcframeworks
+          # (which bundle-python-frameworks-ios.sh then requires at build
+          # time) when iOS-specific site-packages subdirs exist. Empty
+          # --requirements skips that branch and the build fails.
           dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
+          echo "[$(ts)] >>> flutter test integration_test"
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
+          echo "[$(ts)] >>> done"
 
-  bridge_example_linux:
-    name: Test bridge example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
-    runs-on: ${{ matrix.runner }}
-    # Linux desktop needs the dart_bridge abi3 wheel installed into the bundled
-    # Python (no static-link path like on Apple); pull it from the wheel build.
-    needs: release_build
-    if: startsWith(github.ref, 'refs/tags/v')
+  bridge_example_android:
+    name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        # x86_64 matches the emulator architecture; only build/install for
+        # that ABI to keep CI fast.
         python_version: ['3.12', '3.13', '3.14']
-        arch: [arm64, amd64]
-        include:
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            title: ARM64
-            wheel_artifact: bridge-wheels-ubuntu-24.04-arm
-          - arch: amd64
-            runner: ubuntu-24.04
-            title: AMD64
-            wheel_artifact: bridge-wheels-ubuntu-24.04
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-bridge
+
+      - name: Setup Android Emulator + Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
+        with:
+          avd-name: android_emulator
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          emulator-port: ${{ env.EMULATOR_PORT }}
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
+          pre-emulator-launch-script: |
+            sdkmanager --list_installed
+          script: |
+            cd src/serious_python/example/bridge_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          REPO="$GITHUB_WORKSPACE"
+          ABI=x86_64
+          echo "=== serious_python_android/android/src/main/jniLibs/$ABI/ ==="
+          ls -la "$REPO/src/serious_python_android/android/src/main/jniLibs/$ABI/" 2>/dev/null || echo "(not found)"
+          echo
+          echo "=== example/build/app/outputs/apk/debug/*.apk ==="
+          APK=$(find "$REPO/src/serious_python/example/bridge_example/build" -name "*-debug.apk" 2>/dev/null | head -n1)
+          echo "APK: $APK"
+          if [ -n "$APK" ]; then
+            echo "Native libs inside APK:"
+            unzip -l "$APK" | grep -E "lib/$ABI/" || echo "(no lib/$ABI/ entries)"
+          fi
+
+  bridge_example_windows:
+    name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
+        shell: bash
+        run: |
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }}
+          # bash + pipefail so the test step actually fails when flutter fails
+          # (default PowerShell shell on windows runners eats the failure when
+          # piping into tail).
+          set -o pipefail
+          flutter test integration_test -d windows -v 2>&1 | tail -300
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          set +e
+          DBG_DIR=build/windows/x64/runner/Debug
+          echo "=== runner/Debug dir ==="
+          ls -la $DBG_DIR/ || true
+          echo
+          echo "=== dart_bridge*.dll bundled? ==="
+          ls -la $DBG_DIR/dart_bridge*.dll || echo "(no dart_bridge dll bundled)"
+          echo
+          echo "=== runner/Debug/Lib (Python stdlib) ==="
+          ls $DBG_DIR/Lib | head -20 || true
+          echo
+          echo "=== runner/Debug/site-packages ==="
+          ls -la $DBG_DIR/site-packages/ || true
+
+  bridge_example_linux:
+    name: Bridge example Linux round-trip (Python ${{ matrix.python_version }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Get Flutter version from .fvmrc
         uses: kuhnroyal/flutter-fvm-config-action/config@v3
@@ -367,226 +490,36 @@ jobs:
               gstreamer1.0-plugins-ugly gstreamer1.0-libav
           fi
 
-      - name: Download dart_bridge wheel artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.wheel_artifact }}
-          path: ${{ runner.temp }}/dart_bridge_wheels
-
-      - name: Pick matching wheel for this arch
-        id: wheel
-        run: |
-          set -euo pipefail
-          # cibuildwheel produces one wheel per arch in this artifact; the
-          # repaired manylinux wheel is the one we want.
-          WHL=$(ls "${{ runner.temp }}/dart_bridge_wheels"/dart_bridge-*manylinux*.whl | head -n1)
-          test -n "$WHL"
-          echo "path=$WHL" >> "$GITHUB_OUTPUT"
-          echo "Picked: $WHL"
-
-      - name: Run integration test
-        working-directory: src/serious_python_bridge/example
+      - name: Package + run integration test
+        working-directory: src/serious_python/example/bridge_example
         run: |
           flutter pub get
           dart run serious_python:main package app/src \
             --platform Linux \
-            --python-version ${{ matrix.python_version }} \
-            --requirements ${{ steps.wheel.outputs.path }}
-          xvfb-run flutter test integration_test -d linux
+            --python-version ${{ matrix.python_version }}
+          set -o pipefail
+          xvfb-run flutter test integration_test -d linux -v 2>&1 | tail -300
 
-  bridge_example_windows:
-    name: Test bridge example on Windows (Python ${{ matrix.python_version }})
-    runs-on: windows-latest
-    needs: release_build
-    if: startsWith(github.ref, 'refs/tags/v')
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: ['3.12', '3.13', '3.14']
-    env:
-      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
-        with:
-          path: '.fvmrc'
-          cache: true
-
-      - name: Download dart_bridge wheel artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bridge-wheels-windows-latest
-          path: ${{ runner.temp }}\dart_bridge_wheels
-
-      - name: Pick matching wheel
-        id: wheel
-        shell: bash
+      - name: Diagnostics on failure
+        if: failure()
+        working-directory: src/serious_python/example/bridge_example
         run: |
-          set -euo pipefail
-          WHL=$(ls "$RUNNER_TEMP/dart_bridge_wheels"/dart_bridge-*-win_amd64.whl | head -n1)
-          test -n "$WHL"
-          echo "path=$WHL" >> "$GITHUB_OUTPUT"
-          echo "Picked: $WHL"
-
-      - name: Run integration test
-        working-directory: "src/serious_python_bridge/example"
-        run: |
-          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements ${{ steps.wheel.outputs.path }}
-          flutter test integration_test -d windows
-
-  release_build:
-    name: Build dart_bridge wheel (${{ matrix.os }})
-    if: startsWith(github.ref, 'refs/tags/v')
-    strategy:
-      fail-fast: false
-      matrix:
-        # Apple platforms use static-link + inittab (see serious_python_bridge/
-        # darwin/), so no macOS/iOS wheel. Android needs an NDK cross-build
-        # that's deferred to a follow-up CI change.
-        os: [ubuntu-24.04, ubuntu-24.04-arm, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
-        with:
-          package-dir: src/serious_python_bridge/python
-
-      - name: Upload wheel artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridge-wheels-${{ matrix.os }}
-          path: wheelhouse/*.whl
-          if-no-files-found: error
-
-  release_build_android:
-    name: Build dart_bridge.abi3.so (Android ${{ matrix.abi }})
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # Single abi3 binary per ABI works across all Python 3.12+ versions;
-        # we only need to pin a Python version for the headers + libpython to
-        # link against, not for the matrix dimension. 3.12 chosen for header
-        # parity with the abi3 floor in pyproject.toml. armeabi-v7a is still
-        # included because PEP 738 dropped it in 3.13, so 3.12 headers are
-        # the only ones with that ABI tarball.
-        abi: [arm64-v8a, armeabi-v7a, x86_64]
-    env:
-      PYTHON_VERSION: "3.12"
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Download python-android-mobile-forge tarball (one tarball, all ABIs)
-        run: |
-          set -euo pipefail
-          VER="$PYTHON_VERSION"
-          ABI="${{ matrix.abi }}"
-          ARCHIVE="python-android-mobile-forge-${VER}.tar.gz"
-          curl -fL -o "$ARCHIVE" \
-            "https://github.com/flet-dev/python-build/releases/download/v${VER}/${ARCHIVE}"
-          # Extract only the python-*/include and python-*/lib subtrees for our
-          # target ABI — the full archive is ~314MB and includes openssl/sqlite
-          # builds we don't need.
-          mkdir -p pydist
-          tar -xzf "$ARCHIVE" -C pydist \
-            "install/android/${ABI}/python-${VER}.13/include/" \
-            "install/android/${ABI}/python-${VER}.13/lib/"
-          find pydist -name "Python.h"
-          find pydist -name "libpython*.so" | head -5
-
-      - name: Cross-compile dart_bridge.abi3.so
-        run: |
-          set -euxo pipefail
-          VER="$PYTHON_VERSION"
-          ABI="${{ matrix.abi }}"
-
-          case "$ABI" in
-            arm64-v8a)    TARGET=aarch64-linux-android ;;
-            armeabi-v7a)  TARGET=armv7a-linux-androideabi ;;
-            x86_64)       TARGET=x86_64-linux-android ;;
-            *) echo "unsupported ABI: $ABI" >&2 ; exit 1 ;;
-          esac
-
-          # Android API 21 matches serious_python_android's minSdkVersion.
-          API=21
-          NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME}}"
-          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
-          CC="$TOOLCHAIN/bin/${TARGET}${API}-clang"
-          test -x "$CC"
-
-          INCLUDE_DIR=$(find pydist -path "*/python-${VER}.13/include/python${VER}" | head -n1)
-          LIBPYTHON=$(find pydist -path "*/python-${VER}.13/lib/libpython${VER}.so" | head -n1)
-          test -n "$INCLUDE_DIR" -a -n "$LIBPYTHON"
-
-          # ABI in the filename so all three coexist as Release assets without
-          # collision. package_command.dart renames back to dart_bridge.abi3.so
-          # when placing into the bundled site-packages (CPython's import
-          # mechanism requires the canonical name).
-          OUT="dart_bridge.abi3-android-${ABI}.so"
-
-          $CC -shared -fPIC -fvisibility=hidden \
-            -DPy_LIMITED_API=0x030c0000 \
-            -I"$INCLUDE_DIR" \
-            -I"src/serious_python_bridge/native" \
-            src/serious_python_bridge/native/dart_bridge.c \
-            src/serious_python_bridge/native/dart_api/dart_api_dl.c \
-            "$LIBPYTHON" \
-            -Wl,-z,max-page-size=16384 \
-            -o "$OUT"
-
-          file "$OUT"
-          ls -lh "$OUT"
-
-      - name: Upload .so artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bridge-android-${{ matrix.abi }}
-          path: dart_bridge.abi3-android-*.so
-          if-no-files-found: error
-
-  collect_release:
-    name: Attach bridge binaries to GitHub Release
-    needs:
-      - release_build
-      - release_build_android
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    steps:
-      - name: Download wheel artifacts (Linux / Windows)
-        uses: actions/download-artifact@v4
-        with:
-          pattern: bridge-wheels-*
-          merge-multiple: true
-          path: release-assets
-
-      - name: Download Android .so artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: bridge-android-*
-          merge-multiple: true
-          path: release-assets
-
-      - name: List collected assets
-        run: ls -la release-assets/
-
-      - name: Create or update GitHub Release with bridge binaries
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            release-assets/*.whl
-            release-assets/dart_bridge.abi3-android-*.so
-          fail_on_unmatched_files: true
-
+          set +e
+          DBG_DIR=build/linux/${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}/debug/bundle
+          echo "=== bundle dir ==="
+          ls -la $DBG_DIR/ 2>/dev/null
+          echo
+          echo "=== bundle/lib (bundled shared libs) ==="
+          ls -la $DBG_DIR/lib/ 2>/dev/null
+          echo
+          echo "=== readelf -d on libdart_bridge.so ==="
+          readelf -d $DBG_DIR/lib/libdart_bridge.so 2>/dev/null | grep -E "NEEDED|libpython" || echo "(libdart_bridge.so not found)"
+          echo
+          echo "=== bundle data/flutter_assets/native_assets/linux/ ==="
+          ls -la $DBG_DIR/data/flutter_assets/native_assets/linux/ 2>/dev/null
+          echo
+          echo "=== Python stdlib dir ==="
+          ls -d $DBG_DIR/python3.* 2>/dev/null | head -5
   publish:
     name: Publish to pub.dev
     needs:
@@ -597,9 +530,9 @@ jobs:
       - linux
       - bridge_example_macos
       - bridge_example_ios
+      - bridge_example_android
       - bridge_example_linux
       - bridge_example_windows
-      - collect_release
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -657,8 +590,7 @@ jobs:
             "serious_python_android" \
             "serious_python_darwin" \
             "serious_python_windows" \
-            "serious_python_linux" \
-            "serious_python_bridge"; do
+            "serious_python_linux"; do
 
             uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
           done
@@ -679,7 +611,3 @@ jobs:
           publish_pkg src/serious_python_linux
           sleep 600
           publish_pkg src/serious_python
-          sleep 600
-          # Bridge depends on serious_python + serious_python_darwin; publish
-          # last so all its path-deps already resolve on pub.dev.
-          publish_pkg src/serious_python_bridge
