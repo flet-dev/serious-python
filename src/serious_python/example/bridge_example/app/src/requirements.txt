@@ -1,0 +1,3 @@
+# No external dependencies — dart_bridge is bundled with every serious_python
+# app as a built-in Python module (registered via PyImport_AppendInittab from
+# the dart_bridge native library before Py_Initialize).
