@@ -175,3 +175,47 @@ jobs:
             echo "Native libs inside APK:"
             unzip -l "$APK" | grep -E "lib/$ABI/" || echo "(no lib/$ABI/ entries)"
           fi
+
+  test_bridge_example_windows:
+    name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }}
+          flutter test integration_test -d windows
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          set +e
+          DBG_DIR=build/windows/x64/runner/Debug
+          echo "=== runner/Debug dir ==="
+          ls -la $DBG_DIR/ || true
+          echo
+          echo "=== dart_bridge*.dll bundled? ==="
+          ls -la $DBG_DIR/dart_bridge*.dll || echo "(no dart_bridge dll bundled)"
+          echo
+          echo "=== runner/Debug/Lib (Python stdlib) ==="
+          ls $DBG_DIR/Lib | head -20 || true
+          echo
+          echo "=== runner/Debug/site-packages ==="
+          ls -la $DBG_DIR/site-packages/ || true
