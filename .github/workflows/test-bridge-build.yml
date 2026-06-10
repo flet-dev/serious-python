@@ -96,3 +96,82 @@ jobs:
           echo "[$(ts)] >>> flutter test integration_test"
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }}
           echo "[$(ts)] >>> done"
+
+  test_bridge_example_android:
+    name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # x86_64 matches the emulator architecture; only build/install for
+        # that ABI to keep CI fast.
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-bridge
+
+      - name: Setup Android Emulator + Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
+        with:
+          avd-name: android_emulator
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          emulator-port: ${{ env.EMULATOR_PORT }}
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
+          pre-emulator-launch-script: |
+            sdkmanager --list_installed
+          script: |
+            cd src/serious_python/example/bridge_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }}
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          REPO="$GITHUB_WORKSPACE"
+          ABI=x86_64
+          echo "=== serious_python_android/android/src/main/jniLibs/$ABI/ ==="
+          ls -la "$REPO/src/serious_python_android/android/src/main/jniLibs/$ABI/" 2>/dev/null || echo "(not found)"
+          echo
+          echo "=== example/build/app/outputs/apk/debug/*.apk ==="
+          APK=$(find "$REPO/src/serious_python/example/bridge_example/build" -name "*-debug.apk" 2>/dev/null | head -n1)
+          echo "APK: $APK"
+          if [ -n "$APK" ]; then
+            echo "Native libs inside APK:"
+            unzip -l "$APK" | grep -E "lib/$ABI/" || echo "(no lib/$ABI/ entries)"
+          fi

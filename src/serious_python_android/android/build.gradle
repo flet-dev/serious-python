@@ -2,6 +2,7 @@ group 'com.flet.serious_python_android'
 version '2.0.0'
     
 def python_version = System.getenv('SERIOUS_PYTHON_VERSION') ?: '3.14'
+def dart_bridge_version = System.getenv('DART_BRIDGE_VERSION') ?: '1.2.1'
 
 buildscript {
     repositories {
@@ -28,25 +29,14 @@ apply plugin: 'de.undercouch.download'
 
 android {
     namespace "com.flet.serious_python_android"
-    
+
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
     // to bump the version in their app.
     compileSdkVersion 31
 
-    // Invoke the shared CMake build with the Android Gradle Plugin.
-    externalNativeBuild {
-        cmake {
-            path "../src/CMakeLists.txt"
-
-            // The default CMake version for the Android Gradle Plugin is 3.10.2.
-            // https://developer.android.com/studio/projects/install-ndk#vanilla_cmake
-            //
-            // The Flutter tooling requires that developers have CMake 3.10 or later
-            // installed. You should not increase this version, as doing so will cause
-            // the plugin to fail to compile for some customers of the plugin.
-            // version "3.10.2"
-        }
-    }
+    // No native code is compiled here — libdart_bridge.so is downloaded as a
+    // pre-built artifact from flet-dev/dart-bridge releases (see the
+    // downloadDartBridge_$abi tasks below) and dropped into jniLibs.
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -81,6 +71,10 @@ def fletCacheRoot = System.getenv('FLET_CACHE_DIR')
 def pythonCacheDir = new File(
     fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
     "python-build/v${python_version}"
+)
+def dartBridgeCacheDir = new File(
+    fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
+    "dart-bridge/v${dart_bridge_version}"
 )
 
 task copyBuildDist(type: Copy) {
@@ -137,6 +131,28 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
         destinationDirectory = file("src/main/jniLibs/$abi")
         dependsOn "jniCleanUp_$abi", "untarFile_$abi"
     }
+
+    // dart-bridge ships a per-(abi × Python-minor-version) prebuilt .so. The
+    // binary's DT_NEEDED is libpython3.X.so (version-specific), so the bridge
+    // .so MUST match the libpython bundled in the same APK. We download from
+    // the pinned dart_bridge_version release into a cache shared across
+    // builds, then drop it as `libdart_bridge.so` (no version suffix) so the
+    // Dart side can DynamicLibrary.open by a stable short name.
+    tasks.register("downloadDartBridge_$abi", Download) {
+        src "https://github.com/flet-dev/dart-bridge/releases/download/v${dart_bridge_version}/libdart_bridge-android-${abi}-py${python_version}.so"
+        dest new File(dartBridgeCacheDir, "libdart_bridge-android-${abi}-py${python_version}.so")
+        onlyIfModified true
+        useETag "all"
+        tempAndMove true
+        doFirst { dest.parentFile.mkdirs() }
+    }
+    tasks.register("copyDartBridge_$abi", Copy) {
+        from tasks.named("downloadDartBridge_$abi").get().dest
+        into "src/main/jniLibs/$abi"
+        rename '.*', 'libdart_bridge.so'
+        dependsOn "downloadDartBridge_$abi", "jniCleanUp_$abi"
+    }
+    packageTasks.add("copyDartBridge_$abi")
 }
 
 if (System.getenv('SERIOUS_PYTHON_BUILD_DIST')) {

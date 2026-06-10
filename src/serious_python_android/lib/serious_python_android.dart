@@ -1,33 +1,34 @@
-import 'dart:async';
 import 'dart:io';
 
-import 'package:ffi/ffi.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
-import 'src/cpython.dart';
-import 'src/log.dart';
-
-/// An implementation of [SeriousPythonPlatform] that uses method channels.
+/// Android implementation of [SeriousPythonPlatform].
+///
+/// Python lifecycle (env, sys.path, Py_Initialize, run, finalize, sync/async)
+/// lives in `serious_python_run`, packaged as `libdart_bridge.so` and bundled
+/// into the APK by the plugin's gradle pipeline (see `android/build.gradle`'s
+/// `downloadDartBridge_<abi>` tasks).
+///
+/// This class:
+/// 1. Pulls the python.bundle (zipped stdlib + dynload .so files) out of the
+///    APK's nativeLibraryDir into a writable app-support directory, since
+///    CPython can't import from inside the .apk.
+/// 2. Builds env vars + sys.path entries and hands them to `serious_python_run`
+///    in a single FFI call.
 class SeriousPythonAndroid extends SeriousPythonPlatform {
-  /// The method channel used to interact with the native platform.
   @visibleForTesting
   final methodChannel = const MethodChannel('android_plugin');
 
-  /// Registers this class as the default instance of [SeriousPythonPlatform]
   static void registerWith() {
     SeriousPythonPlatform.instance = SeriousPythonAndroid();
   }
 
   @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return version;
-  }
+  Future<String?> getPlatformVersion() =>
+      methodChannel.invokeMethod<String>('getPlatformVersion');
 
   @override
   Future<String?> run(String appPath,
@@ -35,111 +36,70 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
-    Future<void> setenv(String key, String value) =>
-        methodChannel.invokeMethod<String>(
-            'setEnvironmentVariable', {'name': key, 'value': value});
-
-    // load libpyjni.so to get JNI reference
-    try {
-      await methodChannel
-          .invokeMethod<String>('loadLibrary', {'libname': 'pyjni'});
-      await setenv("FLET_JNI_READY", "1");
-    } catch (e) {
-      spDebug("Unable to load libpyjni.so library: $e");
-    }
-
-    // unpack python bundle
     final nativeLibraryDir =
         await methodChannel.invokeMethod<String>('getNativeLibraryDir');
-    spDebug("getNativeLibraryDir: $nativeLibraryDir");
-
-    // The bundled libpython filename moves with the Python version
-    // (e.g. libpython3.12.so vs libpython3.13.so), so resolve it by
-    // scanning nativeLibraryDir rather than hardcoding a constant — the
-    // plugin only ever bundles one libpython per build.
-    final libpythonRe = RegExp(r'^libpython3\.\d+\.so$');
-    final pythonSharedLib = Directory(nativeLibraryDir!)
-        .listSync()
-        .map((e) => p.basename(e.path))
-        .firstWhere(
-          libpythonRe.hasMatch,
-          orElse: () => throw Exception(
-              "No libpython3.*.so found in $nativeLibraryDir"),
-        );
-    spDebug("Resolved Python shared library: $pythonSharedLib");
-
-    String? getPythonFullVersion() {
-      try {
-        final cpython = getCPython(pythonSharedLib);
-        final versionPtr = cpython.Py_GetVersion();
-        return versionPtr.cast<Utf8>().toDartString();
-      } catch (e) {
-        spDebug("Unable to read Python version for invalidation: $e");
-        return null;
-      }
+    if (nativeLibraryDir == null) {
+      throw StateError(
+          'serious_python: failed to resolve native library dir');
     }
 
-    Future<String?> getAppVersion() async {
-      try {
-        return await methodChannel.invokeMethod<String>('getAppVersion');
-      } catch (e) {
-        spDebug("Unable to get app version for invalidation: $e");
-        return null;
-      }
-    }
-
-    var bundlePath = "$nativeLibraryDir/libpythonbundle.so";
-    var sitePackagesZipPath = "$nativeLibraryDir/libpythonsitepackages.so";
-
+    final bundlePath = '$nativeLibraryDir/libpythonbundle.so';
     if (!await File(bundlePath).exists()) {
-      throw Exception("Python bundle not found: $bundlePath");
+      throw Exception('Python bundle not found: $bundlePath');
     }
-    final pythonVersion = getPythonFullVersion();
-    spDebug("Python version: $pythonVersion");
-    final pythonInvalidateKey = pythonVersion != null
-        ? "python:$pythonVersion"
-        : "python:$pythonSharedLib";
-    var pythonLibPath = await extractFileZip(bundlePath,
-        targetPath: "python_bundle", invalidateKey: pythonInvalidateKey);
-    spDebug("pythonLibPath: $pythonLibPath");
 
-    var programDirPath = p.dirname(appPath);
+    final appVersion = await _appVersion();
+    final invalidateKey = appVersion != null ? 'app:$appVersion' : null;
 
-    var moduleSearchPaths = [
-      programDirPath,
+    final pythonLibPath = await extractFileZip(bundlePath,
+        targetPath: 'python_bundle', invalidateKey: invalidateKey);
+
+    final sitePackagesZip = '$nativeLibraryDir/libpythonsitepackages.so';
+    String? sitePackagesPath;
+    if (await File(sitePackagesZip).exists()) {
+      sitePackagesPath = await extractFileZip(sitePackagesZip,
+          targetPath: 'python_site_packages', invalidateKey: invalidateKey);
+    }
+
+    final programDir = p.dirname(appPath);
+    final pythonPaths = <String>[
       ...?modulePaths,
-      "$pythonLibPath/modules",
-      "$pythonLibPath/stdlib"
+      programDir,
+      '$pythonLibPath/modules',
+      '$pythonLibPath/stdlib',
+      if (sitePackagesPath != null) sitePackagesPath,
     ];
 
-    if (await File(sitePackagesZipPath).exists()) {
-      final appVersion = await getAppVersion();
-      spDebug("App version: $appVersion");
-      final sitePackagesInvalidateKey =
-          appVersion != null ? "app:$appVersion" : null;
-      var sitePackagesPath = await extractFileZip(sitePackagesZipPath,
-          targetPath: "python_site_packages",
-          invalidateKey: sitePackagesInvalidateKey);
-      spDebug("sitePackagesPath: $sitePackagesPath");
-      moduleSearchPaths.add(sitePackagesPath);
+    final env = <String, String>{
+      'PYTHONINSPECT': '1',
+      'PYTHONDONTWRITEBYTECODE': '1',
+      'PYTHONNOUSERSITE': '1',
+      'PYTHONUNBUFFERED': '1',
+      'LC_CTYPE': 'UTF-8',
+      'PYTHONHOME': pythonLibPath,
+      'PYTHONPATH': pythonPaths.join(':'),
+      ...?environmentVariables,
+    };
+
+    final rc = runPython(
+      bridge: DartBridge.instance,
+      appPath: script == null ? appPath : null,
+      script: script,
+      modulePaths: pythonPaths,
+      environmentVariables: env,
+      sync: sync ?? false,
+    );
+
+    // sync=true: rc is the Python exit code. sync=false: rc is the spawn
+    // result (0 = worker thread started successfully).
+    return rc != 0 ? 'Python exited with code $rc' : null;
+  }
+
+  Future<String?> _appVersion() async {
+    try {
+      return await methodChannel.invokeMethod<String>('getAppVersion');
+    } catch (_) {
+      return null;
     }
-
-    await setenv("PYTHONINSPECT", "1");
-    await setenv("PYTHONDONTWRITEBYTECODE", "1");
-    await setenv("PYTHONNOUSERSITE", "1");
-    await setenv("PYTHONUNBUFFERED", "1");
-    await setenv("LC_CTYPE", "UTF-8");
-    await setenv("PYTHONHOME", pythonLibPath);
-    await setenv("PYTHONPATH", moduleSearchPaths.join(":"));
-
-    // set environment variables
-    if (environmentVariables != null) {
-      for (var v in environmentVariables.entries) {
-        await setenv(v.key, v.value);
-      }
-    }
-
-    return runPythonProgramFFI(
-        sync ?? false, pythonSharedLib, appPath, script ?? "");
   }
 }

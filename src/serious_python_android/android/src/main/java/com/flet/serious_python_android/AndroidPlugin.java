@@ -16,19 +16,18 @@ import io.flutter.plugin.common.MethodChannel.Result;
 
 import com.flet.serious_python_android.PythonActivity;
 
-/** AndroidPlugin */
+/**
+ * Thin Flutter plugin: surfaces nativeLibraryDir and app version to Dart and
+ * exposes a few process-wide env vars Python code may read. All Python
+ * lifecycle now lives in libdart_bridge.so (downloaded from
+ * flet-dev/dart-bridge), invoked from Dart via FFI.
+ */
 public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, ActivityAware {
 
   public static final String MAIN_ACTIVITY_HOST_CLASS_NAME = "MAIN_ACTIVITY_HOST_CLASS_NAME";
   public static final String MAIN_ACTIVITY_CLASS_NAME = "MAIN_ACTIVITY_CLASS_NAME";
   public static final String ANDROID_NATIVE_LIBRARY_DIR = "ANDROID_NATIVE_LIBRARY_DIR";
 
-  /// The MethodChannel that will the communication between Flutter and native
-  /// Android
-  ///
-  /// This local reference serves to register the plugin with the Flutter Engine
-  /// and unregister it
-  /// when the Flutter Engine is detached from the Activity
   private MethodChannel channel;
   private Context context;
 
@@ -39,7 +38,8 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
     channel.setMethodCallHandler(this);
     this.context = flutterPluginBinding.getApplicationContext();
     try {
-      Os.setenv(ANDROID_NATIVE_LIBRARY_DIR, new ContextWrapper(this.context).getApplicationInfo().nativeLibraryDir, true);
+      Os.setenv(ANDROID_NATIVE_LIBRARY_DIR,
+          new ContextWrapper(this.context).getApplicationInfo().nativeLibraryDir, true);
     } catch (Exception e) {
       // nothing to do
     }
@@ -75,22 +75,6 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       ContextWrapper contextWrapper = new ContextWrapper(context);
       String nativeLibraryDir = contextWrapper.getApplicationInfo().nativeLibraryDir;
       result.success(nativeLibraryDir);
-    } else if (call.method.equals("loadLibrary")) {
-      try {
-        System.loadLibrary(call.argument("libname"));
-        result.success(null);
-      } catch (Throwable e) {
-        result.error("Error", e.getMessage(), null);
-      }
-    } else if (call.method.equals("setEnvironmentVariable")) {
-      String name = call.argument("name");
-      String value = call.argument("value");
-      try {
-        Os.setenv(name, value, true);
-        result.success(null);
-      } catch (Exception e) {
-        result.error("Error", e.getMessage(), null);
-      }
     } else {
       result.notImplemented();
     }
