@@ -1,10 +1,9 @@
-import logging
 import os
 import sys
 import urllib.request
 
 import flet as ft
-from flet.version import version
+from flet.version import flet_version
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -60,7 +59,7 @@ def main(page: ft.Page):
         ),
         ft.Row(
             [
-                ft.Text(f"Flet version: {version}"),
+                ft.Text(f"Flet version: {flet_version}"),
                 ft.OutlinedButton("Check SSL", on_click=check_ssl),
                 ft.OutlinedButton("Exit app", on_click=lambda _: sys.exit(100)),
             ],

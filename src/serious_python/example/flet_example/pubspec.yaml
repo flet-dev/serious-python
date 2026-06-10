@@ -35,12 +35,7 @@ dependencies:
   serious_python:
     path: ../../
 
-  flet: ^0.28.3
-  
-  path: ^1.8.3
-  url_strategy: ^0.2.0
-  path_provider: ^2.1.4
-  package_info_plus: ^8.0.2
+  flet: ^0.85.3
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
