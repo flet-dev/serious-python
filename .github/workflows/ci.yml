@@ -16,7 +16,7 @@ env:
 jobs:
   macos:
     name: Test on macOS (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
@@ -41,7 +41,7 @@ jobs:
 
   ios:
     name: Test on iOS (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
@@ -236,7 +236,7 @@ jobs:
 
   bridge_example_macos:
     name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
@@ -261,7 +261,7 @@ jobs:
 
   bridge_example_ios:
     name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
+    runs-on: macos-26
     timeout-minutes: 25
     strategy:
       fail-fast: false

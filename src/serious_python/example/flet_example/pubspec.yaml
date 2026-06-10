@@ -31,11 +31,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  flutter_web_plugins:
+    sdk: flutter
+    
   serious_python:
     path: ../../
 
   flet: ^0.85.3
+  
+  path: ^1.8.3
+  path_provider: ^2.1.4
+  package_info_plus: ^8.0.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
