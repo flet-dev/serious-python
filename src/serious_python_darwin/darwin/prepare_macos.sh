@@ -5,7 +5,7 @@ dist=$script_dir/dist_macos
 
 # Pinned dart-bridge release (flet-dev/dart-bridge). Same xcframework is reused
 # across iOS and macOS — it carries slices for both.
-dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.0}
+dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.1}
 
 if [ ! -d "$dist" ]; then
     mkdir -p $dist

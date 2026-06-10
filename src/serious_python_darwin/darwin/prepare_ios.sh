@@ -5,7 +5,7 @@ dist=$script_dir/dist_ios
 
 # Pinned dart-bridge release (flet-dev/dart-bridge). The xcframework is abi3 and
 # version-independent of CPython, so one binary covers all 3.12+ Python versions.
-dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.0}
+dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.1}
 
 if [ ! -d "$dist" ]; then
     mkdir -p $dist
