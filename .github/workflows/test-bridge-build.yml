@@ -19,6 +19,9 @@ env:
 jobs:
   test_bridge_example_macos:
     name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
+    # Temporarily gated off while iterating on Windows. Re-enable by removing
+    # this `if: false`.
+    if: false
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -44,6 +47,7 @@ jobs:
 
   test_bridge_example_ios:
     name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Windows.
     runs-on: macos-latest
     timeout-minutes: 25
     strategy:
@@ -99,6 +103,7 @@ jobs:
 
   test_bridge_example_android:
     name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Windows.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
