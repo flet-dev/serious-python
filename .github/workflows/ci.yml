@@ -36,7 +36,7 @@ jobs:
       - name: Run tests
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements flet==0.85.3
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements flet
           flutter test integration_test --device-id macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   ios:
@@ -72,7 +72,7 @@ jobs:
       - name: Run tests
         working-directory: "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements flet==0.85.3
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements flet
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   android:
@@ -131,7 +131,7 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements flet==0.85.3
+            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements flet
             cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   windows:
@@ -156,7 +156,7 @@ jobs:
       - name: Run tests
         working-directory:  "src/serious_python/example/flet_example"
         run: |
-          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements flet==0.85.3
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements flet
           flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   linux:
@@ -231,7 +231,7 @@ jobs:
         working-directory: src/serious_python/example/flet_example
         run: |
           flutter pub get
-          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==0.85.3
+          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_macos:
