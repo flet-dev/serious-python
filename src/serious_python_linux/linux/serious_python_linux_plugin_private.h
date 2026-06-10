@@ -8,9 +8,3 @@
 
 // Handles the getPlatformVersion method call.
 FlMethodResponse *get_platform_version();
-
-void run_python_program(gchar *appPath);
-gpointer run_python_program_async(gpointer data);
-
-void run_python_script(gchar *script);
-gpointer run_python_script_async(gpointer data);

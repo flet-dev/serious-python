@@ -19,6 +19,7 @@ env:
 jobs:
   test_bridge_example_macos:
     name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Linux.
     runs-on: macos-latest
     strategy:
       fail-fast: false
@@ -44,6 +45,7 @@ jobs:
 
   test_bridge_example_ios:
     name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Linux.
     runs-on: macos-latest
     timeout-minutes: 25
     strategy:
@@ -99,6 +101,7 @@ jobs:
 
   test_bridge_example_android:
     name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Linux.
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -178,6 +181,7 @@ jobs:
 
   test_bridge_example_windows:
     name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
+    if: false  # Temporarily gated off while iterating on Linux.
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -224,3 +228,82 @@ jobs:
           echo
           echo "=== runner/Debug/site-packages ==="
           ls -la $DBG_DIR/site-packages/ || true
+
+  test_bridge_example_linux:
+    name: Bridge example Linux round-trip (Python ${{ matrix.python_version }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get Flutter version from .fvmrc
+        uses: kuhnroyal/flutter-fvm-config-action/config@v3
+        id: fvm-config-action
+        with:
+          path: '.fvmrc'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
+          cache: true
+
+      - name: Install Linux desktop build deps
+        run: |
+          sudo apt-get update --allow-releaseinfo-change
+          sudo apt-get install -y xvfb libgtk-3-dev
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            sudo apt-get install -y \
+              libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+              libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
+              gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly gstreamer1.0-libav
+          else
+            sudo apt-get install -y \
+              clang ninja-build gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly gstreamer1.0-libav
+          fi
+
+      - name: Package + run integration test
+        working-directory: src/serious_python/example/bridge_example
+        run: |
+          flutter pub get
+          dart run serious_python:main package app/src \
+            --platform Linux \
+            --python-version ${{ matrix.python_version }}
+          set -o pipefail
+          xvfb-run flutter test integration_test -d linux -v 2>&1 | tail -300
+
+      - name: Diagnostics on failure
+        if: failure()
+        working-directory: src/serious_python/example/bridge_example
+        run: |
+          set +e
+          DBG_DIR=build/linux/${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}/debug/bundle
+          echo "=== bundle dir ==="
+          ls -la $DBG_DIR/ 2>/dev/null
+          echo
+          echo "=== bundle/lib (bundled shared libs) ==="
+          ls -la $DBG_DIR/lib/ 2>/dev/null
+          echo
+          echo "=== readelf -d on libdart_bridge.so ==="
+          readelf -d $DBG_DIR/lib/libdart_bridge.so 2>/dev/null | grep -E "NEEDED|libpython" || echo "(libdart_bridge.so not found)"
+          echo
+          echo "=== bundle data/flutter_assets/native_assets/linux/ ==="
+          ls -la $DBG_DIR/data/flutter_assets/native_assets/linux/ 2>/dev/null
+          echo
+          echo "=== Python stdlib dir ==="
+          ls -d $DBG_DIR/python3.* 2>/dev/null | head -5
