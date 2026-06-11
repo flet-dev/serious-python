@@ -73,11 +73,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3.13/3.14 disabled until msgpack 1.x ships iOS arm64 wheels for
-        # those Python versions on pypi.flet.dev — with `--only-binary :all:`
-        # pip otherwise silently downgrades flet to an older version,
-        # leaving Python/Dart out of sync.
-        python_version: ['3.12']
+        python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -114,7 +110,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12']  # see ios job for the 3.13/3.14 gate
+        python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -308,9 +304,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 3.13/3.14 gated on msgpack iOS arm64 wheels landing on pypi.flet.dev
-        # — see the flet_example ios job for the same rationale.
-        python_version: ['3.12']
+        python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
@@ -351,7 +345,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12']  # see ios job for the 3.13/3.14 gate
+        python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
