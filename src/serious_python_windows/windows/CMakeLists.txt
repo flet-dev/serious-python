@@ -82,15 +82,28 @@ endif()
 # (_d.dll) is what `fvm flutter run` / Debug builds consume. Both ship in
 # every release of flet-dev/dart-bridge; we bundle both and let Flutter's
 # CONFIG-aware copy machinery pick the right one at app launch time.
-set(DART_BRIDGE_RELEASE_DLL "${DB_CACHE}/dart_bridge-windows-x86_64.dll")
-set(DART_BRIDGE_DEBUG_DLL   "${DB_CACHE}/dart_bridge_d-windows-x86_64.dll")
+#
+# Cached under the upstream arch-qualified filenames so multiple flet-dev/
+# dart-bridge versions can coexist in $FLET_CACHE_DIR. Copied to stable
+# unqualified names in the build tree because Flutter's bundled_libraries
+# machinery preserves filenames as-is, and the Dart side opens the DLL by
+# `dart_bridge[_d].dll` (no arch suffix).
+set(DART_BRIDGE_RELEASE_CACHED "${DB_CACHE}/dart_bridge-windows-x86_64.dll")
+set(DART_BRIDGE_DEBUG_CACHED   "${DB_CACHE}/dart_bridge_d-windows-x86_64.dll")
 
 _sp_download(
   "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge-windows-x86_64.dll"
-  "${DART_BRIDGE_RELEASE_DLL}")
+  "${DART_BRIDGE_RELEASE_CACHED}")
 _sp_download(
   "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge_d-windows-x86_64.dll"
-  "${DART_BRIDGE_DEBUG_DLL}")
+  "${DART_BRIDGE_DEBUG_CACHED}")
+
+set(DART_BRIDGE_DIR "${CMAKE_BINARY_DIR}/dart_bridge")
+set(DART_BRIDGE_RELEASE_DLL "${DART_BRIDGE_DIR}/dart_bridge.dll")
+set(DART_BRIDGE_DEBUG_DLL   "${DART_BRIDGE_DIR}/dart_bridge_d.dll")
+file(MAKE_DIRECTORY "${DART_BRIDGE_DIR}")
+configure_file("${DART_BRIDGE_RELEASE_CACHED}" "${DART_BRIDGE_RELEASE_DLL}" COPYONLY)
+configure_file("${DART_BRIDGE_DEBUG_CACHED}"   "${DART_BRIDGE_DEBUG_DLL}"   COPYONLY)
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
