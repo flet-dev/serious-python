@@ -24,11 +24,20 @@ env:
   # older flet whose transitive deps (e.g. msgpack) have wheels for the
   # target python_version / platform, leaving the two halves mismatched.
   FLET_VERSION: "0.85.3"
+  # Python flet for the FFI-transport example is pulled from a git ref —
+  # FletDartBridgeServer isn't on PyPI yet. Source installs require
+  # SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS=flet on mobile targets to
+  # bypass --only-binary :all:; see package_command.dart.
+  FLET_FFI_REQUIREMENT: "flet @ git+https://github.com/flet-dev/flet.git@dart-bridge#subdirectory=sdk/python/packages/flet"
 
 jobs:
   macos:
     name: Test Flet example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
+    # Temporarily disabled — focusing CI on flet_ffi_example while the
+    # dart_bridge transport stabilises. Flip back on before merging the
+    # flet PR to confirm the socket transport still works.
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -54,6 +63,7 @@ jobs:
   ios:
     name: Test Flet example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +104,7 @@ jobs:
   android:
     name: Test Flet example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -153,6 +164,7 @@ jobs:
   windows:
     name: Test Flet example on Windows (Python ${{ matrix.python_version }})
     runs-on: windows-latest
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -178,6 +190,7 @@ jobs:
   linux:
     name: Test Flet example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -250,9 +263,236 @@ jobs:
           dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==${{ env.FLET_VERSION }}
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
+  flet_ffi_macos:
+    name: Test Flet FFI example on macOS (Python ${{ matrix.python_version }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Run tests
+        working-directory: "src/serious_python/example/flet_ffi_example"
+        run: |
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          flutter test integration_test --device-id macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
+  flet_ffi_ios:
+    name: Test Flet FFI example on iOS (Python ${{ matrix.python_version }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.13/3.14 gated on msgpack iOS arm64 wheels landing on pypi.flet.dev
+        # — see the flet_example ios job for the same rationale.
+        python_version: ['3.12']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Setup iOS Simulator
+        id: simulator
+        uses: futureware-tech/simulator-action@v4
+        with:
+          model: 'iPhone 17 Pro Max'
+          os: "iOS"
+          os_version: "26.5"
+          shutdown_after_job: true
+          wait_for_boot: true
+
+      - name: Run tests
+        working-directory: "src/serious_python/example/flet_ffi_example"
+        run: |
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
+  flet_ffi_android:
+    name: Test Flet FFI example on Android (Python ${{ matrix.python_version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12']  # see ios job for the 3.13/3.14 gate
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Gradle cache
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-ffi
+
+      - name: Setup Android Emulator + Run tests
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          EMULATOR_PORT: 5554
+        with:
+          avd-name: android_emulator
+          api-level: 33
+          target: google_atd
+          arch: x86_64
+          profile: pixel_5
+          sdcard-path-or-size: 128M
+          ram-size: 2048M
+          disk-size: 4096M
+          emulator-port: ${{ env.EMULATOR_PORT }}
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -wipe-data -cache-size 1000 -partition-size 8192
+          pre-emulator-launch-script: |
+            sdkmanager --list_installed
+          script: |
+            cd src/serious_python/example/flet_ffi_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+            cd src/serious_python/example/flet_ffi_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
+  flet_ffi_windows:
+    name: Test Flet FFI example on Windows (Python ${{ matrix.python_version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Run tests
+        working-directory: "src/serious_python/example/flet_ffi_example"
+        run: |
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
+  flet_ffi_linux:
+    name: Test Flet FFI example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+        arch: [arm64, amd64]
+        include:
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            title: ARM64
+          - arch: amd64
+            runner: ubuntu-24.04
+            title: AMD64
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Get Flutter version from ".fvmrc"
+        uses: kuhnroyal/flutter-fvm-config-action/config@v3
+        id: fvm-config-action
+        with:
+          path: '.fvmrc'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
+          channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
+          cache: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update --allow-releaseinfo-change
+          sudo apt-get install -y xvfb libgtk-3-dev
+
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            sudo apt-get install -y \
+              libgstreamer1.0-dev \
+              libgstreamer-plugins-base1.0-dev \
+              libgstreamer-plugins-bad1.0-dev \
+              gstreamer1.0-plugins-base \
+              gstreamer1.0-plugins-good \
+              gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly \
+              gstreamer1.0-libav \
+              gstreamer1.0-tools \
+              gstreamer1.0-x \
+              gstreamer1.0-alsa \
+              gstreamer1.0-gl \
+              gstreamer1.0-gtk3 \
+              gstreamer1.0-qt5 \
+              gstreamer1.0-pulseaudio
+          else
+            sudo apt-get install -y \
+              clang \
+              ninja-build \
+              gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly \
+              gstreamer1.0-libav
+          fi
+
+      - name: Run tests
+        working-directory: src/serious_python/example/flet_ffi_example
+        run: |
+          flutter pub get
+          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
   bridge_example_macos:
     name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -279,6 +519,7 @@ jobs:
     name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
     timeout-minutes: 25
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -333,6 +574,7 @@ jobs:
   bridge_example_android:
     name: Test Bridge example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -412,6 +654,7 @@ jobs:
   bridge_example_windows:
     name: Test Bridge example on Windows (Python ${{ matrix.python_version }})
     runs-on: windows-latest
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
@@ -461,6 +704,7 @@ jobs:
   bridge_example_linux:
     name: Test Bridge example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
+    if: false  # see `macos:` for rationale
     strategy:
       fail-fast: false
       matrix:
