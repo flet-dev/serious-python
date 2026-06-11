@@ -20,7 +20,7 @@ env:
 
 jobs:
   macos:
-    name: Test on macOS (Python ${{ matrix.python_version }})
+    name: Test Flet example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -45,7 +45,7 @@ jobs:
           flutter test integration_test --device-id macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   ios:
-    name: Test on iOS (Python ${{ matrix.python_version }})
+    name: Test Flet example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -85,7 +85,7 @@ jobs:
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   android:
-    name: Test on Android (Python ${{ matrix.python_version }})
+    name: Test Flet example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -144,7 +144,7 @@ jobs:
             cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   windows:
-    name: Test on Windows (Python ${{ matrix.python_version }})
+    name: Test Flet example on Windows (Python ${{ matrix.python_version }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -169,7 +169,7 @@ jobs:
           flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   linux:
-    name: Test on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
+    name: Test Flet example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -244,7 +244,7 @@ jobs:
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_macos:
-    name: Bridge example macOS round-trip (Python ${{ matrix.python_version }})
+    name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -269,7 +269,7 @@ jobs:
           flutter test integration_test -d macos
 
   bridge_example_ios:
-    name: Bridge example iOS round-trip (Python ${{ matrix.python_version }})
+    name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
     timeout-minutes: 25
     strategy:
@@ -324,7 +324,7 @@ jobs:
           echo "[$(ts)] >>> done"
 
   bridge_example_android:
-    name: Bridge example Android round-trip (Python ${{ matrix.python_version }})
+    name: Test Bridge example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -403,7 +403,7 @@ jobs:
           fi
 
   bridge_example_windows:
-    name: Bridge example Windows round-trip (Python ${{ matrix.python_version }})
+    name: Test Bridge example on Windows (Python ${{ matrix.python_version }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -452,7 +452,7 @@ jobs:
           ls -la $DBG_DIR/site-packages/ || true
 
   bridge_example_linux:
-    name: Bridge example Linux round-trip (Python ${{ matrix.python_version }})
+    name: Test Bridge example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -462,8 +462,10 @@ jobs:
         include:
           - arch: amd64
             runner: ubuntu-24.04
+            title: AMD64
           - arch: arm64
             runner: ubuntu-24.04-arm
+            title: ARM64
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
