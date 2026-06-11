@@ -48,13 +48,9 @@ def main(page: ft.Page):
     page.add(
         ft.Row(
             [
-                ft.IconButton(
-                    ft.Icons.REMOVE, key=ft.ValueKey("decrement"), on_click=minus_click
-                ),
+                ft.IconButton(ft.Icons.REMOVE, key="decrement", on_click=minus_click),
                 txt_number,
-                ft.IconButton(
-                    ft.Icons.ADD, key=ft.ValueKey("increment"), on_click=plus_click
-                ),
+                ft.IconButton(ft.Icons.ADD, key="increment", on_click=plus_click),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             expand=True,

@@ -188,10 +188,11 @@ packages:
   flet:
     dependency: "direct main"
     description:
-      name: flet
-      sha256: "295d34600580bc00576ea2a0a3ab3f92062ca487e010e3bf0ee20d41cc5c262d"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/flet"
+      ref: dart-bridge
+      resolved-ref: "7367050f22edb02afebecaca5de70c3a0e389827"
+      url: "https://github.com/flet-dev/flet.git"
+    source: git
     version: "0.85.3"
   flutter:
     dependency: "direct main"

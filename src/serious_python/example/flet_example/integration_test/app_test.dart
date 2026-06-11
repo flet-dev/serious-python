@@ -1,5 +1,5 @@
 import 'package:flet_example/main.dart' as app;
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -25,18 +25,14 @@ void main() {
 
       expect(counterFound, isTrue);
 
-      // Flet 0.85's ControlWidget builds `ValueKey<Object>(value)` for the
-      // user-side `key` prop. Flutter's `find.byKey` uses runtimeType-strict
-      // equality, so `Key('increment')` / `ValueKey<String>('increment')`
-      // never matches `ValueKey<Object>('increment')`. Find by icon instead
-      // — the Python side uses ft.Icons.ADD/REMOVE which become Material
-      // Icons.add / Icons.remove in the widget tree and are unique here.
-      await tester.tap(find.byIcon(Icons.add));
+      // Tap increment button
+      await tester.tap(find.byKey(const Key('increment')));
       await tester.pumpAndSettle();
       expect(find.text('1'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.remove));
-      await tester.tap(find.byIcon(Icons.remove));
+      // Tap decrement button
+      await tester.tap(find.byKey(const Key('decrement')));
+      await tester.tap(find.byKey(const Key('decrement')));
       await tester.pumpAndSettle();
       expect(find.text('-1'), findsOneWidget);
 
