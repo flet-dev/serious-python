@@ -285,6 +285,15 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Cache flet downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Shallow-clone flet (dart-bridge)
         run: |
           git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${{ runner.temp }}/flet-src"
@@ -314,6 +323,15 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Setup iOS Simulator
         id: simulator
@@ -354,6 +372,15 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Enable KVM
         run: |
@@ -419,6 +446,15 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Cache flet downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Shallow-clone flet (dart-bridge)
         shell: bash
         run: |
@@ -468,6 +504,15 @@ jobs:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install dependencies
         run: |
@@ -558,15 +603,10 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      # serious_python_darwin's prepare_ios.sh downloads python-ios-dart-<ver>.tar.gz
-      # (~100MB) into src/serious_python_darwin/darwin/dist_ios/ and skips the
-      # download if the directory already exists. Cache it so reruns and
-      # subsequent matrix jobs don't re-fetch from GitHub Releases.
-      - name: Cache iOS Python framework
-        uses: actions/cache@v4
-        with:
-          path: src/serious_python_darwin/darwin/dist_ios
-          key: ios-python-dist-${{ matrix.python_version }}-v2
+      # Replaced by the unified ~/.flet/cache step lifted to every job; left
+      # the comment for git-blame breadcrumb. The bridge_example matrix is
+      # gated off pending re-enable; once flipped back on, add the cache
+      # step here too (copy from any flet_ffi_* job).
 
       - name: Setup iOS Simulator
         id: simulator

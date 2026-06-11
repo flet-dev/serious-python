@@ -19,39 +19,66 @@ if(DEFINED ENV{DART_BRIDGE_VERSION})
 else()
   set(DART_BRIDGE_VERSION "1.2.3")
 endif()
+
+# Cross-plugin download cache. FLET_CACHE_DIR is the same env var used by the
+# Android gradle task, the Darwin prepare_*.sh scripts, and Windows
+# CMakeLists; defaulting to ~/.flet/cache keeps a single shared location.
+if(DEFINED ENV{FLET_CACHE_DIR})
+  set(FLET_CACHE_DIR "$ENV{FLET_CACHE_DIR}")
+else()
+  set(FLET_CACHE_DIR "$ENV{HOME}/.flet/cache")
+endif()
+set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_VERSION}")
+set(DB_CACHE "${FLET_CACHE_DIR}/dart-bridge/v${DART_BRIDGE_VERSION}")
+file(MAKE_DIRECTORY "${PB_CACHE}" "${DB_CACHE}")
+
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # This value is used when generating builds using this plugin, so it must
 # not be changed.
 set(PLUGIN_NAME "serious_python_linux_plugin")
 
+function(_sp_download url dest)
+  if(EXISTS "${dest}")
+    return()
+  endif()
+  message(STATUS "Downloading: ${url}")
+  # .tmp + rename so a Ctrl-C / network blip doesn't poison the cache.
+  file(DOWNLOAD "${url}" "${dest}.tmp" STATUS _dl_status SHOW_PROGRESS)
+  list(GET _dl_status 0 _dl_code)
+  list(GET _dl_status 1 _dl_message)
+  if(NOT _dl_code EQUAL 0)
+    file(REMOVE "${dest}.tmp")
+    message(FATAL_ERROR "Failed to download ${url}: ${_dl_message}")
+  endif()
+  file(RENAME "${dest}.tmp" "${dest}")
+endfunction()
+
 # ---- python-linux-dart tarball (libpython + stdlib) -----------------------
+# Tarball lives in the shared cache; extraction targets the per-plugin build
+# tree so a `flutter clean` doesn't force a re-download.
 set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
 set(PYTHON_URL https://github.com/flet-dev/python-build/releases/download/v${PYTHON_VERSION}/python-linux-dart-${PYTHON_VERSION}-${PYTHON_ARCH}.tar.gz)
-set(PYTHON_FILE ${CMAKE_BINARY_DIR}/python-linux-dart-${PYTHON_VERSION}-${PYTHON_ARCH}.tar.gz)
-if (NOT EXISTS ${PYTHON_FILE})
-  file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
-  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${CMAKE_BINARY_DIR}/python)
+set(PYTHON_FILE "${PB_CACHE}/python-linux-dart-${PYTHON_VERSION}-${PYTHON_ARCH}.tar.gz")
+_sp_download("${PYTHON_URL}" "${PYTHON_FILE}")
+if(NOT EXISTS "${PYTHON_PACKAGE}/lib/libpython3.so")
+  file(ARCHIVE_EXTRACT INPUT "${PYTHON_FILE}" DESTINATION "${PYTHON_PACKAGE}")
 endif()
 
 # ---- dart_bridge prebuilt .so ---------------------------------------------
 # abi3-linked against libpython3.so (the runtime linker finds libpython3.so
 # next to the consuming app's exe; the python-linux-dart tarball above
-# provides it).
-set(DART_BRIDGE_SO ${CMAKE_BINARY_DIR}/dart_bridge/libdart_bridge.so)
-if(NOT EXISTS "${DART_BRIDGE_SO}")
-  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/dart_bridge)
-  file(DOWNLOAD
-    "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/libdart_bridge-linux-${PYTHON_ARCH}.so"
-    "${DART_BRIDGE_SO}"
-    STATUS _dl_status SHOW_PROGRESS)
-  list(GET _dl_status 0 _dl_code)
-  list(GET _dl_status 1 _dl_message)
-  if(NOT _dl_code EQUAL 0)
-    file(REMOVE "${DART_BRIDGE_SO}")
-    message(FATAL_ERROR "Failed to download libdart_bridge: ${_dl_message}")
-  endif()
-endif()
+# provides it). Cached under its arch-qualified name so multiple arches can
+# co-exist in $FLET_CACHE_DIR; copied to a stable `libdart_bridge.so` in the
+# build tree so Flutter's bundled_libraries machinery (and the Dart side's
+# DynamicLibrary.open("libdart_bridge.so")) finds a deterministic name.
+set(DART_BRIDGE_CACHED "${DB_CACHE}/libdart_bridge-linux-${PYTHON_ARCH}.so")
+_sp_download(
+  "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/libdart_bridge-linux-${PYTHON_ARCH}.so"
+  "${DART_BRIDGE_CACHED}")
+set(DART_BRIDGE_SO "${CMAKE_BINARY_DIR}/dart_bridge/libdart_bridge.so")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/dart_bridge")
+configure_file("${DART_BRIDGE_CACHED}" "${DART_BRIDGE_SO}" COPYONLY)
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES

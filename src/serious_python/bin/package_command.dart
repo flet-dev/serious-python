@@ -160,6 +160,20 @@ class PackageCommand extends Command {
   String get _pyodideRootUrl =>
       "https://cdn.jsdelivr.net/pyodide/v${_release.pyodideVersion}/full";
 
+  /// Root of the cross-plugin download cache. Honors `FLET_CACHE_DIR` (the
+  /// same env var `flet build` and the Android gradle task already use) and
+  /// otherwise falls back to `~/.flet/cache` (`%USERPROFILE%\.flet\cache`
+  /// on Windows). The CMake/shell plugins resolve this independently to the
+  /// same path — keep the layout in sync.
+  String _fletCacheRoot() {
+    final env = Platform.environment['FLET_CACHE_DIR'];
+    if (env != null && env.isNotEmpty) return env;
+    final home = Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        _buildDir!.path;
+    return path.join(home, '.flet', 'cache');
+  }
+
   @override
   final name = "package";
 
@@ -696,8 +710,13 @@ class PackageCommand extends Command {
         var pythonArchiveFilename =
             "cpython-${_release.standaloneVersion}+${_release.standaloneReleaseDate}-$arch-install_only_stripped.tar.gz";
 
+        // Cache CPython by release date: the same tarball is reused across
+        // every example/project until `_release.standaloneReleaseDate` bumps.
+        var pythonCacheDir = Directory(path.join(_fletCacheRoot(),
+            'python-build-standalone', _release.standaloneReleaseDate));
+        await pythonCacheDir.create(recursive: true);
         var pythonArchivePath =
-            path.join(_buildDir!.path, pythonArchiveFilename);
+            path.join(pythonCacheDir.path, pythonArchiveFilename);
 
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
@@ -709,11 +728,15 @@ class PackageCommand extends Command {
                 "Downloading Python distributive from $url to $pythonArchivePath");
           } else {
             stdout.writeln(
-                "Downloading Python distributive from $url to a build directory");
+                "Downloading Python distributive from $url to $pythonArchivePath");
           }
 
+          // Write to a .tmp sibling first so a Ctrl-C / network blip doesn't
+          // poison the cache with a truncated archive on the next run.
+          var tmpPath = "$pythonArchivePath.tmp";
           var response = await http.get(Uri.parse(url));
-          await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
+          await File(tmpPath).writeAsBytes(response.bodyBytes);
+          await File(tmpPath).rename(pythonArchivePath);
         }
 
         // extract Python from archive

@@ -17,6 +17,24 @@ if(DEFINED ENV{DART_BRIDGE_VERSION})
 else()
   set(DART_BRIDGE_VERSION "1.2.1")
 endif()
+
+# Cross-plugin download cache. FLET_CACHE_DIR is the same env var used by the
+# Android gradle task and the prepare_*.sh scripts on Darwin; defaulting to
+# ~/.flet/cache (%USERPROFILE%\.flet\cache on Windows) keeps a single shared
+# location across all plugins. Files land in versioned subdirs so a Python
+# or dart_bridge version bump pulls a fresh artifact without invalidating the
+# others.
+if(DEFINED ENV{FLET_CACHE_DIR})
+  set(FLET_CACHE_DIR "$ENV{FLET_CACHE_DIR}")
+elseif(DEFINED ENV{USERPROFILE})
+  set(FLET_CACHE_DIR "$ENV{USERPROFILE}/.flet/cache")
+else()
+  set(FLET_CACHE_DIR "$ENV{HOME}/.flet/cache")
+endif()
+set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_VERSION}")
+set(DB_CACHE "${FLET_CACHE_DIR}/dart-bridge/v${DART_BRIDGE_VERSION}")
+file(MAKE_DIRECTORY "${PB_CACHE}" "${DB_CACHE}")
+
 project(${PROJECT_NAME} LANGUAGES CXX)
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
@@ -34,10 +52,29 @@ set(PLUGIN_NAME "serious_python_windows_plugin")
 # here because no Python C API call sites live in this plugin anymore.
 set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
 set(PYTHON_URL "https://github.com/flet-dev/python-build/releases/download/v${PYTHON_VERSION}/python-windows-for-dart-${PYTHON_VERSION}.zip")
-set(PYTHON_FILE ${CMAKE_BINARY_DIR}/python-windows-for-dart.zip)
-if (NOT EXISTS ${PYTHON_FILE})
-  file(DOWNLOAD ${PYTHON_URL} ${PYTHON_FILE})
-  file(ARCHIVE_EXTRACT INPUT ${PYTHON_FILE} DESTINATION ${PYTHON_PACKAGE})
+# Tarball lives in the shared cache; extraction targets the per-plugin build
+# tree so a `flutter clean` doesn't force a re-download.
+set(PYTHON_FILE "${PB_CACHE}/python-windows-for-dart-${PYTHON_VERSION}.zip")
+
+function(_sp_download url dest)
+  if(EXISTS "${dest}")
+    return()
+  endif()
+  message(STATUS "Downloading: ${url}")
+  # .tmp + rename so a Ctrl-C / network blip doesn't poison the cache.
+  file(DOWNLOAD "${url}" "${dest}.tmp" STATUS _dl_status SHOW_PROGRESS)
+  list(GET _dl_status 0 _dl_code)
+  list(GET _dl_status 1 _dl_message)
+  if(NOT _dl_code EQUAL 0)
+    file(REMOVE "${dest}.tmp")
+    message(FATAL_ERROR "Failed to download ${url}: ${_dl_message}")
+  endif()
+  file(RENAME "${dest}.tmp" "${dest}")
+endfunction()
+
+_sp_download("${PYTHON_URL}" "${PYTHON_FILE}")
+if(NOT EXISTS "${PYTHON_PACKAGE}/python.exe")
+  file(ARCHIVE_EXTRACT INPUT "${PYTHON_FILE}" DESTINATION "${PYTHON_PACKAGE}")
 endif()
 
 # ---- dart_bridge prebuilt DLLs --------------------------------------------
@@ -45,24 +82,8 @@ endif()
 # (_d.dll) is what `fvm flutter run` / Debug builds consume. Both ship in
 # every release of flet-dev/dart-bridge; we bundle both and let Flutter's
 # CONFIG-aware copy machinery pick the right one at app launch time.
-set(DART_BRIDGE_DIR ${CMAKE_BINARY_DIR}/dart_bridge)
-set(DART_BRIDGE_RELEASE_DLL "${DART_BRIDGE_DIR}/dart_bridge.dll")
-set(DART_BRIDGE_DEBUG_DLL   "${DART_BRIDGE_DIR}/dart_bridge_d.dll")
-file(MAKE_DIRECTORY ${DART_BRIDGE_DIR})
-
-function(_sp_download url dest)
-  if(EXISTS "${dest}")
-    return()
-  endif()
-  message(STATUS "Downloading dart_bridge: ${url}")
-  file(DOWNLOAD "${url}" "${dest}" STATUS _dl_status SHOW_PROGRESS)
-  list(GET _dl_status 0 _dl_code)
-  list(GET _dl_status 1 _dl_message)
-  if(NOT _dl_code EQUAL 0)
-    file(REMOVE "${dest}")
-    message(FATAL_ERROR "Failed to download ${url}: ${_dl_message}")
-  endif()
-endfunction()
+set(DART_BRIDGE_RELEASE_DLL "${DB_CACHE}/dart_bridge-windows-x86_64.dll")
+set(DART_BRIDGE_DEBUG_DLL   "${DB_CACHE}/dart_bridge_d-windows-x86_64.dll")
 
 _sp_download(
   "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge-windows-x86_64.dll"
