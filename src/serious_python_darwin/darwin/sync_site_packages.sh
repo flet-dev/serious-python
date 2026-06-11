@@ -43,7 +43,16 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         dist=$script_dir/dist_macos
 
         mkdir -p $dist/site-packages
-        rsync -av --delete "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
+        # Exclude the .pod symlink created by symlink_pod.sh — it points at
+        # this plugin's source tree. If it lands in dist_macos/site-packages,
+        # CocoaPods packages it into the production .app, where macOS
+        # LaunchServices finds the embedded Python.app inside the symlinked
+        # Python.xcframework and tries to launch it (DYLD failure, repeated
+        # crash report popups), and `flet build`'s copy_tree follows the
+        # symlink into a code-signed source tree and hits EPERM on every
+        # file. .pod is only needed by package_command.dart at packaging
+        # time to invoke this sync script; it does not belong in the bundle.
+        rsync -av --delete --exclude '.pod' "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
     fi
 else
     echo "SERIOUS_PYTHON_SITE_PACKAGES is not set."
