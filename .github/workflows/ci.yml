@@ -268,8 +268,6 @@ jobs:
   flet_ffi_macos:
     name: Test Flet FFI example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
-    # Temporarily gated off while we debug the Windows hang — re-enable after.
-    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -300,7 +298,6 @@ jobs:
   flet_ffi_ios:
     name: Test Flet FFI example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
-    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
@@ -341,7 +338,6 @@ jobs:
   flet_ffi_android:
     name: Test Flet FFI example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
-    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
@@ -438,7 +434,6 @@ jobs:
   flet_ffi_linux:
     name: Test Flet FFI example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
-    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
