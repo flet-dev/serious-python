@@ -29,6 +29,17 @@ if [ ! -d "$dist" ]; then
     mkdir -p "$dist"
     tar -xzf "$python_macos_dist_path" -C "$dist"
     mv "$dist/python-stdlib" "$dist/stdlib"
+
+    # python-build-standalone bakes a standalone launcher Python.app into
+    # Python.framework/Versions/<ver>/Resources/. Its Mach-O has a hardcoded
+    # load command pointing at the CI runner's build path
+    # (/Users/runner/work/python-build/.../Python.framework/Versions/X.Y/Python),
+    # so DYLD can't resolve it on any other machine. When the host .app is
+    # built, macOS LaunchServices scans nested .app bundles and tries to
+    # launch this Python.app — every scan produces a "Python quit
+    # unexpectedly" crash dialog. We don't need this launcher for embedded
+    # use; libdart_bridge dlopens Python.framework's main binary directly.
+    find "$dist/xcframeworks" -type d -name 'Python.app' -prune -exec rm -rf {} +
 fi
 
 # ---- flet-dev/dart-bridge (xcframework, same archive for macOS + iOS) -----
