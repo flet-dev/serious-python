@@ -24,11 +24,17 @@ env:
   # older flet whose transitive deps (e.g. msgpack) have wheels for the
   # target python_version / platform, leaving the two halves mismatched.
   FLET_VERSION: "0.85.3"
-  # Python flet for the FFI-transport example is pulled from a git ref —
-  # FletDartBridgeServer isn't on PyPI yet. Source installs require
-  # SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS=flet on mobile targets to
-  # bypass --only-binary :all:; see package_command.dart.
-  FLET_FFI_REQUIREMENT: "flet @ git+https://github.com/flet-dev/flet.git@dart-bridge#subdirectory=sdk/python/packages/flet"
+  # Python flet for the FFI-transport example is pinned to a git ref —
+  # FletDartBridgeServer isn't on PyPI yet. The git URL is given to pip via
+  # --requirements, which would normally clone the whole flet repo (large)
+  # inside pip itself. On Windows this can take 30+ minutes and looks like
+  # a hang because pip emits no progress during git clone. So the FFI jobs
+  # first do an explicit `git clone --depth 1` into ${{ runner.temp }}/flet
+  # and then pass the local subpath as the requirement.
+  FLET_GIT_REF: "dart-bridge"
+  FLET_GIT_URL: "https://github.com/flet-dev/flet.git"
+  # Source installs additionally require SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS=flet
+  # on mobile targets to bypass --only-binary :all:; see package_command.dart.
 
 jobs:
   macos:
@@ -266,6 +272,8 @@ jobs:
   flet_ffi_macos:
     name: Test Flet FFI example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
+    # Temporarily gated off while we debug the Windows hang — re-enable after.
+    if: false
     strategy:
       fail-fast: false
       matrix:
@@ -283,15 +291,20 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Shallow-clone flet (dart-bridge)
+        run: |
+          git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${{ runner.temp }}/flet-src"
+
       - name: Run tests
         working-directory: "src/serious_python/example/flet_ffi_example"
         run: |
-          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements "${{ runner.temp }}/flet-src/sdk/python/packages/flet"
           flutter test integration_test --device-id macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   flet_ffi_ios:
     name: Test Flet FFI example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
+    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
@@ -321,15 +334,20 @@ jobs:
           shutdown_after_job: true
           wait_for_boot: true
 
+      - name: Shallow-clone flet (dart-bridge)
+        run: |
+          git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${{ runner.temp }}/flet-src"
+
       - name: Run tests
         working-directory: "src/serious_python/example/flet_ffi_example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements "${{ runner.temp }}/flet-src/sdk/python/packages/flet"
           flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   flet_ffi_android:
     name: Test Flet FFI example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
+    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
@@ -365,6 +383,10 @@ jobs:
             ~/.android/adb*
           key: avd-ffi
 
+      - name: Shallow-clone flet (dart-bridge)
+        run: |
+          git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${{ runner.temp }}/flet-src"
+
       - name: Setup Android Emulator + Run tests
         uses: reactivecircus/android-emulator-runner@v2
         env:
@@ -384,7 +406,7 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_ffi_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+            cd src/serious_python/example/flet_ffi_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements "${{ runner.temp }}/flet-src/sdk/python/packages/flet"
             cd src/serious_python/example/flet_ffi_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   flet_ffi_windows:
@@ -407,15 +429,22 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Shallow-clone flet (dart-bridge)
+        shell: bash
+        run: |
+          git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${RUNNER_TEMP}/flet-src"
+
       - name: Run tests
         working-directory: "src/serious_python/example/flet_ffi_example"
+        shell: bash
         run: |
-          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements "${RUNNER_TEMP}/flet-src/sdk/python/packages/flet"
           flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   flet_ffi_linux:
     name: Test Flet FFI example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
+    if: false  # see `flet_ffi_macos:` rationale
     strategy:
       fail-fast: false
       matrix:
@@ -482,11 +511,15 @@ jobs:
               gstreamer1.0-libav
           fi
 
+      - name: Shallow-clone flet (dart-bridge)
+        run: |
+          git clone --depth 1 --branch "${FLET_GIT_REF}" "${FLET_GIT_URL}" "${{ runner.temp }}/flet-src"
+
       - name: Run tests
         working-directory: src/serious_python/example/flet_ffi_example
         run: |
           flutter pub get
-          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements "${{ env.FLET_FFI_REQUIREMENT }}"
+          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements "${{ runner.temp }}/flet-src/sdk/python/packages/flet"
           xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_macos:

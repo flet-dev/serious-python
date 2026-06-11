@@ -727,6 +727,8 @@ class PackageCommand extends Command {
         await Process.run(
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
 
+        stdout.writeln("Python distributive extracted to ${_pythonDir!.path}");
+
         if (Platform.isMacOS) {
           duplicateSysconfigFile(_pythonDir!.path);
         }
@@ -737,8 +739,9 @@ class PackageCommand extends Command {
         ? path.join(_pythonDir!.path, 'python', 'python.exe')
         : path.join(_pythonDir!.path, 'python', 'bin', 'python3');
 
-    // Run the python executable
-    verbose([pythonExePath, ...args].join(" "));
+    // Always log the Python command so a silent pip install (typical during
+    // `pip install git+…` while git is cloning) doesn't look like a hang.
+    stdout.writeln("Running: ${[pythonExePath, ...args].join(" ")}");
     return await runExec(pythonExePath, args, environment: environment);
   }
 
