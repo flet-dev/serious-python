@@ -18,10 +18,11 @@ pluginManagement {
 
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
-    id "com.android.application" version "8.1.0" apply false
-    // Kotlin Gradle Plugin 2.0+ required by recent Flutter plugins (e.g.
-    // screen_brightness_android 2.1.5) which use the `kotlin.compilerOptions
-    // { ... }` DSL. KGP 2.1 only requires AGP 7.4+, so keeping AGP at 8.1.0.
+    // AGP 8.9.1+ required by androidx.core 1.18.0 (transitive via Flet);
+    // AGP 8.9 requires Gradle 8.11+ (see gradle-wrapper.properties).
+    id "com.android.application" version "8.9.1" apply false
+    // KGP 2.0+ required by screen_brightness_android 2.1.5's use of the
+    // `kotlin.compilerOptions { ... }` DSL.
     id "org.jetbrains.kotlin.android" version "2.1.0" apply false
 }
 
