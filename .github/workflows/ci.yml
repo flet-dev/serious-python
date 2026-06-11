@@ -63,9 +63,9 @@ jobs:
         uses: futureware-tech/simulator-action@v4
         with:
           # https://github.com/futureware-tech/simulator-action/wiki/Devices-macos-latest
-          model: 'iPhone 16 Pro Max'
+          model: 'iPhone 17 Pro Max'
           os: "iOS"
-          os_version: "latest"
+          os_version: "26.5"
           shutdown_after_job: true
           wait_for_boot: true
 
@@ -293,9 +293,9 @@ jobs:
         id: simulator
         uses: futureware-tech/simulator-action@v4
         with:
-          model: 'iPhone 16 Pro Max'
+          model: 'iPhone 17 Pro Max'
           os: "iOS"
-          os_version: "latest"
+          os_version: "26.5"
           shutdown_after_job: true
           wait_for_boot: true
 
