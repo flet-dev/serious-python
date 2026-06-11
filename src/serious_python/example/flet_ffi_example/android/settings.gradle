@@ -1,0 +1,30 @@
+pluginManagement {
+    def flutterSdkPath = {
+        def properties = new Properties()
+        file("local.properties").withInputStream { properties.load(it) }
+        def flutterSdkPath = properties.getProperty("flutter.sdk")
+        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
+        return flutterSdkPath
+    }()
+
+    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+    // AGP 8.9.1+ required by androidx.core 1.18.0 (transitive via Flet);
+    // AGP 8.9 requires Gradle 8.11+ (see gradle-wrapper.properties).
+    id "com.android.application" version "8.9.1" apply false
+    // KGP 2.3.x required: screen_brightness_android 2.1.5 ships with a
+    // Kotlin 2.3.21 stdlib whose metadata format (binary version 2.3.0)
+    // can't be read by KGP < 2.3.
+    id "org.jetbrains.kotlin.android" version "2.3.21" apply false
+}
+
+include ":app"
