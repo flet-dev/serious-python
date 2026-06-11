@@ -26,13 +26,13 @@ void main() {
       expect(counterFound, isTrue);
 
       // Tap increment button
-      final incrementButton = find.byKey(const Key('increment'));
+      final incrementButton = find.byKey(const ValueKey('increment'));
       await tester.tap(incrementButton);
       await tester.pumpAndSettle();
       expect(find.text('1'), findsOneWidget);
 
       // Tap decrement button
-      final decrementButton = find.byKey(const Key('decrement'));
+      final decrementButton = find.byKey(const ValueKey('decrement'));
       await tester.tap(decrementButton);
       await tester.tap(decrementButton);
       await tester.pumpAndSettle();
