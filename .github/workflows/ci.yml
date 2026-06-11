@@ -52,7 +52,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -78,7 +78,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -115,7 +115,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -175,7 +175,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -209,7 +209,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
@@ -277,7 +277,7 @@ jobs:
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -316,7 +316,7 @@ jobs:
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -365,7 +365,7 @@ jobs:
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -438,7 +438,7 @@ jobs:
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -487,7 +487,7 @@ jobs:
       SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS: flet
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
@@ -568,7 +568,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -595,7 +595,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -647,7 +647,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -725,7 +725,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -783,7 +783,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get Flutter version from .fvmrc
         uses: kuhnroyal/flutter-fvm-config-action/config@v3
@@ -862,7 +862,7 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
