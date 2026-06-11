@@ -7,6 +7,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Auto-cancel in-flight runs when a new push lands on the same ref.
+# Tag builds (refs/tags/*) get a unique-per-run group so release runs
+# never cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ startsWith(github.ref, 'refs/tags/') && github.run_id || github.ref }}
+  cancel-in-progress: true
+
 env:
   ROOT: "${{ github.workspace }}"
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
