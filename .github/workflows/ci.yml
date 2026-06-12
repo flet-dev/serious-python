@@ -142,7 +142,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
@@ -304,7 +304,7 @@ jobs:
         uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
@@ -346,7 +346,7 @@ jobs:
         uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
@@ -398,7 +398,7 @@ jobs:
         uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
@@ -416,7 +416,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
@@ -474,7 +474,7 @@ jobs:
         uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
@@ -536,7 +536,7 @@ jobs:
         uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
@@ -704,7 +704,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
