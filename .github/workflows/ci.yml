@@ -61,7 +61,15 @@ jobs:
         working-directory: "src/serious_python/example/bridge_example"
         run: |
           dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
-          flutter test integration_test -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          # Each test file is invoked separately. `flutter test integration_test`
+          # over the directory reuses one VM session, but the second file's
+          # `runApp()` then trips "Unable to start the app on the device" —
+          # the spawn-then-teardown of bridge_example's embedded Python +
+          # PythonBridge ports isn't clean enough for VM reuse. One process
+          # per file sidesteps the issue.
+          flutter test integration_test/interactivity_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/throughput_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_ios:
     name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
@@ -116,8 +124,11 @@ jobs:
           # time) when iOS-specific site-packages subdirs exist. Empty
           # --requirements skips that branch and the build fails.
           dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
-          echo "[$(ts)] >>> flutter test integration_test"
-          flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          echo "[$(ts)] >>> flutter test integration_test (per-file)"
+          # See macOS job for why each file runs as a separate invocation.
+          flutter test integration_test/interactivity_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/throughput_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/memory_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
           echo "[$(ts)] >>> done"
 
   bridge_example_android:
@@ -191,7 +202,12 @@ jobs:
             sdkmanager --list_installed
           script: |
             cd src/serious_python/example/bridge_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
-            cd src/serious_python/example/bridge_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            # Per-file: `flutter test integration_test` (whole dir) reuses one
+            # VM session and the second file fails to start the app. See
+            # bridge_example_macos for the discovery.
+            cd src/serious_python/example/bridge_example && flutter test integration_test/interactivity_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test/throughput_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test/memory_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
       - name: Diagnostics on failure
         if: failure()
@@ -251,7 +267,12 @@ jobs:
           # (default PowerShell shell on windows runners eats the failure when
           # piping into tail).
           set -o pipefail
-          flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          # Per-file: `flutter test integration_test` (whole dir) reuses one
+          # VM session and the second file fails to start the app. See
+          # bridge_example_macos for the discovery.
+          flutter test integration_test/interactivity_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/throughput_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/memory_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
 
       - name: Diagnostics on failure
         if: failure()
@@ -342,7 +363,12 @@ jobs:
             --platform Linux \
             --python-version ${{ matrix.python_version }}
           set -o pipefail
-          xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          # Per-file: `flutter test integration_test` (whole dir) reuses one
+          # VM session and the second file fails to start the app. See
+          # bridge_example_macos for the discovery.
+          xvfb-run flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          xvfb-run flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          xvfb-run flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
 
       - name: Diagnostics on failure
         if: failure()
