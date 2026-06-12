@@ -1,30 +1,22 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - serious_python_bridge (2.0.0):
-    - Flutter
-    - FlutterMacOS
-    - serious_python_darwin
   - serious_python_darwin (2.0.0):
     - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - serious_python_bridge (from `Flutter/ephemeral/.symlinks/plugins/serious_python_bridge/darwin`)
   - serious_python_darwin (from `Flutter/ephemeral/.symlinks/plugins/serious_python_darwin/darwin`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
-  serious_python_bridge:
-    :path: Flutter/ephemeral/.symlinks/plugins/serious_python_bridge/darwin
   serious_python_darwin:
     :path: Flutter/ephemeral/.symlinks/plugins/serious_python_darwin/darwin
 
 SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  serious_python_bridge: 3c906c29f7b53d86374dc1f2d6ad7c325776932f
-  serious_python_darwin: 51cea45f3f6e3322e607b2d0716db26de8b6c512
+  serious_python_darwin: 6d58c9837595683a71e20114bdd4607568c98e84
 
 PODFILE CHECKSUM: 54d867c82ac51cbd61b565781b9fada492027009
 
