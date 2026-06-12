@@ -60,6 +60,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Run tests
         working-directory: "src/serious_python/example/flet_example"
         run: |
@@ -85,6 +88,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Setup iOS Simulator
         id: simulator
@@ -122,6 +128,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Enable KVM
         run: |
@@ -183,6 +192,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Run tests
         working-directory:  "src/serious_python/example/flet_example"
         run: |
@@ -226,6 +238,9 @@ jobs:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}  # https://github.com/subosito/flutter-action/issues/345#issuecomment-2657332687
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Install dependencies
         run: |
@@ -285,6 +300,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Cache flet downloads
         uses: actions/cache@v4
         with:
@@ -323,6 +341,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
         uses: actions/cache@v4
@@ -372,6 +393,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
         uses: actions/cache@v4
@@ -446,6 +470,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Cache flet downloads
         uses: actions/cache@v4
         with:
@@ -504,6 +531,9 @@ jobs:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Cache flet downloads
         uses: actions/cache@v4
@@ -576,6 +606,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         run: |
@@ -602,6 +635,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       # Replaced by the unified ~/.flet/cache step lifted to every job; left
       # the comment for git-blame breadcrumb. The bridge_example matrix is
@@ -654,6 +690,9 @@ jobs:
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Enable KVM
         run: |
@@ -733,6 +772,9 @@ jobs:
           path: '.fvmrc'
           cache: true
 
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         shell: bash
@@ -797,6 +839,9 @@ jobs:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
+
+      - name: Resolve Python version vars
+        uses: ./.github/actions/resolve-python-vars
 
       - name: Install Linux desktop build deps
         run: |

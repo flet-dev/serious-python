@@ -32,8 +32,8 @@ const pyodideVersionEnvironmentVariable = "SERIOUS_PYTHON_PYODIDE_VERSION";
 
 const defaultPythonVersion = "3.14";
 
-class _PythonRelease {
-  const _PythonRelease({
+class PythonRelease {
+  const PythonRelease({
     required this.standaloneVersion,
     required this.standaloneReleaseDate,
     required this.pythonBuildReleaseDate,
@@ -61,8 +61,8 @@ class _PythonRelease {
 
 // Source of truth for the Python <-> CPython standalone <-> Pyodide mapping.
 // Mirror any change here in flet-cli's python_versions.py.
-const _pythonReleases = <String, _PythonRelease>{
-  "3.12": _PythonRelease(
+const pythonReleases = <String, PythonRelease>{
+  "3.12": PythonRelease(
     standaloneVersion: "3.12.13",
     standaloneReleaseDate: "20260610",
     pythonBuildReleaseDate: "20260611",
@@ -70,7 +70,7 @@ const _pythonReleases = <String, _PythonRelease>{
     pyodidePlatformTag: "pyodide-2024.0-wasm32",
     prerelease: false,
   ),
-  "3.13": _PythonRelease(
+  "3.13": PythonRelease(
     standaloneVersion: "3.13.14",
     standaloneReleaseDate: "20260610",
     pythonBuildReleaseDate: "20260611",
@@ -78,7 +78,7 @@ const _pythonReleases = <String, _PythonRelease>{
     pyodidePlatformTag: "pyemscripten-2025.0-wasm32",
     prerelease: false,
   ),
-  "3.14": _PythonRelease(
+  "3.14": PythonRelease(
     standaloneVersion: "3.14.6",
     standaloneReleaseDate: "20260610",
     pythonBuildReleaseDate: "20260611",
@@ -91,7 +91,7 @@ const _pythonReleases = <String, _PythonRelease>{
   // `requires-python = "==3.15.*"` on the Flet CLI side) without becoming
   // the default or matching open-ended `requires-python` specifiers.
   //
-  // "3.15": _PythonRelease(
+  // "3.15": PythonRelease(
   //   standaloneVersion: "3.15.0",
   //   standaloneReleaseDate: "...",
   //   pythonBuildReleaseDate: "...",
@@ -125,7 +125,7 @@ const platforms = {
   },
   "Emscripten": {
     // The actual wheel platform tag is resolved per Python release from
-    // `_pythonReleases[...].pyodidePlatformTag` (see sitecustomize wiring
+    // `pythonReleases[...].pyodidePlatformTag` (see sitecustomize wiring
     // below) since it changes with each Pyodide ABI bump.
     "": {"tag": "", "mac_ver": ""}
   },
@@ -168,7 +168,7 @@ class PackageCommand extends Command {
   Directory? _buildDir;
   Directory? _pythonDir;
   late String _pythonShortVersion;
-  late _PythonRelease _release;
+  late PythonRelease _release;
 
   String get _pyodideRootUrl =>
       "https://cdn.jsdelivr.net/pyodide/v${_release.pyodideVersion}/full";
@@ -200,7 +200,7 @@ class PackageCommand extends Command {
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
     argParser.addOption('python-version',
-        allowed: _pythonReleases.keys.toList(),
+        allowed: pythonReleases.keys.toList(),
         help: "Short Python version to bundle (e.g. 3.13). Defaults to "
             "\$$pythonVersionEnvironmentVariable env var or "
             "'$defaultPythonVersion'.");
@@ -280,13 +280,13 @@ class PackageCommand extends Command {
       _pythonShortVersion = argResults?['python-version'] ??
           Platform.environment[pythonVersionEnvironmentVariable] ??
           defaultPythonVersion;
-      final baseRelease = _pythonReleases[_pythonShortVersion];
+      final baseRelease = pythonReleases[_pythonShortVersion];
       if (baseRelease == null) {
         stderr.writeln(
-            "Unknown Python version: $_pythonShortVersion. Supported: ${_pythonReleases.keys.join(", ")}");
+            "Unknown Python version: $_pythonShortVersion. Supported: ${pythonReleases.keys.join(", ")}");
         exit(2);
       }
-      _release = _PythonRelease(
+      _release = PythonRelease(
         standaloneVersion:
             Platform.environment[pythonFullVersionEnvironmentVariable] ??
                 baseRelease.standaloneVersion,
