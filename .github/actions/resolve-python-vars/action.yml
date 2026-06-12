@@ -25,7 +25,10 @@ runs:
           exit 1
         fi
         flutter pub get >/dev/null
-        json=$(dart run serious_python:main version --json)
+        # `dart run` writes "Building package executable..." to stdout on a
+        # cold cache, ahead of our JSON. Strip everything before the opening
+        # `{` so `jq` sees only the document.
+        json=$(dart run serious_python:main version --json | sed -n '/^{/,$p')
         full=$(echo "$json" | jq -r ".python_releases.\"${SERIOUS_PYTHON_VERSION}\".standalone_version")
         date=$(echo "$json" | jq -r ".python_releases.\"${SERIOUS_PYTHON_VERSION}\".python_build_release_date")
         if [[ -z "$full" || "$full" == "null" || -z "$date" || "$date" == "null" ]]; then
