@@ -363,12 +363,27 @@ jobs:
             --platform Linux \
             --python-version ${{ matrix.python_version }}
           set -o pipefail
+
+          # Three back-to-back `xvfb-run` invocations race for display
+          # numbers — the second/third sometimes trips "Xvfb failed to
+          # start" because the previous Xvfb's display isn't released yet
+          # (3-of-6 Linux jobs in run 27441055242 hit this). Start one
+          # Xvfb up front, share DISPLAY across all three test runs.
+          Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          trap 'kill $XVFB_PID 2>/dev/null || true' EXIT
+          # Brief settle so Xvfb is accepting connections before flutter
+          # test tries to open the window. xdpyinfo isn't in the ubuntu
+          # runner's default toolchain; a fixed sleep is sufficient.
+          sleep 1
+
           # Per-file: `flutter test integration_test` (whole dir) reuses one
           # VM session and the second file fails to start the app. See
           # bridge_example_macos for the discovery.
-          xvfb-run flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
-          xvfb-run flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
-          xvfb-run flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
 
       - name: Diagnostics on failure
         if: failure()
