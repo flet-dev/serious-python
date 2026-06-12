@@ -1,4 +1,6 @@
 python_version=${1:?}
+python_full_version=${2:?}
+python_build_date=${3:?}
 
 script_dir=$(cd "$(dirname "$0")" && pwd -P)
 dist=$script_dir/dist_macos
@@ -11,15 +13,15 @@ dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.1}
 # gradle task + flet build's external tooling already use; ~/.flet/cache is
 # the shared default. Tarballs land here and survive `flutter clean`.
 cache_root="${FLET_CACHE_DIR:-$HOME/.flet/cache}"
-pb_cache="$cache_root/python-build/v$python_version"
+pb_cache="$cache_root/python-build/v$python_full_version"
 db_cache="$cache_root/dart-bridge/v$dart_bridge_version"
 mkdir -p "$pb_cache" "$db_cache"
 
 # ---- flet-dev/python-build (macOS embedded Python runtime) ----------------
-python_macos_dist_file="python-macos-dart-$python_version.tar.gz"
+python_macos_dist_file="python-macos-dart-$python_full_version.tar.gz"
 python_macos_dist_path="$pb_cache/$python_macos_dist_file"
 if [ ! -f "$python_macos_dist_path" ]; then
-    python_macos_dist_url="https://github.com/flet-dev/python-build/releases/download/v$python_version/$python_macos_dist_file"
+    python_macos_dist_url="https://github.com/flet-dev/python-build/releases/download/$python_build_date/$python_macos_dist_file"
     # .tmp + mv so a Ctrl-C / network blip doesn't poison the cache.
     curl -fL -o "$python_macos_dist_path.tmp" "$python_macos_dist_url"
     mv "$python_macos_dist_path.tmp" "$python_macos_dist_path"

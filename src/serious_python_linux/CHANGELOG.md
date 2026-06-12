@@ -2,6 +2,7 @@
 
 * **Breaking change:** default bundled Python version is now 3.14 (was 3.12). The plugin downloads `python-linux-dart-3.14-<arch>.tar.gz` from `flet-dev/python-build` and bundles `libpython3.14.so.1.0` unless `SERIOUS_PYTHON_VERSION=3.12` is set in the build environment.
 * Multi-version Python support. `PYTHON_VERSION` in `linux/CMakeLists.txt` reads from `SERIOUS_PYTHON_VERSION`, and all `python3.12` / `libpython3.12.so.1.0` / `lib/python3.12` paths are derived from it. The plugin source receives the version via a `SERIOUS_PYTHON_VERSION` compile-time macro so the runtime module path matches the bundled distro.
+* Migrate the `python-linux-dart` download URL to `flet-dev/python-build`'s new date-keyed release scheme (`…/<YYYYMMDD>/python-linux-dart-<full-version>-<arch>.tar.gz`). `CMakeLists.txt` now reads `SERIOUS_PYTHON_FULL_VERSION` and `SERIOUS_PYTHON_BUILD_DATE` from the environment (with baked-in defaults) and the cache directory key uses the full version so patch bumps don't reuse a stale tarball.
 
 ## 1.0.1
 

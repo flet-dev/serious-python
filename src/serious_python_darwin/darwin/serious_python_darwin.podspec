@@ -33,14 +33,16 @@ Pod::Spec.new do |s|
   s.swift_version = '5.0'
 
   python_version = ENV['SERIOUS_PYTHON_VERSION'] || "3.14"
+  python_full_version = ENV['SERIOUS_PYTHON_FULL_VERSION'] || "3.14.6"
+  python_build_date = ENV['SERIOUS_PYTHON_BUILD_DATE'] || "20260611"
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
     ./symlink_pod.sh
-    ./prepare_ios.sh #{python_version}
-    ./prepare_macos.sh #{python_version}
+    ./prepare_ios.sh #{python_version} #{python_full_version} #{python_build_date}
+    ./prepare_macos.sh #{python_version} #{python_full_version} #{python_build_date}
     ./sync_site_packages.sh
 CMD
 

@@ -2,6 +2,7 @@
 
 * **Breaking change:** default bundled Python version is now 3.14 (was 3.12). The plugin downloads `python-windows-for-dart-3.14.zip` and bundles `python314.dll` / `python314.lib` unless `SERIOUS_PYTHON_VERSION=3.12` is set in the build environment.
 * Multi-version Python support. `PYTHON_VERSION` in `windows/CMakeLists.txt` reads from `SERIOUS_PYTHON_VERSION`; the `python-build` download URL and the `python312.lib` / `python312.dll` filenames are derived from it (e.g. `python313.lib`, `python314.dll`).
+* Migrate the `python-windows-for-dart` download URL to `flet-dev/python-build`'s new date-keyed release scheme (`…/<YYYYMMDD>/python-windows-for-dart-<full-version>.zip`). `CMakeLists.txt` now reads `SERIOUS_PYTHON_FULL_VERSION` and `SERIOUS_PYTHON_BUILD_DATE` from the environment (with baked-in defaults) and the cache directory key uses the full version so patch bumps don't reuse a stale zip.
 
 ## 1.0.1
 

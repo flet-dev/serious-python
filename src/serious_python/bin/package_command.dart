@@ -25,7 +25,9 @@ const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
 
 const pythonVersionEnvironmentVariable = "SERIOUS_PYTHON_VERSION";
+const pythonFullVersionEnvironmentVariable = "SERIOUS_PYTHON_FULL_VERSION";
 const pythonDistReleaseEnvironmentVariable = "SERIOUS_PYTHON_DIST_RELEASE";
+const pythonBuildDateEnvironmentVariable = "SERIOUS_PYTHON_BUILD_DATE";
 const pyodideVersionEnvironmentVariable = "SERIOUS_PYTHON_PYODIDE_VERSION";
 
 const defaultPythonVersion = "3.14";
@@ -34,6 +36,7 @@ class _PythonRelease {
   const _PythonRelease({
     required this.standaloneVersion,
     required this.standaloneReleaseDate,
+    required this.pythonBuildReleaseDate,
     required this.pyodideVersion,
     required this.pyodidePlatformTag,
     required this.prerelease,
@@ -41,6 +44,12 @@ class _PythonRelease {
 
   final String standaloneVersion;
   final String standaloneReleaseDate;
+
+  // Release date tag of the matching `flet-dev/python-build` release
+  // (e.g. "20260611"). Combined with `standaloneVersion` to construct the
+  // platform-plugin download URLs.
+  final String pythonBuildReleaseDate;
+
   final String pyodideVersion;
   final String pyodidePlatformTag;
 
@@ -55,22 +64,25 @@ class _PythonRelease {
 const _pythonReleases = <String, _PythonRelease>{
   "3.12": _PythonRelease(
     standaloneVersion: "3.12.13",
-    standaloneReleaseDate: "20260602",
+    standaloneReleaseDate: "20260610",
+    pythonBuildReleaseDate: "20260611",
     pyodideVersion: "0.27.7",
     pyodidePlatformTag: "pyodide-2024.0-wasm32",
     prerelease: false,
   ),
   "3.13": _PythonRelease(
-    standaloneVersion: "3.13.13",
-    standaloneReleaseDate: "20260602",
+    standaloneVersion: "3.13.14",
+    standaloneReleaseDate: "20260610",
+    pythonBuildReleaseDate: "20260611",
     pyodideVersion: "0.29.4",
-    pyodidePlatformTag: "pyodide-2025.0-wasm32",
+    pyodidePlatformTag: "pyemscripten-2025.0-wasm32",
     prerelease: false,
   ),
   "3.14": _PythonRelease(
-    standaloneVersion: "3.14.5",
-    standaloneReleaseDate: "20260602",
-    pyodideVersion: "314.0.0a2",
+    standaloneVersion: "3.14.6",
+    standaloneReleaseDate: "20260610",
+    pythonBuildReleaseDate: "20260611",
+    pyodideVersion: "314.0.0",
     pyodidePlatformTag: "pyemscripten-2026.0-wasm32",
     prerelease: false,
   ),
@@ -82,6 +94,7 @@ const _pythonReleases = <String, _PythonRelease>{
   // "3.15": _PythonRelease(
   //   standaloneVersion: "3.15.0",
   //   standaloneReleaseDate: "...",
+  //   pythonBuildReleaseDate: "...",
   //   pyodideVersion: "...",
   //   pyodidePlatformTag: "...",
   //   prerelease: true,
@@ -274,10 +287,15 @@ class PackageCommand extends Command {
         exit(2);
       }
       _release = _PythonRelease(
-        standaloneVersion: baseRelease.standaloneVersion,
+        standaloneVersion:
+            Platform.environment[pythonFullVersionEnvironmentVariable] ??
+                baseRelease.standaloneVersion,
         standaloneReleaseDate:
             Platform.environment[pythonDistReleaseEnvironmentVariable] ??
                 baseRelease.standaloneReleaseDate,
+        pythonBuildReleaseDate:
+            Platform.environment[pythonBuildDateEnvironmentVariable] ??
+                baseRelease.pythonBuildReleaseDate,
         pyodideVersion:
             Platform.environment[pyodideVersionEnvironmentVariable] ??
                 baseRelease.pyodideVersion,

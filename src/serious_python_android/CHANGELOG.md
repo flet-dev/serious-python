@@ -4,6 +4,7 @@
 * Multi-version Python support. `python_version` in `android/build.gradle` reads from `SERIOUS_PYTHON_VERSION` and drives the `flet-dev/python-build` download URL.
 * The Dart runtime no longer hardcodes `libpython3.12.so` — it scans `nativeLibraryDir` for `libpython3.*.so` so whichever libpython the plugin bundled is loaded automatically.
 * `abiFilters` now branches on `python_version`: keep `armeabi-v7a` for 3.12, restrict to `arm64-v8a` + `x86_64` for 3.13+ (python-build dropped 32-bit Android per PEP 738).
+* Migrate `downloadDistArchive_*` to `flet-dev/python-build`'s new date-keyed release scheme (`…/<YYYYMMDD>/python-android-dart-<full-version>-<abi>.tar.gz` instead of `…/v<short>/python-android-dart-<short>-<abi>.tar.gz`). Two new env vars — `SERIOUS_PYTHON_FULL_VERSION` (e.g. `3.14.6`) and `SERIOUS_PYTHON_BUILD_DATE` (e.g. `20260611`) — are read alongside `SERIOUS_PYTHON_VERSION`, both with baked-in defaults so standalone (non-`flet build`) usage continues to work. The cache directory key (`$FLET_CACHE_DIR/python-build/v<…>/`) switches from short to full version so patch bumps don't reuse a stale tarball.
 
 ## 1.0.1
 

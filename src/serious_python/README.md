@@ -22,17 +22,24 @@ the `--python-version X.Y` flag of `serious_python:main package` (or the
 plugin build scripts). Defaults to the latest supported version when nothing
 is specified.
 
-| Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag |
-| ----- | --------------- | ------------- | -------------------------- |
-| 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`     |
-| 3.13  | 3.13.13         | 0.29.4        | `pyodide-2025.0-wasm32`     |
-| 3.14  | 3.14.5          | 314.0.0a2     | `pyemscripten-2026.0-wasm32`|
+| Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag       |
+| ----- | --------------- | ------------- | -------------------------------- |
+| 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`           |
+| 3.13  | 3.13.14         | 0.29.4        | `pyemscripten-2025.0-wasm32`      |
+| 3.14  | 3.14.6          | 314.0.0       | `pyemscripten-2026.0-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
 [`flet build`](https://flet.dev/docs/publish/), the same resolution is
 applied to `[project].requires-python` in your `pyproject.toml`, so most
 users never need to touch this flag directly.
+
+`SERIOUS_PYTHON_VERSION` (short, e.g. `3.14`) is the only input most users
+need to set. When `flet build` invokes the platform plugins it also exports
+`SERIOUS_PYTHON_FULL_VERSION` (e.g. `3.14.6`) and `SERIOUS_PYTHON_BUILD_DATE`
+(e.g. `20260611` — the `flet-dev/python-build` release tag); the plugin build
+scripts pick them up automatically and combine them into the
+`…/<date>/python-*-<full>-*` download URLs.
 
 Source of truth: the `_pythonReleases` map in
 [`bin/package_command.dart`](bin/package_command.dart) (Dart side) and

@@ -2,6 +2,8 @@ group 'com.flet.serious_python_android'
 version '2.0.0'
     
 def python_version = System.getenv('SERIOUS_PYTHON_VERSION') ?: '3.14'
+def python_full_version = System.getenv('SERIOUS_PYTHON_FULL_VERSION') ?: '3.14.6'
+def python_build_date = System.getenv('SERIOUS_PYTHON_BUILD_DATE') ?: '20260611'
 def dart_bridge_version = System.getenv('DART_BRIDGE_VERSION') ?: '1.2.1'
 
 buildscript {
@@ -70,7 +72,7 @@ import de.undercouch.gradle.tasks.download.Download
 def fletCacheRoot = System.getenv('FLET_CACHE_DIR')
 def pythonCacheDir = new File(
     fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
-    "python-build/v${python_version}"
+    "python-build/v${python_full_version}"
 )
 def dartBridgeCacheDir = new File(
     fletCacheRoot ? new File(fletCacheRoot) : new File(System.getProperty('user.home'), '.flet/cache'),
@@ -102,8 +104,8 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     }
 
     tasks.register("downloadDistArchive_$abi", Download) {
-        src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
-        dest new File(pythonCacheDir, "python-android-dart-${python_version}-${abi}.tar.gz")
+        src "https://github.com/flet-dev/python-build/releases/download/${python_build_date}/python-android-dart-${python_full_version}-${abi}.tar.gz"
+        dest new File(pythonCacheDir, "python-android-dart-${python_full_version}-${abi}.tar.gz")
         onlyIfModified true
         useETag "all"
         tempAndMove true
