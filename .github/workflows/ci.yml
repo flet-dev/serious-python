@@ -19,6 +19,11 @@ env:
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
   SERIOUS_PYTHON_SITE_PACKAGES: "${{ github.workspace }}/site-packages"
   UV_PYTHON: "3.12"
+  # futureware-tech/simulator-action upstream still declares node20 in
+  # action.yml (no Node 24 release as of v5). Force the runner to execute
+  # node20-declared JS actions on Node 24 so we don't trip the deprecation
+  # warning that becomes a hard error on 2026-09-16.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
   # Pin flet so the Python side matches the Dart-side flet version. With
   # `--only-binary :all:`, pip would otherwise silently downgrade to an
   # older flet whose transitive deps (e.g. msgpack) have wheels for the
@@ -171,7 +176,11 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Gradle cache
-        uses: gradle/actions/setup-gradle@v3
+        # Stay on v5 — v6 moved the caching component to a separate
+        # `gradle-actions-caching` library under proprietary commercial
+        # Terms of Use (https://blog.gradle.org/github-actions-for-gradle-v6).
+        # v5 was the last fully MIT-licensed major and is on Node 24.
+        uses: gradle/actions/setup-gradle@v5
 
       - name: AVD cache
         uses: actions/cache@v5
