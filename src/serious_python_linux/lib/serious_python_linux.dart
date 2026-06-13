@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
@@ -20,18 +18,8 @@ import 'package:serious_python_platform_interface/serious_python_platform_interf
 ///    doesn't have a compile-time constant for it).
 /// 3. Hands env + sys.path to `serious_python_run` in a single FFI call.
 class SeriousPythonLinux extends SeriousPythonPlatform {
-  @visibleForTesting
-  final methodChannel = const MethodChannel('serious_python_linux');
-
   static void registerWith() {
     SeriousPythonPlatform.instance = SeriousPythonLinux();
-  }
-
-  @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return '$version ${Platform.resolvedExecutable}';
   }
 
   @override

@@ -10,11 +10,6 @@ class MethodChannelSeriousPython extends SeriousPythonPlatform {
   final methodChannel = const MethodChannel('serious_python');
 
   @override
-  Future<String?> getPlatformVersion() {
-    return methodChannel.invokeMethod<String>('getPlatformVersion');
-  }
-
-  @override
   Future<String?> run(String appPath,
       {String? script,
       List<String>? modulePaths,

@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:serious_python_platform_interface/serious_python_platform_interface.dart';
 
@@ -17,18 +15,8 @@ import 'package:serious_python_platform_interface/serious_python_platform_interf
 /// runner .exe directory, where the bundled CPython lives) and dispatches a
 /// single FFI call to `serious_python_run`.
 class SeriousPythonWindows extends SeriousPythonPlatform {
-  @visibleForTesting
-  final methodChannel = const MethodChannel('serious_python_windows');
-
   static void registerWith() {
     SeriousPythonPlatform.instance = SeriousPythonWindows();
-  }
-
-  @override
-  Future<String?> getPlatformVersion() async {
-    final version =
-        await methodChannel.invokeMethod<String>('getPlatformVersion');
-    return '$version ${Platform.resolvedExecutable}';
   }
 
   @override

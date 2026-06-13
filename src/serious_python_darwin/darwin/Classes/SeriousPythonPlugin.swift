@@ -16,9 +16,9 @@ private func _sp_init_keepalive(_ data: UnsafeMutableRawPointer?) -> Int
 @_silgen_name("DartBridge_EnqueueMessage")
 private func _sp_enqueue_keepalive(_ data: UnsafePointer<CChar>?, _ len: Int)
 
-/// Thin Flutter plugin: surfaces the python.bundle resource path to Dart and
-/// exposes the standard `getPlatformVersion`. All Python lifecycle now lives
-/// in `serious_python_run` (dart_bridge.xcframework), invoked from Dart.
+/// Thin Flutter plugin: surfaces the python.bundle resource path to Dart.
+/// All Python lifecycle now lives in `serious_python_run`
+/// (dart_bridge.xcframework), invoked from Dart.
 public class SeriousPythonPlugin: NSObject, FlutterPlugin {
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -44,13 +44,6 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
-        case "getPlatformVersion":
-            #if os(iOS)
-                result("iOS " + UIDevice.current.systemVersion)
-            #else
-                result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
-            #endif
-
         case "getResourcePath":
             // The python.bundle that prepare_{ios,macos}.sh assembles ends up
             // inside this plugin's framework bundle as a Resources subbundle.

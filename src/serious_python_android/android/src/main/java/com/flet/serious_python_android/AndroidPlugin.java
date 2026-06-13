@@ -58,9 +58,7 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
 
   @Override
   public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
-    if (call.method.equals("getPlatformVersion")) {
-      result.success("Android " + android.os.Build.VERSION.RELEASE);
-    } else if (call.method.equals("getAppVersion")) {
+    if (call.method.equals("getAppVersion")) {
       try {
         String packageName = context.getPackageName();
         android.content.pm.PackageManager pm = context.getPackageManager();

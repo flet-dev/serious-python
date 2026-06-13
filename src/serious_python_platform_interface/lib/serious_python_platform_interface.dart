@@ -26,10 +26,6 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
-  }
-
   Future<String?> run(String appPath,
       {String? script,
       List<String>? modulePaths,

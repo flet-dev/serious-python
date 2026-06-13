@@ -27,10 +27,6 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
   }
 
   @override
-  Future<String?> getPlatformVersion() =>
-      methodChannel.invokeMethod<String>('getPlatformVersion');
-
-  @override
   Future<String?> run(String appPath,
       {String? script,
       List<String>? modulePaths,

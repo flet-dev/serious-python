@@ -9,11 +9,6 @@ export 'package:serious_python_platform_interface/src/utils.dart';
 class SeriousPython {
   SeriousPython._();
 
-  /// Returns the current name and version of the operating system.
-  static Future<String?> getPlatformVersion() {
-    return SeriousPythonPlatform.instance.getPlatformVersion();
-  }
-
   /// Runs Python program from an asset.
   ///
   /// [assetPath] is the path to an asset which is a zip archive
