@@ -238,7 +238,10 @@ jobs:
 
   bridge_example_windows:
     name: Test Bridge example on Windows (Python ${{ matrix.python_version }})
-    runs-on: windows-latest
+    # Explicit pin instead of `windows-latest` to avoid silent image moves.
+    # `windows-2025-vs2026` is what GitHub redirects `windows-latest` to
+    # starting 2026-06-15 (Server 2025 + VS 2026).
+    runs-on: windows-2025-vs2026
     strategy:
       fail-fast: false
       matrix:
