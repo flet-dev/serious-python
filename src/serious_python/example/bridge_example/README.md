@@ -62,7 +62,7 @@ flutter test integration_test/interactivity_test.dart -d macos \
 | Hardware       | MacBook Pro M2 Pro, 32 GB                                |
 | OS             | macOS 26.5                                               |
 | Python         | CPython 3.14.6 (embedded via `libdart_bridge`)           |
-| Flutter        | 3.41.7, Debug build                                      |
+| Flutter        | 3.44.2, Debug build                                      |
 | Test harness   | `bridge_example/integration_test/` (`flutter test integration_test`) |
 
 ## Throughput

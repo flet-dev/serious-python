@@ -1,0 +1,23 @@
+PODS:
+  - Flutter (1.0.0)
+  - serious_python_darwin (2.0.0):
+    - Flutter
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - serious_python_darwin (from `.symlinks/plugins/serious_python_darwin/darwin`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  serious_python_darwin:
+    :path: ".symlinks/plugins/serious_python_darwin/darwin"
+
+SPEC CHECKSUMS:
+  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  serious_python_darwin: 6d58c9837595683a71e20114bdd4607568c98e84
+
+PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+
+COCOAPODS: 1.14.3

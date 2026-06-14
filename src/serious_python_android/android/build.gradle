@@ -24,8 +24,8 @@ buildscript {
 
     dependencies {
         // The Android Gradle Plugin knows how to build native code with the NDK.
-        classpath 'com.android.tools.build:gradle:7.3.0'
-        classpath 'de.undercouch:gradle-download-task:4.1.2'
+        classpath 'com.android.tools.build:gradle:8.11.1'
+        classpath 'de.undercouch:gradle-download-task:5.6.0'
     }
 }
 
@@ -44,15 +44,15 @@ android {
 
     // Bumping the plugin compileSdkVersion requires all clients of this plugin
     // to bump the version in their app.
-    compileSdkVersion 31
+    compileSdkVersion 36
 
     // No native code is compiled here — libdart_bridge.so is downloaded as a
     // pre-built artifact from flet-dev/dart-bridge releases (see the
     // downloadDartBridge_$abi tasks below) and dropped into jniLibs.
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     defaultConfig {

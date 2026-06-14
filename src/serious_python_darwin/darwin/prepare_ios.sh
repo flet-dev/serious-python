@@ -24,10 +24,18 @@ if [ ! -f "$python_ios_dist_path" ]; then
     mv "$python_ios_dist_path.tmp" "$python_ios_dist_path"
 fi
 
-if [ ! -d "$dist" ]; then
+# Re-extract when $dist is missing OR was assembled for a different Python
+# version. The guard used to be `[ ! -d "$dist" ]`, which left a stale dist_ios
+# from a previous Python version in place — e.g. bundling 3.12 under 3.14
+# site-packages, which trips C-extension ABI errors ("unknown slot ID") at
+# import. A version marker keys the extracted dist to $python_full_version.
+marker="$dist/.python_full_version"
+if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$python_full_version" ]; then
+    rm -rf "$dist"
     mkdir -p "$dist"
     tar -xzf "$python_ios_dist_path" -C "$dist"
     mv "$dist/python-stdlib" "$dist/stdlib"
+    echo "$python_full_version" > "$marker"
 fi
 
 # ---- flet-dev/dart-bridge (xcframework) -----------------------------------

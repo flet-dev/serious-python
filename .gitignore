@@ -42,3 +42,6 @@ __pypackages__/
 *.dll
 *.egg-info/
 *.egg/
+
+# FVM
+.fvm/

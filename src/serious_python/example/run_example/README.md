@@ -45,23 +45,27 @@ dart run serious_python:main package app/src -p Emscripten -r -r -r app/src/requ
 
 For Android:
 
-In `android/app/build.gradle`:
+In `android/app/build.gradle.kts`:
 
-```
+```kotlin
 android {
-    ndkVersion "25.1.8937393"
-
-    packagingOptions {
+    // serious_python bundles libpython*.so. Use legacy (extracted, uncompressed)
+    // packaging so the embedded interpreter can dlopen them at runtime, and keep
+    // their symbols so they are not stripped.
+    packaging {
         jniLibs {
-            useLegacyPackaging true
+            useLegacyPackaging = true
+            keepDebugSymbols += setOf(
+                "*/arm64-v8a/libpython*.so",
+                "*/armeabi-v7a/libpython*.so",
+                "*/x86/libpython*.so",
+                "*/x86_64/libpython*.so",
+            )
         }
     }
 
-    packagingOptions {
-        doNotStrip "*/arm64-v8a/libpython*.so"
-        doNotStrip "*/armeabi-v7a/libpython*.so"
-        doNotStrip "*/x86/libpython*.so"
-        doNotStrip "*/x86_64/libpython*.so"
+    defaultConfig {
+        minSdk = 23
     }
 }
 ```

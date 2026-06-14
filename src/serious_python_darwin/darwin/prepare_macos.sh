@@ -26,7 +26,14 @@ if [ ! -f "$python_macos_dist_path" ]; then
     mv "$python_macos_dist_path.tmp" "$python_macos_dist_path"
 fi
 
-if [ ! -d "$dist" ]; then
+# Re-extract when $dist is missing OR was assembled for a different Python
+# version. The guard used to be `[ ! -d "$dist" ]`, which left a stale dist_macos
+# from a previous Python version in place — e.g. bundling 3.12 under 3.14
+# site-packages, which trips C-extension ABI errors ("unknown slot ID") at
+# import. A version marker keys the extracted dist to $python_full_version.
+marker="$dist/.python_full_version"
+if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$python_full_version" ]; then
+    rm -rf "$dist"
     mkdir -p "$dist"
     tar -xzf "$python_macos_dist_path" -C "$dist"
     mv "$dist/python-stdlib" "$dist/stdlib"
@@ -41,6 +48,7 @@ if [ ! -d "$dist" ]; then
     # unexpectedly" crash dialog. We don't need this launcher for embedded
     # use; libdart_bridge dlopens Python.framework's main binary directly.
     find "$dist/xcframeworks" -type d -name 'Python.app' -prune -exec rm -rf {} +
+    echo "$python_full_version" > "$marker"
 fi
 
 # ---- flet-dev/dart-bridge (xcframework, same archive for macOS + iOS) -----
