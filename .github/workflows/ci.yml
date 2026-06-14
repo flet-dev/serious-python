@@ -31,6 +31,38 @@ env:
   FLET_VERSION: "0.85.3"
 
 jobs:
+  version_tables_in_sync:
+    name: Version tables in sync with manifest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Regenerate version tables and check for drift
+        working-directory: src/serious_python
+        run: |
+          set -euo pipefail
+          flutter pub get >/dev/null
+          dart run serious_python:gen_version_tables
+          if ! git diff --quiet; then
+            echo "::error::Generated Python version tables are out of date."
+            echo "The committed lib/src/python_versions.dart and the four"
+            echo "python_versions.properties must match python-build's"
+            echo "manifest.json for the pinned pythonReleaseDate. To fix: edit"
+            echo "python-build's manifest.json + cut a release, bump"
+            echo "pythonReleaseDate, then run"
+            echo "  (cd src/serious_python && dart run serious_python:gen_version_tables)"
+            echo "and commit the regenerated files."
+            git --no-pager diff
+            exit 1
+          fi
+
   bridge_example_macos:
     name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
@@ -50,14 +82,11 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Resolve Python version vars
-        uses: ./.github/actions/resolve-python-vars
-
       - name: Cache flet downloads
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -96,14 +125,11 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Resolve Python version vars
-        uses: ./.github/actions/resolve-python-vars
-
       - name: Cache flet downloads
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -157,14 +183,11 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Resolve Python version vars
-        uses: ./.github/actions/resolve-python-vars
-
       - name: Cache flet downloads
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -258,14 +281,11 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Resolve Python version vars
-        uses: ./.github/actions/resolve-python-vars
-
       - name: Cache flet downloads
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -339,14 +359,11 @@ jobs:
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
 
-      - name: Resolve Python version vars
-        uses: ./.github/actions/resolve-python-vars
-
       - name: Cache flet downloads
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-

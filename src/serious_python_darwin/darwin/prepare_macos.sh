@@ -1,13 +1,12 @@
 python_version=${1:?}
 python_full_version=${2:?}
 python_build_date=${3:?}
+# dart-bridge release (flet-dev/dart-bridge), passed in from the version table.
+# Same xcframework is reused across iOS and macOS — it carries slices for both.
+dart_bridge_version=${4:?}
 
 script_dir=$(cd "$(dirname "$0")" && pwd -P)
 dist=$script_dir/dist_macos
-
-# Pinned dart-bridge release (flet-dev/dart-bridge). Same xcframework is reused
-# across iOS and macOS — it carries slices for both.
-dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.1}
 
 # Cross-plugin download cache. FLET_CACHE_DIR is the same env var the Android
 # gradle task + flet build's external tooling already use; ~/.flet/cache is

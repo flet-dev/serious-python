@@ -3,13 +3,12 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:package_config/package_config.dart';
-
-import 'package_command.dart';
+import 'package:serious_python/src/python_versions.dart';
 
 /// `version` subcommand: prints the serious_python package version, the
 /// default Python version, and the supported-Python matrix sourced from
-/// [pythonReleases] in `package_command.dart`. With `--json`, emits a
-/// machine-readable document for CI / tooling consumption.
+/// [pythonReleases] in the generated `lib/src/python_versions.dart`. With
+/// `--json`, emits a machine-readable document for CI / tooling consumption.
 class VersionCommand extends Command {
   @override
   final name = "version";
@@ -34,13 +33,14 @@ class VersionCommand extends Command {
     if (jsonMode) {
       final doc = <String, dynamic>{
         "serious_python_version": version,
+        "python_build_release_date": pythonReleaseDate,
         "default_python_version": defaultPythonVersion,
+        "dart_bridge_version": dartBridgeVersion,
         "python_releases": <String, dynamic>{
           for (final entry in pythonReleases.entries)
             entry.key: {
               "standalone_version": entry.value.standaloneVersion,
               "standalone_release_date": entry.value.standaloneReleaseDate,
-              "python_build_release_date": entry.value.pythonBuildReleaseDate,
               "pyodide_version": entry.value.pyodideVersion,
               "pyodide_platform_tag": entry.value.pyodidePlatformTag,
               "prerelease": entry.value.prerelease,

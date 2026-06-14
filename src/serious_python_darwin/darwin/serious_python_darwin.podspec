@@ -32,17 +32,30 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_version = ENV['SERIOUS_PYTHON_VERSION'] || "3.14"
-  python_full_version = ENV['SERIOUS_PYTHON_FULL_VERSION'] || "3.14.6"
-  python_build_date = ENV['SERIOUS_PYTHON_BUILD_DATE'] || "20260611"
+  # Python runtime versions come from the generated python_versions.properties
+  # (a snapshot of python-build's manifest.json — see serious_python's
+  # `gen_version_tables`). SERIOUS_PYTHON_VERSION selects the version; the rest
+  # derive from the table. The per-field env vars are escape hatches.
+  pv = {}
+  File.foreach(File.join(__dir__, 'python_versions.properties')) do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?('#')
+    k, v = line.split('=', 2)
+    pv[k] = v
+  end
+  python_version = ENV['SERIOUS_PYTHON_VERSION'] || pv['default_python_version']
+  python_full_version = ENV['SERIOUS_PYTHON_FULL_VERSION'] || pv["#{python_version}.full_version"]
+  python_build_date = ENV['SERIOUS_PYTHON_BUILD_DATE'] || pv['python_build_release_date']
+  dart_bridge_version = ENV['DART_BRIDGE_VERSION'] || pv['dart_bridge_version']
+  raise "serious_python: unknown SERIOUS_PYTHON_VERSION '#{python_version}'" if python_full_version.nil?
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
     ./symlink_pod.sh
-    ./prepare_ios.sh #{python_version} #{python_full_version} #{python_build_date}
-    ./prepare_macos.sh #{python_version} #{python_full_version} #{python_build_date}
+    ./prepare_ios.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
+    ./prepare_macos.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
     ./sync_site_packages.sh
 CMD
 

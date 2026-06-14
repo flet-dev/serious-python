@@ -9,6 +9,7 @@ import 'package:glob/list_local_fs.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
+import 'package:serious_python/src/python_versions.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import 'macos_utils.dart' as macos_utils;
@@ -24,82 +25,61 @@ const flutterPackagesFlutterEnvironmentVariable =
 const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
 
-const pythonVersionEnvironmentVariable = "SERIOUS_PYTHON_VERSION";
-const pythonFullVersionEnvironmentVariable = "SERIOUS_PYTHON_FULL_VERSION";
-const pythonDistReleaseEnvironmentVariable = "SERIOUS_PYTHON_DIST_RELEASE";
-const pythonBuildDateEnvironmentVariable = "SERIOUS_PYTHON_BUILD_DATE";
-const pyodideVersionEnvironmentVariable = "SERIOUS_PYTHON_PYODIDE_VERSION";
+// Python runtime version data — `defaultPythonVersion`, `pythonReleases`, the
+// `*EnvironmentVariable` names, `dartBridgeVersion`, `pythonReleaseDate` — lives
+// in the generated `lib/src/python_versions.dart` (imported above). It is a
+// snapshot of python-build's manifest.json; regenerate with
+// `dart run serious_python:gen_version_tables`.
 
-const defaultPythonVersion = "3.14";
-
-class PythonRelease {
-  const PythonRelease({
-    required this.standaloneVersion,
-    required this.standaloneReleaseDate,
-    required this.pythonBuildReleaseDate,
-    required this.pyodideVersion,
-    required this.pyodidePlatformTag,
-    required this.prerelease,
-  });
-
-  final String standaloneVersion;
-  final String standaloneReleaseDate;
-
-  // Release date tag of the matching `flet-dev/python-build` release
-  // (e.g. "20260611"). Combined with `standaloneVersion` to construct the
-  // platform-plugin download URLs.
-  final String pythonBuildReleaseDate;
-
-  final String pyodideVersion;
-  final String pyodidePlatformTag;
-
-  // When true, this release is supported by `--python-version` but is not
-  // picked automatically by the default or by `[project].requires-python`
-  // resolution on the Flet CLI side. Use for beta CPython lines.
-  final bool prerelease;
+/// Stages the embedded Darwin (iOS/macOS) Python runtime for [shortVersion] by
+/// running the plugin's version-aware prepare script through the `.pod` symlink
+/// in [sitePackagesRoot]. This is what makes a version switch take effect on a
+/// bare rebuild (no `pod install` re-run needed). No-op for non-Darwin platforms,
+/// whose native build stages the runtime itself. Returns false if skipped. Used
+/// by both the `package` and `configure` commands.
+Future<bool> stageDarwinRuntime({
+  required String platform,
+  required String shortVersion,
+  required String sitePackagesRoot,
+}) async {
+  final script = platform == "iOS"
+      ? "prepare_ios.sh"
+      : platform == "Darwin"
+          ? "prepare_macos.sh"
+          : null;
+  if (script == null) return false;
+  final release = pythonReleases[shortVersion];
+  if (release == null) {
+    stderr.writeln("serious_python: unknown Python version '$shortVersion'. "
+        "Supported: ${pythonReleases.keys.join(", ")}");
+    exit(2);
+  }
+  final fullVersion =
+      Platform.environment[pythonFullVersionEnvironmentVariable] ??
+          release.standaloneVersion;
+  final buildDate = Platform.environment[pythonBuildDateEnvironmentVariable] ??
+      pythonReleaseDate;
+  final bridge = Platform.environment[dartBridgeVersionEnvironmentVariable] ??
+      dartBridgeVersion;
+  final sh = File(path.join(sitePackagesRoot, ".pod", script));
+  if (!await sh.exists()) {
+    stdout.writeln("serious_python: $script not found under "
+        "$sitePackagesRoot/.pod — build the app once so CocoaPods creates the "
+        "plugin symlink, then re-run.");
+    return false;
+  }
+  stdout.writeln(
+      "Staging $platform Python $shortVersion (CPython $fullVersion) runtime...");
+  final process = await Process.start(
+      "/bin/sh", [sh.path, shortVersion, fullVersion, buildDate, bridge],
+      mode: ProcessStartMode.inheritStdio);
+  final code = await process.exitCode;
+  if (code != 0) {
+    stderr.writeln("serious_python: $script failed (exit $code).");
+    exit(code);
+  }
+  return true;
 }
-
-// Source of truth for the Python <-> CPython standalone <-> Pyodide mapping.
-// Mirror any change here in flet-cli's python_versions.py.
-const pythonReleases = <String, PythonRelease>{
-  "3.12": PythonRelease(
-    standaloneVersion: "3.12.13",
-    standaloneReleaseDate: "20260610",
-    pythonBuildReleaseDate: "20260611",
-    pyodideVersion: "0.27.7",
-    pyodidePlatformTag: "pyodide-2024.0-wasm32",
-    prerelease: false,
-  ),
-  "3.13": PythonRelease(
-    standaloneVersion: "3.13.14",
-    standaloneReleaseDate: "20260610",
-    pythonBuildReleaseDate: "20260611",
-    pyodideVersion: "0.29.4",
-    pyodidePlatformTag: "pyemscripten-2025.0-wasm32",
-    prerelease: false,
-  ),
-  "3.14": PythonRelease(
-    standaloneVersion: "3.14.6",
-    standaloneReleaseDate: "20260610",
-    pythonBuildReleaseDate: "20260611",
-    pyodideVersion: "314.0.0",
-    pyodidePlatformTag: "pyemscripten-2026.0-wasm32",
-    prerelease: false,
-  ),
-  // Add future pre-release CPython lines by setting `prerelease: true`. They
-  // become opt-in via `--python-version 3.15` (or an explicit
-  // `requires-python = "==3.15.*"` on the Flet CLI side) without becoming
-  // the default or matching open-ended `requires-python` specifiers.
-  //
-  // "3.15": PythonRelease(
-  //   standaloneVersion: "3.15.0",
-  //   standaloneReleaseDate: "...",
-  //   pythonBuildReleaseDate: "...",
-  //   pyodideVersion: "...",
-  //   pyodidePlatformTag: "...",
-  //   prerelease: true,
-  // ),
-};
 
 const platforms = {
   "iOS": {
@@ -293,9 +273,6 @@ class PackageCommand extends Command {
         standaloneReleaseDate:
             Platform.environment[pythonDistReleaseEnvironmentVariable] ??
                 baseRelease.standaloneReleaseDate,
-        pythonBuildReleaseDate:
-            Platform.environment[pythonBuildDateEnvironmentVariable] ??
-                baseRelease.pythonBuildReleaseDate,
         pyodideVersion:
             Platform.environment[pyodideVersionEnvironmentVariable] ??
                 baseRelease.pyodideVersion,
@@ -573,6 +550,14 @@ class PackageCommand extends Command {
               path.join(sitePackagesRoot),
               _verbose);
         }
+
+        // Stage the embedded Darwin interpreter for the selected version so the
+        // build uses it without `pod install` having to re-run prepare.
+        await stageDarwinRuntime(
+          platform: platform,
+          shortVersion: _pythonShortVersion,
+          sitePackagesRoot: sitePackagesRoot,
+        );
 
         // synchronize pod
         var syncSh =

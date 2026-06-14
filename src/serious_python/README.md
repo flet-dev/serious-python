@@ -34,19 +34,21 @@ The default is the latest stable row (currently **3.14**) when neither
 applied to `[project].requires-python` in your `pyproject.toml`, so most
 users never need to touch this flag directly.
 
-`SERIOUS_PYTHON_VERSION` (short, e.g. `3.14`) is the only input most users
-need to set. When `flet build` invokes the platform plugins it also exports
-`SERIOUS_PYTHON_FULL_VERSION` (e.g. `3.14.6`) and `SERIOUS_PYTHON_BUILD_DATE`
-(e.g. `20260611` — the `flet-dev/python-build` release tag); the plugin build
-scripts pick them up automatically and combine them into the
-`…/<date>/python-*-<full>-*` download URLs.
+`SERIOUS_PYTHON_VERSION` (short, e.g. `3.14`) is the only input you set — the
+full version, python-build release date, Pyodide version/tag, and dart_bridge
+version all derive from it. (`SERIOUS_PYTHON_FULL_VERSION`,
+`SERIOUS_PYTHON_BUILD_DATE`, `DART_BRIDGE_VERSION` exist as rarely-needed escape
+hatches.) A single `export SERIOUS_PYTHON_VERSION=3.13` covers both the
+packaging phase and the later Flutter build.
 
-Source of truth: the `_pythonReleases` map in
-[`bin/package_command.dart`](bin/package_command.dart) (Dart side) and
-`flet_cli/utils/python_versions.py` (Python side). Adding a new short version
-means appending a row to both. Pre-release CPython lines (e.g. 3.15) can be
-listed with `prerelease: true` so they're opt-in via explicit
-`--python-version 3.15` (or `requires-python = "==3.15.*"`) without becoming
+Source of truth: the date-keyed `manifest.json` published by
+[`flet-dev/python-build`](https://github.com/flet-dev/python-build).
+serious_python pins one release and commits generated snapshots of it —
+`lib/src/python_versions.dart` (used by the CLI) and a `python_versions.properties`
+in each platform package (read by the native build configs). To bump versions
+see [CONTRIBUTING.md](CONTRIBUTING.md); never hand-edit the generated files.
+Pre-release CPython lines are marked `prerelease: true`, so they're opt-in via
+explicit `--python-version` (or `requires-python = "==3.15.*"`) without becoming
 the auto-resolved default.
 
 ## Usage
@@ -148,6 +150,20 @@ read by each platform plugin's build script (`build.gradle`, the
 `flutter build` runs later, so a single `export` covers both the packaging
 phase and the Flutter build phase. See the [Python versions](#python-versions)
 table above for the matching CPython and Pyodide releases.
+
+#### Running a script without packaging (`configure`)
+
+The `package` command stages the embedded Darwin (iOS/macOS) runtime for the
+selected version automatically. For the bare "run a Python script" flow where
+you skip `package`, stage it yourself with `configure`, then build:
+
+```
+export SERIOUS_PYTHON_VERSION=3.13
+dart run serious_python:main configure --platform Darwin   # or iOS
+```
+
+Android, Linux and Windows download the runtime during their native build, so
+`configure` is a no-op there.
 
 #### Installing requirements
 

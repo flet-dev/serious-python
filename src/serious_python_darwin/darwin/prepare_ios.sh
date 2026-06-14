@@ -1,13 +1,13 @@
 python_version=${1:?}
 python_full_version=${2:?}
 python_build_date=${3:?}
+# dart-bridge release (flet-dev/dart-bridge), passed in from the version table.
+# The xcframework is abi3 and CPython-version-independent — one binary covers
+# all 3.12+ Python versions.
+dart_bridge_version=${4:?}
 
 script_dir=$(cd "$(dirname "$0")" && pwd -P)
 dist=$script_dir/dist_ios
-
-# Pinned dart-bridge release (flet-dev/dart-bridge). The xcframework is abi3 and
-# version-independent of CPython, so one binary covers all 3.12+ Python versions.
-dart_bridge_version=${DART_BRIDGE_VERSION:-1.2.1}
 
 # Cross-plugin download cache; see prepare_macos.sh for the convention.
 cache_root="${FLET_CACHE_DIR:-$HOME/.flet/cache}"

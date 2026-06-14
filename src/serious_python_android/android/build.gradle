@@ -1,10 +1,20 @@
 group 'com.flet.serious_python_android'
 version '2.0.0'
     
-def python_version = System.getenv('SERIOUS_PYTHON_VERSION') ?: '3.14'
-def python_full_version = System.getenv('SERIOUS_PYTHON_FULL_VERSION') ?: '3.14.6'
-def python_build_date = System.getenv('SERIOUS_PYTHON_BUILD_DATE') ?: '20260611'
-def dart_bridge_version = System.getenv('DART_BRIDGE_VERSION') ?: '1.2.1'
+// Python runtime versions come from the generated python_versions.properties
+// (a snapshot of python-build's manifest.json — see serious_python's
+// `gen_version_tables`). SERIOUS_PYTHON_VERSION selects the version; everything
+// else derives from the table. The per-field env vars are escape hatches.
+def _pv = new Properties()
+file('python_versions.properties').withInputStream { _pv.load(it) }
+def python_version = System.getenv('SERIOUS_PYTHON_VERSION') ?: _pv['default_python_version']
+def python_full_version = System.getenv('SERIOUS_PYTHON_FULL_VERSION') ?: _pv["${python_version}.full_version"]
+def python_build_date = System.getenv('SERIOUS_PYTHON_BUILD_DATE') ?: _pv['python_build_release_date']
+def dart_bridge_version = System.getenv('DART_BRIDGE_VERSION') ?: _pv['dart_bridge_version']
+if (python_full_version == null) {
+    def known = _pv.keySet().findAll { it.endsWith('.full_version') }.collect { it - '.full_version' }
+    throw new GradleException("serious_python: unknown SERIOUS_PYTHON_VERSION '${python_version}'. Supported: ${known.join(', ')}")
+}
 
 buildscript {
     repositories {

@@ -10,6 +10,18 @@ import _imp
 
 _imp.extension_suffixes()
 
+# Version probe for the version-switching integration test: when
+# PYTHON_VERSION_FILENAME is set, import numpy (a native-extension ABI canary —
+# a wrong interpreter for the packaged cp<ver> wheels fails this import) and
+# write the running interpreter's short version, then exit.
+_version_file = os.getenv("PYTHON_VERSION_FILENAME")
+if _version_file:
+    import numpy  # noqa: F401
+
+    with open(_version_file, "w") as _vf:
+        _vf.write(f"{sys.version_info.major}.{sys.version_info.minor}")
+    sys.exit(0)
+
 print("HELLO!")
 print("sys.path:", sys.path)
 
