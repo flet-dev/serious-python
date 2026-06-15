@@ -1,3 +1,8 @@
+## 3.0.0
+
+* Remove the scaffold `getPlatformVersion` method from the platform interface and its method-channel implementation.
+* Version bump aligning with the `serious_python_*` 3.0.0 release (in-process `dart_bridge` FFI transport, Flutter 3.44.2).
+
 ## 2.0.0
 
 * Version bump aligning with the major release of the `serious_python_*` platform plugins (multi-version Python support, default Python now 3.14). No interface changes.

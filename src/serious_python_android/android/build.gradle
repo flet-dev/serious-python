@@ -1,5 +1,5 @@
 group 'com.flet.serious_python_android'
-version '2.0.0'
+version '3.0.0'
     
 // Python runtime versions come from the generated python_versions.properties
 // (a snapshot of python-build's manifest.json — see serious_python's
