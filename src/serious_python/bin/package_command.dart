@@ -31,56 +31,6 @@ const allowSourceDistrosEnvironmentVariable =
 // snapshot of python-build's manifest.json; regenerate with
 // `dart run serious_python:gen_version_tables`.
 
-/// Stages the embedded Darwin (iOS/macOS) Python runtime for [shortVersion] by
-/// running the plugin's version-aware prepare script through the `.pod` symlink
-/// in [sitePackagesRoot]. This is what makes a version switch take effect on a
-/// bare rebuild (no `pod install` re-run needed). No-op for non-Darwin platforms,
-/// whose native build stages the runtime itself. Returns false if skipped. Used
-/// by both the `package` and `configure` commands.
-Future<bool> stageDarwinRuntime({
-  required String platform,
-  required String shortVersion,
-  required String sitePackagesRoot,
-}) async {
-  final script = platform == "iOS"
-      ? "prepare_ios.sh"
-      : platform == "Darwin"
-          ? "prepare_macos.sh"
-          : null;
-  if (script == null) return false;
-  final release = pythonReleases[shortVersion];
-  if (release == null) {
-    stderr.writeln("serious_python: unknown Python version '$shortVersion'. "
-        "Supported: ${pythonReleases.keys.join(", ")}");
-    exit(2);
-  }
-  final fullVersion =
-      Platform.environment[pythonFullVersionEnvironmentVariable] ??
-          release.standaloneVersion;
-  final buildDate = Platform.environment[pythonBuildDateEnvironmentVariable] ??
-      pythonReleaseDate;
-  final bridge = Platform.environment[dartBridgeVersionEnvironmentVariable] ??
-      dartBridgeVersion;
-  final sh = File(path.join(sitePackagesRoot, ".pod", script));
-  if (!await sh.exists()) {
-    stdout.writeln("serious_python: $script not found under "
-        "$sitePackagesRoot/.pod — build the app once so CocoaPods creates the "
-        "plugin symlink, then re-run.");
-    return false;
-  }
-  stdout.writeln(
-      "Staging $platform Python $shortVersion (CPython $fullVersion) runtime...");
-  final process = await Process.start(
-      "/bin/sh", [sh.path, shortVersion, fullVersion, buildDate, bridge],
-      mode: ProcessStartMode.inheritStdio);
-  final code = await process.exitCode;
-  if (code != 0) {
-    stderr.writeln("serious_python: $script failed (exit $code).");
-    exit(code);
-  }
-  return true;
-}
-
 const platforms = {
   "iOS": {
     "iphoneos.arm64": {"tag": "ios-13.0-arm64-iphoneos", "mac_ver": ""},
@@ -550,14 +500,6 @@ class PackageCommand extends Command {
               path.join(sitePackagesRoot),
               _verbose);
         }
-
-        // Stage the embedded Darwin interpreter for the selected version so the
-        // build uses it without `pod install` having to re-run prepare.
-        await stageDarwinRuntime(
-          platform: platform,
-          shortVersion: _pythonShortVersion,
-          sitePackagesRoot: sitePackagesRoot,
-        );
 
         // synchronize pod
         var syncSh =

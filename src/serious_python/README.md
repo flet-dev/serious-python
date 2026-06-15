@@ -151,19 +151,10 @@ read by each platform plugin's build script (`build.gradle`, the
 phase and the Flutter build phase. See the [Python versions](#python-versions)
 table above for the matching CPython and Pyodide releases.
 
-#### Running a script without packaging (`configure`)
-
-The `package` command stages the embedded Darwin (iOS/macOS) runtime for the
-selected version automatically. For the bare "run a Python script" flow where
-you skip `package`, stage it yourself with `configure`, then build:
-
-```
-export SERIOUS_PYTHON_VERSION=3.13
-dart run serious_python:main configure --platform Darwin   # or iOS
-```
-
-Android, Linux and Windows download the runtime during their native build, so
-`configure` is a no-op there.
+> **Note:** changing the bundled Python version for an app you've already built
+> requires a clean build (delete the app's `build/` directory, or run
+> `flutter clean`) so stale compiled bytecode from the previous version isn't
+> reused.
 
 #### Installing requirements
 
