@@ -16,20 +16,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // Modern packaging: native libs stay uncompressed/page-aligned in the APK and load
-    // directly (mmap). The serious_python finder dlopens extension modules via the Bionic
-    // APK zip-path, so no legacy extraction is needed.
-    packaging {
-        jniLibs {
-            useLegacyPackaging = false
-            keepDebugSymbols += setOf(
-                "*/arm64-v8a/libpython*.so",
-                "*/armeabi-v7a/libpython*.so",
-                "*/x86/libpython*.so",
-                "*/x86_64/libpython*.so",
-            )
-        }
-    }
+    // No special native-library packaging is needed: serious_python loads extension
+    // modules directly from the APK (mmap) via its finder. Modern packaging
+    // (useLegacyPackaging=false) is AGP's default at minSdk 23+.
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
