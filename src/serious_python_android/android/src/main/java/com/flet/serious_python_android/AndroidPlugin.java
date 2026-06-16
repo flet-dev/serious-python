@@ -73,6 +73,52 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       ContextWrapper contextWrapper = new ContextWrapper(context);
       String nativeLibraryDir = contextWrapper.getApplicationInfo().nativeLibraryDir;
       result.success(nativeLibraryDir);
+    } else if (call.method.equals("getFilesDir")) {
+      result.success(context.getFilesDir().getAbsolutePath());
+    } else if (call.method.equals("extractAsset")) {
+      // Stream an APK asset to disk as one whole file (e.g. stdlib.zip).
+      try {
+        String asset = call.argument("asset");
+        String dest = call.argument("dest");
+        java.io.File destFile = new java.io.File(dest);
+        if (destFile.getParentFile() != null) destFile.getParentFile().mkdirs();
+        byte[] buf = new byte[1 << 16];
+        try (java.io.InputStream in = context.getAssets().open(asset);
+             java.io.OutputStream out = new java.io.FileOutputStream(destFile)) {
+          int n;
+          while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+        result.success(dest);
+      } catch (Exception e) {
+        result.error("extractAsset", e.getMessage(), null);
+      }
+    } else if (call.method.equals("unzipAsset")) {
+      // Unpack an APK asset zip (e.g. extract.zip) into a directory tree.
+      try {
+        String asset = call.argument("asset");
+        String destDir = call.argument("dest");
+        java.io.File root = new java.io.File(destDir);
+        byte[] buf = new byte[1 << 16];
+        try (java.io.InputStream in = context.getAssets().open(asset);
+             java.util.zip.ZipInputStream zis = new java.util.zip.ZipInputStream(in)) {
+          java.util.zip.ZipEntry e;
+          while ((e = zis.getNextEntry()) != null) {
+            java.io.File f = new java.io.File(root, e.getName());
+            if (e.isDirectory()) {
+              f.mkdirs();
+            } else {
+              if (f.getParentFile() != null) f.getParentFile().mkdirs();
+              try (java.io.OutputStream out = new java.io.FileOutputStream(f)) {
+                int n;
+                while ((n = zis.read(buf)) > 0) out.write(buf, 0, n);
+              }
+            }
+          }
+        }
+        result.success(destDir);
+      } catch (Exception e) {
+        result.error("unzipAsset", e.getMessage(), null);
+      }
     } else {
       result.notImplemented();
     }

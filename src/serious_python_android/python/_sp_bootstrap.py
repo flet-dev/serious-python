@@ -22,11 +22,22 @@ a chicken-and-egg: those are themselves native).
 """
 
 import sys
+import posix  # builtin (native-free): read env without importing os
 import zipimport
 from importlib.machinery import ExtensionFileLoader, ModuleSpec
 
 _MARKER_SUFFIX = ".soref"
 _installed = False
+
+
+def _native_lib_dir():
+    # nativeLibraryDir, exported by AndroidPlugin before Py_Initialize. Under legacy
+    # packaging the mangled libs are extracted there, so an absolute origin lets the
+    # interpreter dlopen them (some Android CPython builds prepend "./" to a no-slash
+    # origin, which breaks a bare-soname namespace lookup). Empty under modern
+    # packaging -> fall back to bare soname (linker-namespace resolution).
+    v = posix.environ.get(b"ANDROID_NATIVE_LIBRARY_DIR")
+    return v.decode("utf-8") if v else None
 
 
 class _SorefFinder:
@@ -36,6 +47,7 @@ class _SorefFinder:
         # Cache one zipimporter per zip sys.path entry. Value is None for entries
         # that are not zips (plain directories) so we don't retry zipimporter().
         self._zi_cache = {}
+        self._native_dir = _native_lib_dir()
 
     def _zipimporter(self, entry):
         try:
@@ -80,10 +92,18 @@ class _SorefFinder:
         if data is None:
             return None  # not a relocated native module -> let others handle it
         soname = data.decode("utf-8").strip()
-        # origin = bare soname -> create_dynamic dlopen()s it by basename, which the
-        # app's linker namespace resolves from the APK (modern packaging).
-        loader = ExtensionFileLoader(fullname, soname)
-        return ModuleSpec(fullname, loader, origin=soname)
+        # Prefer an absolute origin under nativeLibraryDir when the lib was extracted
+        # there (legacy packaging); else bare soname for linker-namespace resolution.
+        origin = soname
+        if self._native_dir:
+            cand = self._native_dir + "/" + soname
+            try:
+                open(cand, "rb").close()
+                origin = cand
+            except OSError:
+                pass
+        loader = ExtensionFileLoader(fullname, origin)
+        return ModuleSpec(fullname, loader, origin=origin)
 
 
 def install():

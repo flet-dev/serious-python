@@ -200,6 +200,11 @@ for (abi in abis) {
     // (+ .soref markers in stdlib.zip), stdlib/* -> stdlib.zip root, then delete it.
     tasks.register("splitStdlib_$abi") {
         dependsOn("untarFile_$abi")
+        // The doLast rewrites jniLibs/<abi> (mangled libs in, bundle out); declare it as a
+        // tracked output and always re-run so AGP's native-libs merge re-packages.
+        outputs.dir(jniDir)
+        outputs.dir(assetsDir)
+        outputs.upToDateWhen { false }
         doLast {
             if (!bundleFile.exists()) throw GradleException("libpythonbundle.so missing in jniLibs/$abi")
             val zip = if (isPrimary) storedZip(File(assetsDir, "stdlib.zip")) else null
@@ -229,6 +234,9 @@ for (abi in abis) {
                 }
             }
             zip?.add("_sp_bootstrap.py", bootstrapPy.readBytes())   // finder at zip root
+            // Interim install hook: site (during Py_Initialize) imports this and
+            // installs the finder. Superseded by the dart-bridge pre-site shim (F).
+            zip?.add("sitecustomize.py", "import _sp_bootstrap\n_sp_bootstrap.install()\n".toByteArray())
             zip?.close()
             bundleFile.delete()                                     // fake-zip must not ship
         }
@@ -239,6 +247,9 @@ for (abi in abis) {
     tasks.register("splitSitePackages_$abi") {
         dependsOn("untarFile_$abi")
         mustRunAfter("copyOpt_$abi", "splitStdlib_$abi")
+        outputs.dir(jniDir)
+        outputs.dir(assetsDir)
+        outputs.upToDateWhen { false }
         doLast {
             jniDir.mkdirs()
             val siteZip = if (isPrimary) storedZip(File(assetsDir, "sitepackages.zip")) else null
