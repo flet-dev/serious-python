@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The Flask app binds a local socket server, so it needs INTERNET in all build
+         types (the debug/profile manifests already add it for tooling). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="flask_example"
         android:name="${applicationName}"
