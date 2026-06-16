@@ -234,9 +234,9 @@ for (abi in abis) {
                 }
             }
             zip?.add("_sp_bootstrap.py", bootstrapPy.readBytes())   // finder at zip root
-            // Interim install hook: site (during Py_Initialize) imports this and
-            // installs the finder. Superseded by the dart-bridge pre-site shim (F).
-            zip?.add("sitecustomize.py", "import _sp_bootstrap\n_sp_bootstrap.install()\n".toByteArray())
+            // The dart-bridge Android shim (F) installs the finder before `site`. A
+            // sitecustomize fallback can be re-enabled for bridges without that shim:
+            //   zip?.add("sitecustomize.py", "import _sp_bootstrap\n_sp_bootstrap.install()\n".toByteArray())
             zip?.close()
             bundleFile.delete()                                     // fake-zip must not ship
         }
@@ -279,7 +279,14 @@ for (abi in abis) {
     // the pinned dart_bridge_version release into a cache shared across
     // builds, then drop it as `libdart_bridge.so` (no version suffix) so the
     // Dart side can DynamicLibrary.open by a stable short name.
-    val bridgeFile = File(dartBridgeCacheDir, "libdart_bridge-android-$abi-py$pythonVersion.so")
+    // SERIOUS_PYTHON_DART_BRIDGE_DIST: local-dev override pointing at a dir of
+    // freshly cross-compiled libdart_bridge-android-<abi>-py<ver>.so, bypassing the
+    // GitHub release download (mirrors the SERIOUS_PYTHON_BUILD_DIST escape hatch).
+    val dartBridgeDist = System.getenv("SERIOUS_PYTHON_DART_BRIDGE_DIST")
+    val bridgeFile = if (dartBridgeDist != null)
+        File(dartBridgeDist, "libdart_bridge-android-$abi-py$pythonVersion.so")
+    else
+        File(dartBridgeCacheDir, "libdart_bridge-android-$abi-py$pythonVersion.so")
     tasks.register<Download>("downloadDartBridge_$abi") {
         src("https://github.com/flet-dev/dart-bridge/releases/download/v$dartBridgeVersion/libdart_bridge-android-$abi-py$pythonVersion.so")
         dest(bridgeFile)
@@ -292,7 +299,8 @@ for (abi in abis) {
         from(bridgeFile)
         into("src/main/jniLibs/$abi")
         rename(".*", "libdart_bridge.so")
-        dependsOn("downloadDartBridge_$abi", "jniCleanUp_$abi")
+        if (dartBridgeDist == null) dependsOn("downloadDartBridge_$abi")
+        dependsOn("jniCleanUp_$abi")
     }
     packageTasks.add("copyDartBridge_$abi")
 }
