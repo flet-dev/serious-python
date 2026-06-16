@@ -62,6 +62,14 @@ typedef _DartBridgeEnqueueMessageNative = Int32 Function(
 typedef _DartBridgeEnqueueMessageDart = int Function(
     int, Pointer<Uint8>, int);
 
+typedef _DartBridgeIsPythonInitializedNative = Int32 Function();
+typedef _DartBridgeIsPythonInitializedDart = int Function();
+
+typedef _DartBridgeSignalDartSessionNative = Void Function(
+    Int32, Pointer<Pointer<Utf8>>, Pointer<Int64>);
+typedef _DartBridgeSignalDartSessionDart = void Function(
+    int, Pointer<Pointer<Utf8>>, Pointer<Int64>);
+
 // ---------------------------------------------------------------------------
 // Library binding
 // ---------------------------------------------------------------------------
@@ -82,12 +90,41 @@ class DartBridge {
         .lookup<NativeFunction<_DartBridgeEnqueueMessageNative>>(
             'DartBridge_EnqueueMessage')
         .asFunction<_DartBridgeEnqueueMessageDart>();
+    // dart_bridge >= 1.3.0 exports. Use lookupOrNull so older binaries
+    // still load (calls into the wrappers below become safe no-ops);
+    // makes the Dart/Python rollout decoupled from the libdart_bridge
+    // release cadence.
+    _isPythonInitialized = _lookupOrNull<_DartBridgeIsPythonInitializedNative,
+        _DartBridgeIsPythonInitializedDart>(
+      'dart_bridge_is_python_initialized',
+      (f) => f.asFunction<_DartBridgeIsPythonInitializedDart>(),
+    );
+    _signalDartSession = _lookupOrNull<_DartBridgeSignalDartSessionNative,
+        _DartBridgeSignalDartSessionDart>(
+      'dart_bridge_signal_dart_session',
+      (f) => f.asFunction<_DartBridgeSignalDartSessionDart>(),
+    );
+  }
+
+  // Generic helper for soft symbol lookup — returns null if the binary
+  // doesn't export the symbol (e.g. running against a pre-1.3.0
+  // libdart_bridge).
+  T? _lookupOrNull<N extends Function, T extends Function>(
+      String name, T Function(Pointer<NativeFunction<N>>) bind) {
+    try {
+      final ptr = _lib.lookup<NativeFunction<N>>(name);
+      return bind(ptr);
+    } on ArgumentError {
+      return null;
+    }
   }
 
   final DynamicLibrary _lib;
   late final _SeriousPythonRunDart _run;
   late final _DartBridgeInitDartApiDLDart _initApiDL;
   late final _DartBridgeEnqueueMessageDart _enqueueMessage;
+  late final _DartBridgeIsPythonInitializedDart? _isPythonInitialized;
+  late final _DartBridgeSignalDartSessionDart? _signalDartSession;
 
   static DartBridge? _instance;
 
@@ -141,6 +178,48 @@ class DartBridge {
   /// or -2 if the interpreter is not initialized.
   int enqueueMessage(int port, Pointer<Uint8> data, int len) =>
       _enqueueMessage(port, data, len);
+
+  /// True if libdart_bridge has already brought up an embedded CPython.
+  /// On Android process reuse (OS keeps the process alive across a Dart
+  /// VM restart), this returns true on the second Dart VM's PythonBridge
+  /// construction.
+  ///
+  /// Returns false when running against a pre-1.3.0 libdart_bridge that
+  /// doesn't export the underlying C function — callers should treat that
+  /// as "fresh start path", which is the correct behaviour on every
+  /// platform that hasn't seen this binary update yet.
+  bool get isPythonInitialized {
+    final f = _isPythonInitialized;
+    if (f == null) return false;
+    return f() != 0;
+  }
+
+  /// Signal the running Python program that a new Dart VM session is
+  /// active. On a fresh start where Python isn't loaded yet, this is a
+  /// cheap no-op inside libdart_bridge. On Android process reuse it fires
+  /// every Python callback registered via
+  /// `dart_bridge.add_session_restart_handler(...)`, carrying the new
+  /// native port numbers as a `{label: port}` map.
+  ///
+  /// [portMap] keys are arbitrary labels — current callers use
+  /// `"protocol"` and `"exit"` to match flet's build template wiring.
+  ///
+  /// No-op when running against a pre-1.3.0 libdart_bridge.
+  void signalDartSession(Map<String, int> portMap) {
+    final f = _signalDartSession;
+    if (f == null || portMap.isEmpty) return;
+    using((Arena arena) {
+      final labels = arena<Pointer<Utf8>>(portMap.length);
+      final ports = arena<Int64>(portMap.length);
+      var i = 0;
+      for (final entry in portMap.entries) {
+        labels[i] = entry.key.toNativeUtf8(allocator: arena);
+        ports[i] = entry.value;
+        i++;
+      }
+      f(portMap.length, labels, ports);
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
