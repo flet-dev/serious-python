@@ -3,6 +3,10 @@ import de.undercouch.gradle.tasks.download.Download
 import org.gradle.api.InvalidUserDataException
 import java.io.File
 import java.util.Properties
+import java.util.zip.CRC32
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 buildscript {
     repositories {
@@ -84,6 +88,12 @@ configure<LibraryExtension> {
             )
         }
     }
+
+    // Keep the stdlib/sitepackages/extract zips stored (uncompressed) in the APK so
+    // zipimport can read members without zlib.
+    androidResources {
+        noCompress.add("zip")
+    }
 }
 
 val fletCacheRoot: String? = System.getenv("FLET_CACHE_DIR")
@@ -101,6 +111,48 @@ tasks.register<Copy>("copyBuildDist") {
 
 val siteSrcDir: String? = System.getenv("SERIOUS_PYTHON_SITE_PACKAGES")
 
+// ---- native split -----------------------------------------------------------
+// Relocate CPython extension modules to jniLibs/<abi>/lib<mangled>.so (loaded by
+// basename via the linker namespace), leaving a .soref marker (content = the lib
+// name) at each module's path in the pure zip. Pure code ships in ABI-common
+// stored zips; path-hungry packages from SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES
+// are moved whole into extract.zip and excluded from sitepackages.zip.
+val extractPackages: List<String> = (System.getenv("SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES") ?: "")
+    .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+val primaryAbi = abis.first()                       // pure zips are ABI-common: build once
+val assetsDir = file("src/main/assets")
+val bootstrapPy = file("../python/_sp_bootstrap.py")
+
+val extTag = Regex("""\.(cpython-[^/]+|abi3)\.so$""")   // tagged extension module
+fun isExtModule(name: String) = extTag.containsMatchIn(name)
+fun extDottedName(rel: String): String {               // slash-rel path -> dotted import name
+    val dir = rel.substringBeforeLast('/', "")
+    val mod = rel.substringAfterLast('/').replace(extTag, "")
+    return (if (dir.isEmpty()) "" else dir.replace('/', '.') + ".") + mod
+}
+fun mangledLib(dotted: String) = "lib" + dotted.replace('.', '-') + ".so"
+fun sorefPath(rel: String) = rel.replace(extTag, ".soref")
+fun isAllowlisted(rel: String) = extractPackages.any { rel == it || rel.startsWith("$it/") }
+
+// Minimal STORED (uncompressed) zip so members stay readable via zipimport.get_data
+// with no zlib at runtime.
+class StoredZip(val out: ZipOutputStream) {
+    fun add(name: String, data: ByteArray) {
+        val e = ZipEntry(name).apply {
+            method = ZipEntry.STORED
+            size = data.size.toLong()
+            compressedSize = data.size.toLong()
+            crc = CRC32().apply { update(data) }.value
+        }
+        out.putNextEntry(e); out.write(data); out.closeEntry()
+    }
+    fun close() = out.close()
+}
+fun storedZip(f: File): StoredZip {
+    f.parentFile.mkdirs()
+    return StoredZip(ZipOutputStream(f.outputStream()).apply { setMethod(ZipOutputStream.STORED) })
+}
+
 // Loop through abiFilters
 val packageTasks = mutableListOf<String>()
 for (abi in abis) {
@@ -108,7 +160,8 @@ for (abi in abis) {
         throw InvalidUserDataException("SERIOUS_PYTHON_SITE_PACKAGES environment variable is not set.")
     }
 
-    packageTasks.add("zipSitePackages_$abi")
+    packageTasks.add("splitStdlib_$abi")
+    packageTasks.add("splitSitePackages_$abi")
     packageTasks.add("copyOpt_$abi")
 
     tasks.register<Delete>("jniCleanUp_$abi") {
@@ -138,11 +191,75 @@ for (abi in abis) {
         dependsOn("jniCleanUp_$abi")
     }
 
-    tasks.register<Zip>("zipSitePackages_$abi") {
-        from(fileTree("$siteSrcDir/$abi"))
-        archiveFileName.set("libpythonsitepackages.so")
-        destinationDirectory.set(file("src/main/jniLibs/$abi"))
-        dependsOn("jniCleanUp_$abi", "untarFile_$abi")
+    val jniDir = file("src/main/jniLibs/$abi")
+    val abiSiteDir = file("$siteSrcDir/$abi")
+    val bundleFile = File(jniDir, "libpythonbundle.so")
+    val isPrimary = abi == primaryAbi
+
+    // Crack the stdlib bundle (libpythonbundle.so): modules/*.so -> mangled jniLibs
+    // (+ .soref markers in stdlib.zip), stdlib/* -> stdlib.zip root, then delete it.
+    tasks.register("splitStdlib_$abi") {
+        dependsOn("untarFile_$abi")
+        doLast {
+            if (!bundleFile.exists()) throw GradleException("libpythonbundle.so missing in jniLibs/$abi")
+            val zip = if (isPrimary) storedZip(File(assetsDir, "stdlib.zip")) else null
+            ZipFile(bundleFile).use { zf ->
+                val en = zf.entries()
+                while (en.hasMoreElements()) {
+                    val e = en.nextElement()
+                    if (e.isDirectory) continue
+                    val data = zf.getInputStream(e).readBytes()
+                    val name = e.name
+                    when {
+                        name.startsWith("modules/") -> {
+                            val rel = name.removePrefix("modules/")     // top-level module file
+                            when {
+                                isExtModule(rel) -> {
+                                    val lib = mangledLib(extDottedName(rel))
+                                    File(jniDir, lib).writeBytes(data)
+                                    zip?.add(sorefPath(rel), lib.toByteArray())
+                                }
+                                rel.endsWith(".so") -> File(jniDir, File(rel).name).writeBytes(data)
+                                else -> zip?.add(rel, data)
+                            }
+                        }
+                        name.startsWith("stdlib/") -> zip?.add(name.removePrefix("stdlib/"), data)
+                        else -> zip?.add(name, data)
+                    }
+                }
+            }
+            zip?.add("_sp_bootstrap.py", bootstrapPy.readBytes())   // finder at zip root
+            zip?.close()
+            bundleFile.delete()                                     // fake-zip must not ship
+        }
+    }
+
+    // Site-packages tree: tagged .so -> mangled jniLibs (+ .soref markers), pure ->
+    // sitepackages.zip (or extract.zip if allowlisted); opt/ is left to copyOpt.
+    tasks.register("splitSitePackages_$abi") {
+        dependsOn("untarFile_$abi")
+        mustRunAfter("copyOpt_$abi", "splitStdlib_$abi")
+        doLast {
+            jniDir.mkdirs()
+            val siteZip = if (isPrimary) storedZip(File(assetsDir, "sitepackages.zip")) else null
+            val extractZip = if (isPrimary) storedZip(File(assetsDir, "extract.zip")) else null
+            abiSiteDir.walkTopDown().filter { it.isFile }.forEach { f ->
+                val rel = f.relativeTo(abiSiteDir).path.replace(File.separatorChar, '/')
+                if (rel == "opt" || rel.startsWith("opt/")) return@forEach        // dep libs -> copyOpt
+                val zip = if (isAllowlisted(rel)) extractZip else siteZip
+                when {
+                    isExtModule(rel) -> {
+                        val lib = mangledLib(extDottedName(rel))
+                        f.copyTo(File(jniDir, lib), overwrite = true)
+                        zip?.add(sorefPath(rel), lib.toByteArray())
+                    }
+                    rel.endsWith(".so") -> f.copyTo(File(jniDir, f.name), overwrite = true)  // untagged -> dep
+                    else -> zip?.add(rel, f.readBytes())
+                }
+            }
+            siteZip?.close()
+            extractZip?.close()
+        }
     }
 
     // dart-bridge ships a per-(abi × Python-minor-version) prebuilt .so. The
