@@ -123,6 +123,14 @@ def install():
     global _installed
     if _installed:
         return
+    # Bootstrap audit: any extension module (.so) already imported at this point was
+    # loaded during interpreter core-init, BEFORE the finder existed — which only works
+    # if it was builtin/frozen. A non-empty list means that module must be made static
+    # (PyImport_AppendInittab) or it will fail under modern packaging. Expected: empty.
+    pre = [n for n, m in sys.modules.items()
+           if getattr(m, "__file__", None) and str(m.__file__).endswith(".so")]
+    if pre:
+        sys.stderr.write("SP_BOOTSTRAP pre-finder native modules: %r\n" % (pre,))
     for f in sys.meta_path:
         if isinstance(f, _SorefFinder):
             _installed = True

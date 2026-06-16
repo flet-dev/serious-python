@@ -155,6 +155,19 @@ fun storedZip(f: File): StoredZip {
 
 // Loop through abiFilters
 val packageTasks = mutableListOf<String>()
+
+// Remove jniLibs/<abi> dirs for ABIs not in the current set (e.g. stale armeabi-v7a
+// 3.12 leftovers when building 3.14) so they aren't packaged into the APK/AAB.
+val jniLibsRoot = file("src/main/jniLibs")
+tasks.register("cleanStaleAbis") {
+    doLast {
+        jniLibsRoot.listFiles()?.forEach { d ->
+            if (d.isDirectory && d.name !in abis) d.deleteRecursively()
+        }
+    }
+}
+packageTasks.add("cleanStaleAbis")
+
 for (abi in abis) {
     if (siteSrcDir == null || siteSrcDir.isBlank()) {
         throw InvalidUserDataException("SERIOUS_PYTHON_SITE_PACKAGES environment variable is not set.")
