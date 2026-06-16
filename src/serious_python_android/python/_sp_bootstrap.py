@@ -40,6 +40,13 @@ def _native_lib_dir():
     return v.decode("utf-8") if v else None
 
 
+def _apk_native_prefix():
+    # base.apk!/lib/<abi>/ — Bionic zip-path to libs mmap'd from the APK under modern
+    # packaging (useLegacyPackaging=false), where libs are NOT extracted to disk.
+    v = posix.environ.get(b"ANDROID_APK_NATIVE_PREFIX")
+    return v.decode("utf-8") if v else None
+
+
 class _SorefFinder:
     """meta_path finder: dotted name -> jniLibs lib via its ``.soref`` marker."""
 
@@ -48,6 +55,7 @@ class _SorefFinder:
         # that are not zips (plain directories) so we don't retry zipimporter().
         self._zi_cache = {}
         self._native_dir = _native_lib_dir()
+        self._apk_prefix = _apk_native_prefix()
 
     def _zipimporter(self, entry):
         try:
@@ -92,8 +100,10 @@ class _SorefFinder:
         if data is None:
             return None  # not a relocated native module -> let others handle it
         soname = data.decode("utf-8").strip()
-        # Prefer an absolute origin under nativeLibraryDir when the lib was extracted
-        # there (legacy packaging); else bare soname for linker-namespace resolution.
+        # Resolve the lib to an absolute origin (CPython prepends "./" to a no-slash
+        # origin, which breaks bare-soname loading). Prefer the extracted copy under
+        # nativeLibraryDir (legacy packaging); else the Bionic APK zip-path (modern
+        # packaging, mmap'd from the APK, never extracted).
         origin = soname
         if self._native_dir:
             cand = self._native_dir + "/" + soname
@@ -102,6 +112,8 @@ class _SorefFinder:
                 origin = cand
             except OSError:
                 pass
+        if origin == soname and self._apk_prefix:
+            origin = self._apk_prefix + soname
         loader = ExtensionFileLoader(fullname, origin)
         return ModuleSpec(fullname, loader, origin=origin)
 

@@ -38,8 +38,17 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
     channel.setMethodCallHandler(this);
     this.context = flutterPluginBinding.getApplicationContext();
     try {
-      Os.setenv(ANDROID_NATIVE_LIBRARY_DIR,
-          new ContextWrapper(this.context).getApplicationInfo().nativeLibraryDir, true);
+      android.content.pm.ApplicationInfo ai =
+          new ContextWrapper(this.context).getApplicationInfo();
+      Os.setenv(ANDROID_NATIVE_LIBRARY_DIR, ai.nativeLibraryDir, true);
+      // Under modern packaging (useLegacyPackaging=false) native libs are NOT extracted
+      // to nativeLibraryDir; they live uncompressed/page-aligned inside the APK and are
+      // loadable via Bionic's zip-path (apk!/lib/<abi>/<soname>). Export that prefix so
+      // the finder can dlopen them directly from the APK (mmap, no extraction).
+      String abi = (android.os.Build.SUPPORTED_ABIS != null
+          && android.os.Build.SUPPORTED_ABIS.length > 0)
+          ? android.os.Build.SUPPORTED_ABIS[0] : "";
+      Os.setenv("ANDROID_APK_NATIVE_PREFIX", ai.sourceDir + "!/lib/" + abi + "/", true);
     } catch (Exception e) {
       // nothing to do
     }

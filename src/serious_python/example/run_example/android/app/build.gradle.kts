@@ -16,12 +16,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // serious_python bundles libpython*.so. Use legacy (extracted, uncompressed)
-    // packaging so the embedded interpreter can dlopen them at runtime, and keep
-    // their symbols so they are not stripped.
+    // Modern packaging: native libs stay uncompressed/page-aligned in the APK and load
+    // directly (mmap). The serious_python finder dlopens extension modules via the Bionic
+    // APK zip-path, so no legacy extraction is needed.
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
             keepDebugSymbols += setOf(
                 "*/arm64-v8a/libpython*.so",
                 "*/armeabi-v7a/libpython*.so",
