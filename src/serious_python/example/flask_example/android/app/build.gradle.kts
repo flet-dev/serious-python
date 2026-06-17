@@ -16,21 +16,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    // serious_python bundles libpython*.so. Use legacy (extracted, uncompressed)
-    // packaging so the embedded interpreter can dlopen them at runtime, and keep
-    // their symbols so they are not stripped. (Replaces the removed
-    // android.bundle.enableUncompressedNativeLibs flag.)
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-            keepDebugSymbols += setOf(
-                "*/arm64-v8a/libpython*.so",
-                "*/armeabi-v7a/libpython*.so",
-                "*/x86/libpython*.so",
-                "*/x86_64/libpython*.so",
-            )
-        }
-    }
+    // No native-library packaging config is needed: serious_python loads Python
+    // extension modules directly from the APK (memory-mapped) and ships pure
+    // Python in stored asset zips. Modern packaging (the default at minSdk 23+) is
+    // all that's required.
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).

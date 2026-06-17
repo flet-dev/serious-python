@@ -51,7 +51,6 @@ const platforms = {
     "arm64-v8a": {"tag": "android-24-arm64_v8a", "mac_ver": ""},
     "armeabi-v7a": {"tag": "android-24-armeabi_v7a", "mac_ver": ""},
     "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
-    "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
   "Emscripten": {
     // The actual wheel platform tag is resolved per Python release from
@@ -355,7 +354,7 @@ class PackageCommand extends Command {
           // versions, so installing 32-bit wheels would be wasted work.
           if (platform == "Android" &&
               _pythonShortVersion != "3.12" &&
-              (arch.key == "armeabi-v7a" || arch.key == "x86")) {
+              arch.key == "armeabi-v7a") {
             continue;
           }
           String? sitePackagesDir;

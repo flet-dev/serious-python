@@ -78,16 +78,11 @@ configure<LibraryExtension> {
         }
     }
 
-    packaging {
-        jniLibs {
-            keepDebugSymbols += setOf(
-                "*/arm64-v8a/libpython*.so",
-                "*/armeabi-v7a/libpython*.so",
-                "*/x86/libpython*.so",
-                "*/x86_64/libpython*.so",
-            )
-        }
-    }
+    // No jniLibs packaging config needed: the native modules are real ELF .so that
+    // land in the consuming app's jniLibs (relocated by the split tasks) and are
+    // loaded memory-mapped from the APK — modern packaging (minSdk 23+) is all that
+    // is required. (The old keepDebugSymbols rules were only needed for the previous
+    // fake-.so-zip scheme.)
 
     // Keep the stdlib/sitepackages/extract zips stored (uncompressed) in the APK so
     // zipimport can read members without zlib.
