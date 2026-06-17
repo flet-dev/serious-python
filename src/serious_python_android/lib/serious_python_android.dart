@@ -32,38 +32,48 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
       bool? sync}) async {
-    final nativeLibraryDir =
-        await methodChannel.invokeMethod<String>('getNativeLibraryDir');
-    if (nativeLibraryDir == null) {
-      throw StateError(
-          'serious_python: failed to resolve native library dir');
+    // Native extension modules now live in jniLibs (loaded by basename via the
+    // finder); pure code ships in stored Android-asset zips. Copy the zips to disk
+    // once (version-keyed) and unpack the allowlist payload; PYTHONPATH points at
+    // the zips so zipimport serves pure modules in place.
+    final filesDir = await methodChannel.invokeMethod<String>('getFilesDir');
+    if (filesDir == null) {
+      throw StateError('serious_python: failed to resolve files dir');
     }
-
-    final bundlePath = '$nativeLibraryDir/libpythonbundle.so';
-    if (!await File(bundlePath).exists()) {
-      throw Exception('Python bundle not found: $bundlePath');
-    }
+    final base = p.join(filesDir, 'flet', 'py');
+    final stdlibZip = p.join(base, 'stdlib.zip');
+    final siteZip = p.join(base, 'sitepackages.zip');
+    final extractDir = p.join(base, 'extract');
 
     final appVersion = await _appVersion();
-    final invalidateKey = appVersion != null ? 'app:$appVersion' : null;
-
-    final pythonLibPath = await extractFileZip(bundlePath,
-        targetPath: 'python_bundle', invalidateKey: invalidateKey);
-
-    final sitePackagesZip = '$nativeLibraryDir/libpythonsitepackages.so';
-    String? sitePackagesPath;
-    if (await File(sitePackagesZip).exists()) {
-      sitePackagesPath = await extractFileZip(sitePackagesZip,
-          targetPath: 'python_site_packages', invalidateKey: invalidateKey);
+    final key = appVersion != null ? 'app:$appVersion' : 'app:dev';
+    final marker = File(p.join(base, '.key'));
+    final upToDate =
+        await marker.exists() && (await marker.readAsString()) == key;
+    if (!upToDate) {
+      await Directory(base).create(recursive: true);
+      if (await Directory(extractDir).exists()) {
+        await Directory(extractDir).delete(recursive: true);
+      }
+      await methodChannel.invokeMethod(
+          'extractAsset', {'asset': 'stdlib.zip', 'dest': stdlibZip});
+      await methodChannel.invokeMethod(
+          'extractAsset', {'asset': 'sitepackages.zip', 'dest': siteZip});
+      await methodChannel.invokeMethod(
+          'unzipAsset', {'asset': 'extract.zip', 'dest': extractDir});
+      await marker.writeAsString(key);
     }
 
     final programDir = p.dirname(appPath);
+    // Highest -> lowest precedence. site-packages before stdlib so pip backports
+    // can override; extract-dir before sitepackages.zip. Natives resolve via the
+    // finder, not a sys.path entry.
     final pythonPaths = <String>[
       ...?modulePaths,
       programDir,
-      '$pythonLibPath/modules',
-      '$pythonLibPath/stdlib',
-      if (sitePackagesPath != null) sitePackagesPath,
+      extractDir,
+      siteZip,
+      stdlibZip,
     ];
 
     final env = <String, String>{
@@ -72,7 +82,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       'PYTHONNOUSERSITE': '1',
       'PYTHONUNBUFFERED': '1',
       'LC_CTYPE': 'UTF-8',
-      'PYTHONHOME': pythonLibPath,
+      'PYTHONHOME': base,
       'PYTHONPATH': pythonPaths.join(':'),
       ...?environmentVariables,
     };

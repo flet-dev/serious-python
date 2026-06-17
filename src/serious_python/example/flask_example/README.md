@@ -37,21 +37,16 @@ export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
 dart run serious_python:main package app/src -p Linux -r -r -r app/src/requirements.txt
 ```
 
-Important: to make `serious_python` work in your own Android app, the bundled
-`libpython*.so` must be shipped uncompressed and extracted so the embedded
-interpreter can `dlopen` them at runtime. In `android/app/build.gradle.kts`:
+For Android, no special native-library packaging config is required.
+`serious_python` relocates Python extension modules into `jniLibs` and loads them
+directly from the APK (memory-mapped, no extraction), and ships pure Python in
+stored asset zips. Just use a `minSdk` of 23+ so native libs stay uncompressed and
+page-aligned in the APK:
 
 ```kotlin
 android {
-    packaging {
-        jniLibs {
-            useLegacyPackaging = true
-        }
+    defaultConfig {
+        minSdk = 23
     }
 }
 ```
-
-`useLegacyPackaging = true` is the modern replacement (AGP 8.1+) for both the
-old `android.bundle.enableUncompressedNativeLibs=false` gradle property and the
-`android:extractNativeLibs="true"` manifest attribute, and it covers both APK and
-App Bundle builds. See the [public issue](https://issuetracker.google.com/issues/147096055).
