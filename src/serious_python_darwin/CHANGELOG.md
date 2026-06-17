@@ -1,6 +1,6 @@
 ## 3.0.0
 
-* **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `dart_bridge.xcframework` (from `flet-dev/dart-bridge` **1.2.3**) instead of a socket transport; the Swift plugin registers the dart_bridge inittab, the pod is declared `static_framework` for xcframework vendoring, and the embedded `Python.app` is stripped from `Python.framework`.
+* **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `dart_bridge.xcframework` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport; the Swift plugin registers the dart_bridge inittab, the pod is declared `static_framework` for xcframework vendoring, and the embedded `Python.app` is stripped from `Python.framework`.
 * **Breaking change:** requires Flutter **3.44.2**.
 * The podspec resolves the Python version from the generated `python_versions.properties` (a snapshot of python-build's `manifest.json`) and passes the full version, build date and `dart_bridge` version to `prepare_ios.sh` / `prepare_macos.sh` (`dart_bridge_version` is `$4`); `SERIOUS_PYTHON_VERSION` is the knob, the per-field env vars are escape hatches. The prepare scripts re-extract `dist_ios` / `dist_macos` when the selected version changes (a version marker) so a clean build can't mix C-extension ABIs.
 * Remove the scaffold `getPlatformVersion` method.

@@ -1,6 +1,6 @@
 ## 3.0.0
 
-* **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `libdart_bridge.so` (from `flet-dev/dart-bridge` **1.2.3**, `DT_RPATH $ORIGIN`) instead of a socket transport.
+* **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `libdart_bridge.so` (from `flet-dev/dart-bridge` **1.4.0**, `DT_RPATH $ORIGIN`) instead of a socket transport.
 * **Breaking change:** requires Flutter **3.44.2**.
 * `CMakeLists.txt` resolves the Python version from the generated `python_versions.properties` (a snapshot of python-build's `manifest.json`): `SERIOUS_PYTHON_VERSION` selects the version; the full version and build date derive from the table, with `SERIOUS_PYTHON_FULL_VERSION` / `SERIOUS_PYTHON_BUILD_DATE` left as escape hatches. Downloads continue to use python-build's date-keyed release scheme.
 * Remove the scaffold `getPlatformVersion` method.

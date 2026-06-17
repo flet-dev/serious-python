@@ -9,6 +9,8 @@
 * The embedded Darwin runtime re-extracts when the selected Python version changes (a version marker guards `dist_ios` / `dist_macos`), so a clean build after switching `--python-version` can't mix C-extension ABIs (`bad magic number` / `unknown slot ID`).
 * Cache downloaded Python distributions and `dart_bridge` artifacts under `$FLET_CACHE_DIR` (default `~/.flet/cache`) across all platforms.
 * Remove the scaffold `getPlatformVersion` method from the platform plugins.
+* Drop the `x86` (32-bit Intel) Android ABI — Flutter no longer produces it. Android builds target `arm64-v8a` + `x86_64` (plus `armeabi-v7a` on Python 3.12); the `x86` wheel platform-tag entry and the Android packaging rules referencing it are removed.
+* **Breaking change:** the `configure` command (and the bare in-place version-switching machinery, including `stageDarwinRuntime`) is removed. Switching the bundled Python version between builds is now handled by a clean rebuild — `flet build` wipes its build dir on a version change, and the Darwin `dist_ios` / `dist_macos` version marker re-extracts the runtime — so a separate `serious_python configure` step is no longer needed.
 * **Bug fix:** the Pyodide 0.29 wheel platform tag for the 3.13 row was `pyodide-2025.0-wasm32`, but Pyodide publishes 0.29 wheels under `pyemscripten_2025_0_wasm32`; corrected to `pyemscripten-2025.0-wasm32` so `flet build web --python-version 3.13` matches native wheels.
 
 ## 2.0.0
