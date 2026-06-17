@@ -44,14 +44,39 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       // Under modern packaging (useLegacyPackaging=false) native libs are NOT extracted
       // to nativeLibraryDir; they live uncompressed/page-aligned inside the APK and are
       // loadable via Bionic's zip-path (apk!/lib/<abi>/<soname>). Export that prefix so
-      // the finder can dlopen them directly from the APK (mmap, no extraction).
+      // the finder can dlopen them directly from the APK (mmap, no extraction). For Play
+      // Store AAB installs the libs are in a per-ABI config split, not base.apk, so pick
+      // whichever installed APK actually contains lib/<abi>/.
       String abi = (android.os.Build.SUPPORTED_ABIS != null
           && android.os.Build.SUPPORTED_ABIS.length > 0)
           ? android.os.Build.SUPPORTED_ABIS[0] : "";
-      Os.setenv("ANDROID_APK_NATIVE_PREFIX", ai.sourceDir + "!/lib/" + abi + "/", true);
+      Os.setenv("ANDROID_APK_NATIVE_PREFIX", apkNativePrefix(ai, abi), true);
     } catch (Exception e) {
       // nothing to do
     }
+  }
+
+  // Bionic zip-path prefix (<apk>!/lib/<abi>/) of the installed APK that holds the
+  // native libs. Single-APK builds -> base.apk; Play Store AAB installs -> the
+  // per-ABI config split (base.apk has no libs then). Detected by probing for the
+  // always-present libdart_bridge.so.
+  private static String apkNativePrefix(android.content.pm.ApplicationInfo ai, String abi) {
+    java.util.List<String> apks = new java.util.ArrayList<>();
+    if (ai.sourceDir != null) apks.add(ai.sourceDir);
+    if (ai.splitSourceDirs != null) {
+      java.util.Collections.addAll(apks, ai.splitSourceDirs);
+    }
+    String member = "lib/" + abi + "/libdart_bridge.so";
+    for (String apk : apks) {
+      try (java.util.zip.ZipFile zf = new java.util.zip.ZipFile(apk)) {
+        if (zf.getEntry(member) != null) {
+          return apk + "!/lib/" + abi + "/";
+        }
+      } catch (Exception e) {
+        // unreadable apk — skip
+      }
+    }
+    return (ai.sourceDir != null ? ai.sourceDir : "") + "!/lib/" + abi + "/";
   }
 
   @Override
@@ -78,10 +103,6 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
-    } else if (call.method.equals("getNativeLibraryDir")) {
-      ContextWrapper contextWrapper = new ContextWrapper(context);
-      String nativeLibraryDir = contextWrapper.getApplicationInfo().nativeLibraryDir;
-      result.success(nativeLibraryDir);
     } else if (call.method.equals("getFilesDir")) {
       result.success(context.getFilesDir().getAbsolutePath());
     } else if (call.method.equals("extractAsset")) {
