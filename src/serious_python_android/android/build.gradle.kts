@@ -49,12 +49,14 @@ if (pythonFullVersion == null) {
     throw GradleException("serious_python: unknown SERIOUS_PYTHON_VERSION '$pythonVersion'. Supported: ${known.joinToString(", ")}")
 }
 
-// python-build dropped 32-bit Android in 3.13 (PEP 738), so the
-// python-android-dart-<ver>-armeabi-v7a tarball only exists for 3.12.
-val abis: List<String> = if (pythonVersion == "3.12")
-    listOf("arm64-v8a", "armeabi-v7a", "x86_64")
-else
-    listOf("arm64-v8a", "x86_64")
+// ABIs come from python-build's manifest (the per-minor `android_abis` array,
+// flattened into python_versions.properties by `gen_version_tables`). 3.12
+// still ships armeabi-v7a; 3.13+ are 64-bit-only (PEP 738). A future minor
+// only needs the manifest edit — no Gradle change here.
+val abis: List<String> = (pv.getProperty("$pythonVersion.android_abis")
+    ?: throw GradleException(
+        "serious_python: python_versions.properties has no '$pythonVersion.android_abis'"))
+    .split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
 configure<LibraryExtension> {
     namespace = "com.flet.serious_python_android"

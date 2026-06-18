@@ -226,6 +226,7 @@ class PackageCommand extends Command {
             Platform.environment[pyodideVersionEnvironmentVariable] ??
                 baseRelease.pyodideVersion,
         pyodidePlatformTag: baseRelease.pyodidePlatformTag,
+        androidAbis: baseRelease.androidAbis,
         prerelease: baseRelease.prerelease,
       );
       final preNote = _release.prerelease ? " — pre-release" : "";
