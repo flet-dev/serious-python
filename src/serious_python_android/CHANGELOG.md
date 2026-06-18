@@ -1,3 +1,12 @@
+## 3.0.0
+
+* **In-process Python (dart_bridge FFI).** The Python lifecycle now runs through `libdart_bridge.so` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport.
+* **Native modules are memory-mapped from the APK — no more `useLegacyPackaging`.** Python extension modules (stdlib `lib-dynload` and site-packages) are relocated into `jniLibs/<abi>/lib<mangled>.so` and loaded directly from the APK by a custom `sys.meta_path` finder that resolves them from `.soref` markers — no extraction to disk, still ABI-split by the Play Store. Pure Python ships in **stored, ABI-common asset zips** read via `zipimport`, so the stdlib is no longer duplicated per ABI. This replaces the previous scheme of zipping stdlib/site-packages into fake `lib*.so` files (which required `useLegacyPackaging`). The dart-bridge Android binary now uses the full CPython API (`PyConfig`) to install the finder before `site` runs. Set **`SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES`** (comma-separated relative paths) to ship path-hungry packages extracted to disk instead.
+* **Breaking change:** requires Flutter **3.44.2**. Moves to AGP **8.11.1**, Gradle 8.11.1, `compileSdk` **36**, Java **17**, and the **Kotlin-DSL** Gradle build (`build.gradle.kts`).
+* `build.gradle` resolves the Python version from the generated `python_versions.properties` (a snapshot of python-build's `manifest.json`): `SERIOUS_PYTHON_VERSION` selects the version; the full version, build date and `dart_bridge` version derive from the table, with `SERIOUS_PYTHON_FULL_VERSION` / `SERIOUS_PYTHON_BUILD_DATE` / `DART_BRIDGE_VERSION` left as escape hatches. Downloads continue to use python-build's date-keyed release scheme.
+* Drop the `x86` (32-bit Intel) ABI — Flutter no longer produces it. ABIs are `arm64-v8a` + `x86_64` (plus `armeabi-v7a` on Python 3.12).
+* Remove the scaffold `getPlatformVersion` method.
+
 ## 2.0.0
 
 * **Breaking change:** default bundled Python version is now 3.14 (was 3.12). Apps built without an explicit `SERIOUS_PYTHON_VERSION` env var pull the 3.14 python-build distribution and ship `libpython3.14.so`. Set `SERIOUS_PYTHON_VERSION=3.12` (typically threaded through `flet build`) to preserve the previous default.

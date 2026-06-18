@@ -43,25 +43,23 @@ For Pyodide:
 dart run serious_python:main package app/src -p Emscripten -r -r -r app/src/requirements.txt
 ```
 
-For Android:
+For Android, no special native-library packaging config is required. serious_python
+relocates Python extension modules into `jniLibs` and loads them directly from the APK
+(memory-mapped, no extraction), and ships pure Python in stored asset zips read via
+`zipimport`. Just use a `minSdk` of 23+ so native libs stay uncompressed/page-aligned in
+the APK:
 
-In `android/app/build.gradle`:
+In `android/app/build.gradle.kts`:
 
-```
+```kotlin
 android {
-    ndkVersion "25.1.8937393"
-
-    packagingOptions {
-        jniLibs {
-            useLegacyPackaging true
-        }
-    }
-
-    packagingOptions {
-        doNotStrip "*/arm64-v8a/libpython*.so"
-        doNotStrip "*/armeabi-v7a/libpython*.so"
-        doNotStrip "*/x86/libpython*.so"
-        doNotStrip "*/x86_64/libpython*.so"
+    defaultConfig {
+        minSdk = 23
     }
 }
 ```
+
+To ship a path-hungry package **extracted to disk** instead of inside the zip — for
+packages that read bundled data via `__file__` / `pkg_resources` rather than
+`importlib.resources` — set `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES` to a comma-separated
+list of relative package paths before building.

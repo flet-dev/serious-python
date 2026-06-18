@@ -1,5 +1,5 @@
 name: flet_example
-description: A new Flutter project.
+description: Flet counter app running on the in-process dart_bridge FFI transport.
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -31,16 +31,25 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
 
   serious_python:
     path: ../../
 
-  flet: ^0.28.3
+  flet:
+    git:
+      url: https://github.com/flet-dev/flet.git
+      ref: dart-bridge
+      path: packages/flet
   
   path: ^1.8.3
-  url_strategy: ^0.2.0
   path_provider: ^2.1.4
-  package_info_plus: ^8.0.2
+  package_info_plus: ^9.0.0
+  # msgpack_dart is the wire format Flet uses. _DartBridgeBackendChannel
+  # (in lib/main.dart) encodes outbound frames before handing them to
+  # PythonBridge.send.
+  msgpack_dart: ^1.0.1
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

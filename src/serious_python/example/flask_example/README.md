@@ -6,42 +6,47 @@ For Android:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
-dart run serious_python:main package app/src -p Android --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p Android -r -r -r app/src/requirements.txt
 ```
 
 For iOS:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
-dart run serious_python:main package app/src -p iOS --requirements -r,app/src/requirements.txt
+dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirements.txt
 ```
 
 For macOS:
 
 ```
-dart run serious_python:main package app/src -p Darwin --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Darwin -r -r -r app/src/requirements.txt
 ```
 
 For Windows:
 
 ```
-dart run serious_python:main package app/src -p Windows --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Windows -r -r -r app/src/requirements.txt
 ```
 
 For Linux:
 
 ```
-dart run serious_python:main package app/src -p Linux --requirements -r,app/src/requirements.txt
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+dart run serious_python:main package app/src -p Linux -r -r -r app/src/requirements.txt
 ```
 
-Important: to make `serious_python` work in your own Android app:
+For Android, no special native-library packaging config is required.
+`serious_python` relocates Python extension modules into `jniLibs` and loads them
+directly from the APK (memory-mapped, no extraction), and ships pure Python in
+stored asset zips. Just use a `minSdk` of 23+ so native libs stay uncompressed and
+page-aligned in the APK:
 
-If you build an App Bundle Edit `android/gradle.properties` and add the flag:
-
+```kotlin
+android {
+    defaultConfig {
+        minSdk = 23
+    }
+}
 ```
-android.bundle.enableUncompressedNativeLibs=false
-```
-
-If you build an APK Make sure `android/app/src/AndroidManifest.xml` has `android:extractNativeLibs="true"` in the `<application>` tag.
-
-For more information, see the [public issue](https://issuetracker.google.com/issues/147096055).

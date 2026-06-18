@@ -1,78 +1,88 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flet/flet.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
+import 'package:msgpack_dart/msgpack_dart.dart' as msgpack;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:serious_python/bridge.dart';
 import 'package:serious_python/serious_python.dart';
-import 'package:url_strategy/url_strategy.dart';
 
 const bool isProduction = bool.fromEnvironment('dart.vm.product');
 
 const assetPath = "app/app.zip";
-const pythonModuleName = "main"; // {{ cookiecutter.python_module_name }}
+const pythonModuleName = "main";
 final hideLoadingPage =
     bool.tryParse("{{ cookiecutter.hide_loading_animation }}".toLowerCase()) ??
         true;
-const outLogFilename = "out.log";
 const errorExitCode = 100;
 
+/// The Python script is intentionally smaller than in `flet_example`. No
+/// stdout-callback socket, no flet.sock — Python startup is just `runpy`
+/// on the user module, and stdout/stderr stay attached to whatever the
+/// embedded interpreter inherits. The dart_bridge transport in Flet 0.85+
+/// handles IPC directly.
 const pythonScript = """
-import certifi, os, runpy, socket, sys, traceback
+import logging, os, runpy, sys, traceback
 
-os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
-os.environ["SSL_CERT_FILE"] = certifi.where()
+# Redirect stdout/stderr to a file under FLET_APP_TEMP so we can inspect what
+# Python is doing without a separate stdout-callback socket. Temporary — once
+# the FFI transport is stable a more proper logging story can land.
+_log_path = os.path.join(
+    os.environ.get("FLET_APP_TEMP", "/tmp"), "flet_boot.log"
+)
+_log = open(_log_path, "w", buffering=1)
+sys.stdout = _log
+sys.stderr = _log
+logging.basicConfig(stream=_log, level=logging.DEBUG)
+print(f"[boot] python {sys.version}", flush=True)
+print(f"[boot] FLET_DART_BRIDGE_PORT={os.environ.get('FLET_DART_BRIDGE_PORT')}", flush=True)
+print(f"[boot] FLET_PLATFORM={os.environ.get('FLET_PLATFORM')}", flush=True)
 
-if os.getenv("FLET_PLATFORM") == "android":
-    import ssl
+try:
+    import certifi
+    os.environ["REQUESTS_CA_BUNDLE"] = certifi.where()
+    os.environ["SSL_CERT_FILE"] = certifi.where()
 
-    def create_default_context(
-        purpose=ssl.Purpose.SERVER_AUTH, *, cafile=None, capath=None, cadata=None
-    ):
-        return ssl.create_default_context(
-            purpose=purpose, cafile=certifi.where(), capath=capath, cadata=cadata
-        )
+    if os.getenv("FLET_PLATFORM") == "android":
+        import ssl
 
-    ssl._create_default_https_context = create_default_context
+        def create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH, *,
+            cafile=None, capath=None, cadata=None,
+        ):
+            return ssl.create_default_context(
+                purpose=purpose,
+                cafile=certifi.where(),
+                capath=capath,
+                cadata=cadata,
+            )
 
-out_file = open("$outLogFilename", "w+", buffering=1)
+        ssl._create_default_https_context = create_default_context
+except ImportError as e:
+    print(f"[boot] certifi import failed: {e}", flush=True)
 
-callback_socket_addr = os.environ.get("FLET_PYTHON_CALLBACK_SOCKET_ADDR")
-if ":" in callback_socket_addr:
-    addr, port = callback_socket_addr.split(":")
-    callback_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    callback_socket.connect((addr, int(port)))
-else:
-    callback_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    callback_socket.connect(callback_socket_addr)
-
-sys.stdout = sys.stderr = out_file
-
-def flet_exit(code=0):
-    callback_socket.sendall(str(code).encode())
-    out_file.close()
-    callback_socket.close()
-
-sys.exit = flet_exit
-
-ex = None
+print("[boot] about to runpy.run_module", flush=True)
 try:
     runpy.run_module("{module_name}", run_name="__main__")
-except Exception as e:
-    ex = e
-    traceback.print_exception(e)
-
-sys.exit(0 if ex is None else $errorExitCode)
+    print("[boot] runpy.run_module returned", flush=True)
+except SystemExit as e:
+    print(f"[boot] SystemExit: {e.code}", flush=True)
+    raise
+except Exception:
+    print("[boot] runpy.run_module raised:", flush=True)
+    traceback.print_exc()
+    sys.exit($errorExitCode)
 """;
 
 // global vars
-String pageUrl = "";
 String assetsDir = "";
 String appDir = "";
+late PythonBridge _bridge;
 Map<String, String> environmentVariables = {};
 
 void main() async {
@@ -85,162 +95,163 @@ void main() async {
       future: prepareApp(),
       builder: (BuildContext context, AsyncSnapshot snapshot) {
         if (snapshot.hasData) {
-          // OK - start Python program
-          return kIsWeb
-              ? FletApp(
-                  pageUrl: pageUrl,
-                  assetsDir: assetsDir,
-                )
-              : FutureBuilder(
-                  future: runPythonApp(),
-                  builder:
-                      (BuildContext context, AsyncSnapshot<String?> snapshot) {
-                    if (snapshot.hasData || snapshot.hasError) {
-                      // error or premature finish
-                      return MaterialApp(
-                        home: ErrorScreen(
-                            title: "Error running app",
-                            text: snapshot.data ?? snapshot.error.toString()),
-                      );
-                    } else {
-                      // no result of error
-                      return FletApp(
-                        pageUrl: pageUrl,
-                        assetsDir: assetsDir,
-                      );
-                    }
-                  });
+          return FletApp(
+            pageUrl: "dartbridge://${_bridge.port}",
+            assetsDir: assetsDir,
+            channelBuilder: ({required onMessage, required onDisconnect}) =>
+                _DartBridgeBackendChannel(_bridge,
+                    onMessage: onMessage, onDisconnect: onDisconnect),
+          );
         } else if (snapshot.hasError) {
-          // error
           return MaterialApp(
               home: ErrorScreen(
                   title: "Error starting app",
                   text: snapshot.error.toString()));
         } else {
-          // loading
           return const MaterialApp(home: BlankScreen());
         }
       }));
 }
 
-Future prepareApp() async {
+Future<String> prepareApp() async {
   if (kIsWeb) {
-    // web mode - connect via HTTP
-    pageUrl = Uri.base.toString();
     var routeUrlStrategy = getFletRouteUrlStrategy();
     if (routeUrlStrategy == "path") {
-      setPathUrlStrategy();
+      usePathUrlStrategy();
     }
-  } else {
-    await setupDesktop();
+    return "";
+  }
 
-    // extract app from asset
-    appDir = await extractAssetZip(assetPath, checkHash: true);
+  await setupDesktop();
 
-    // set current directory to app path
-    Directory.current = appDir;
+  // Extract app from asset.
+  appDir = await extractAssetZip(assetPath, checkHash: true);
+  Directory.current = appDir;
+  assetsDir = path.join(appDir, "assets");
 
-    assetsDir = path.join(appDir, "assets");
+  WidgetsFlutterBinding.ensureInitialized();
+  var appTempPath = (await path_provider.getApplicationCacheDirectory()).path;
+  var appDataPath =
+      (await path_provider.getApplicationDocumentsDirectory()).path;
 
-    // configure apps DATA and TEMP directories
-    WidgetsFlutterBinding.ensureInitialized();
-
-    var appTempPath = (await path_provider.getApplicationCacheDirectory()).path;
-    var appDataPath =
-        (await path_provider.getApplicationDocumentsDirectory()).path;
-
-    if (defaultTargetPlatform != TargetPlatform.iOS &&
-        defaultTargetPlatform != TargetPlatform.android) {
-      // append app name to the path and create dir
-      PackageInfo packageInfo = await PackageInfo.fromPlatform();
-      appDataPath = path.join(appDataPath, "flet", packageInfo.packageName);
-      if (!await Directory(appDataPath).exists()) {
-        await Directory(appDataPath).create(recursive: true);
-      }
-    }
-
-    environmentVariables["FLET_APP_DATA"] = appDataPath;
-    environmentVariables["FLET_APP_TEMP"] = appTempPath;
-
-    environmentVariables["FLET_PLATFORM"] =
-        defaultTargetPlatform.name.toLowerCase();
-
-    if (defaultTargetPlatform == TargetPlatform.windows) {
-      // use TCP on Windows
-      var tcpPort = await getUnusedPort();
-      pageUrl = "tcp://localhost:$tcpPort";
-      environmentVariables["FLET_SERVER_PORT"] = tcpPort.toString();
-    } else {
-      // use UDS on other platforms
-      pageUrl = "flet.sock";
-      environmentVariables["FLET_SERVER_UDS_PATH"] = pageUrl;
+  if (defaultTargetPlatform != TargetPlatform.iOS &&
+      defaultTargetPlatform != TargetPlatform.android) {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    appDataPath = path.join(appDataPath, "flet", packageInfo.packageName);
+    if (!await Directory(appDataPath).exists()) {
+      await Directory(appDataPath).create(recursive: true);
     }
   }
+
+  // Create the PythonBridge before we hand its port to Python. It outlives
+  // the FletApp widget; the embedded interpreter only stops when the Flutter
+  // app exits.
+  _bridge = PythonBridge();
+
+  environmentVariables.addAll({
+    "FLET_APP_DATA": appDataPath,
+    "FLET_APP_TEMP": appTempPath,
+    "FLET_PLATFORM": defaultTargetPlatform.name.toLowerCase(),
+    // Python reads this env var in flet.app.run_async() and starts the
+    // dart_bridge transport (added in flet's dart-bridge branch) bound to
+    // the same port.
+    "FLET_DART_BRIDGE_PORT": "${_bridge.port}",
+  });
+
+  // Fire-and-forget: Python lives for the duration of the app. SeriousPython
+  // dispatches it on a worker thread (sync=false default), so this returns
+  // immediately after spawning.
+  var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
+  unawaited(SeriousPython.runProgram(
+    path.join(appDir, "$pythonModuleName.pyc"),
+    script: script,
+    environmentVariables: environmentVariables,
+  ));
 
   return "";
 }
 
-Future<String?> runPythonApp() async {
-  var script = pythonScript.replaceAll('{module_name}', pythonModuleName);
+/// `FletBackendChannel` implementation backed by a [PythonBridge]. Bytes
+/// flow Dart↔Python entirely in-process; no Unix socket, no kernel context
+/// switch. The wire format is the same MsgPack-framed protocol the existing
+/// socket-based `FletSocketBackendChannel` speaks.
+class _DartBridgeBackendChannel implements FletBackendChannel {
+  _DartBridgeBackendChannel(this._bridge,
+      {required FletBackendChannelOnMessageCallback onMessage,
+      required FletBackendChannelOnDisconnectCallback onDisconnect})
+      : _onMessage = onMessage,
+        _onDisconnect = onDisconnect,
+        _deserializer =
+            StreamingMsgpackDeserializer(extDecoder: FletMsgpackDecoder());
 
-  var completer = Completer<String>();
+  final PythonBridge _bridge;
+  final FletBackendChannelOnMessageCallback _onMessage;
+  final FletBackendChannelOnDisconnectCallback _onDisconnect;
+  final StreamingMsgpackDeserializer _deserializer;
+  StreamSubscription<Uint8List>? _subscription;
 
-  ServerSocket outSocketServer;
-  String socketAddr = "";
-  StringBuffer pythonOut = StringBuffer();
-
-  if (defaultTargetPlatform == TargetPlatform.windows) {
-    var tcpAddr = "127.0.0.1";
-    outSocketServer = await ServerSocket.bind(tcpAddr, 0);
-    debugPrint(
-        'Python output TCP Server is listening on port ${outSocketServer.port}');
-    socketAddr = "$tcpAddr:${outSocketServer.port}";
-  } else {
-    socketAddr = "stdout.sock";
-    outSocketServer = await ServerSocket.bind(
-        InternetAddress(socketAddr, type: InternetAddressType.unix), 0);
-    debugPrint('Python output Socket Server is listening on $socketAddr');
+  @override
+  Future connect() async {
+    _subscription = _bridge.messages.listen(
+      _onBytes,
+      onError: (error, stack) {
+        debugPrint("PythonBridge stream error: $error");
+        _onDisconnect();
+      },
+      onDone: () {
+        debugPrint("PythonBridge stream closed.");
+        _onDisconnect();
+      },
+      cancelOnError: false,
+    );
   }
 
-  environmentVariables["FLET_PYTHON_CALLBACK_SOCKET_ADDR"] = socketAddr;
-
-  void closeOutServer() async {
-    outSocketServer.close();
-
-    int exitCode = int.tryParse(pythonOut.toString().trim()) ?? 0;
-
-    if (exitCode == errorExitCode) {
-      var out = "";
-      if (await File(outLogFilename).exists()) {
-        out = await File(outLogFilename).readAsString();
-      }
-      completer.complete(out);
-    } else {
-      exit(exitCode);
+  void _onBytes(Uint8List bytes) {
+    _deserializer.addChunk(bytes);
+    final frames = _deserializer.decodeMessages();
+    for (final frame in frames) {
+      _onMessage(Message.fromList(frame));
     }
   }
 
-  outSocketServer.listen((client) {
-    debugPrint(
-        'Connection from: ${client.remoteAddress.address}:${client.remotePort}');
-    client.listen((data) {
-      var s = String.fromCharCodes(data);
-      pythonOut.write(s);
-    }, onError: (error) {
-      client.close();
-      closeOutServer();
-    }, onDone: () {
-      client.close();
-      closeOutServer();
+  @override
+  void send(Message message) {
+    final encoded = Uint8List.fromList(
+        msgpack.serialize(message.toList(), extEncoder: FletMsgpackEncoder()));
+    // Retry loop covers the brief startup window where Python hasn't yet
+    // called dart_bridge.set_enqueue_handler_func — bridge.send returns
+    // false in that case. Once the handler is registered (Flet's app.py
+    // dart_bridge server start() does it before run_module dispatch),
+    // bridge.send returns true synchronously.
+    if (_bridge.send(encoded)) return;
+    _retrySend(encoded);
+  }
+
+  void _retrySend(Uint8List encoded) {
+    const interval = Duration(milliseconds: 50);
+    const deadline = Duration(seconds: 30);
+    final start = DateTime.now();
+    Timer.periodic(interval, (timer) {
+      if (_bridge.send(encoded)) {
+        timer.cancel();
+      } else if (DateTime.now().difference(start) > deadline) {
+        timer.cancel();
+        debugPrint("PythonBridge send timed out: Python handler never registered.");
+      }
     });
-  });
+  }
 
-  // run python async
-  SeriousPython.runProgram(path.join(appDir, "$pythonModuleName.pyc"),
-      script: script, environmentVariables: environmentVariables);
+  @override
+  bool get isLocalConnection => true;
 
-  // wait for client connection to close
-  return completer.future;
+  @override
+  int get defaultReconnectIntervalMs => 0;
+
+  @override
+  void disconnect() {
+    _subscription?.cancel();
+    _subscription = null;
+  }
 }
 
 class ErrorScreen extends StatelessWidget {
@@ -293,9 +304,7 @@ class ErrorScreen extends StatelessWidget {
 }
 
 class BlankScreen extends StatelessWidget {
-  const BlankScreen({
-    super.key,
-  });
+  const BlankScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -303,12 +312,4 @@ class BlankScreen extends StatelessWidget {
       body: SizedBox.shrink(),
     );
   }
-}
-
-Future<int> getUnusedPort() {
-  return ServerSocket.bind("127.0.0.1", 0).then((socket) {
-    var port = socket.port;
-    socket.close();
-    return port;
-  });
 }

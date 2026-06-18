@@ -2,32 +2,41 @@ name: CI
 
 on:
   push:
-    branches:
-      - '**'
-    tags:
-      - '*'
+    branches: ['**']
+    tags: ['*']
   pull_request:
   workflow_dispatch:
+
+# Auto-cancel in-flight runs when a new push lands on the same ref.
+# Tag builds (refs/tags/*) get a unique-per-run group so release runs
+# never cancel each other.
+concurrency:
+  group: ${{ github.workflow }}-${{ startsWith(github.ref, 'refs/tags/') && github.run_id || github.ref }}
+  cancel-in-progress: true
 
 env:
   ROOT: "${{ github.workspace }}"
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
   SERIOUS_PYTHON_SITE_PACKAGES: "${{ github.workspace }}/site-packages"
   UV_PYTHON: "3.12"
+  # futureware-tech/simulator-action upstream still declares node20 in
+  # action.yml (no Node 24 release as of v5). Force the runner to execute
+  # node20-declared JS actions on Node 24 so we don't trip the deprecation
+  # warning that becomes a hard error on 2026-09-16.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  # Pin flet so the Python side matches the Dart-side flet version. With
+  # `--only-binary :all:`, pip would otherwise silently downgrade to an
+  # older flet whose transitive deps (e.g. msgpack) have wheels for the
+  # target python_version / platform, leaving the two halves mismatched.
+  FLET_VERSION: "0.85.3"
 
 jobs:
-  macos:
-    name: Test on macOS (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python_version: ['3.12', '3.13', '3.14']
-    env:
-      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+  version_tables_in_sync:
+    name: Version tables in sync with manifest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -35,15 +44,28 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Run tests
-        working-directory: "src/serious_python/example/flet_example"
+      - name: Regenerate version tables and check for drift
+        working-directory: src/serious_python
         run: |
-          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
-          flutter test integration_test --device-id macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          set -euo pipefail
+          flutter pub get >/dev/null
+          dart run serious_python:gen_version_tables
+          if ! git diff --quiet; then
+            echo "::error::Generated Python version tables are out of date."
+            echo "The committed lib/src/python_versions.dart and the four"
+            echo "python_versions.properties must match python-build's"
+            echo "manifest.json for the pinned pythonReleaseDate. To fix: edit"
+            echo "python-build's manifest.json + cut a release, bump"
+            echo "pythonReleaseDate, then run"
+            echo "  (cd src/serious_python && dart run serious_python:gen_version_tables)"
+            echo "and commit the regenerated files."
+            git --no-pager diff
+            exit 1
+          fi
 
-  ios:
-    name: Test on iOS (Python ${{ matrix.python_version }})
-    runs-on: macos-latest
+  bridge_example_macos:
+    name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
+    runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
@@ -52,49 +74,123 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          # Each test file is invoked separately. `flutter test integration_test`
+          # over the directory reuses one VM session, but the second file's
+          # `runApp()` then trips "Unable to start the app on the device" —
+          # the spawn-then-teardown of bridge_example's embedded Python +
+          # PythonBridge ports isn't clean enough for VM reuse. One process
+          # per file sidesteps the issue.
+          flutter test integration_test/interactivity_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/throughput_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+
+  bridge_example_ios:
+    name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
+    runs-on: macos-26
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python_version: ['3.12', '3.13', '3.14']
+    env:
+      SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Setup iOS Simulator
         id: simulator
-        uses: futureware-tech/simulator-action@v4
+        uses: futureware-tech/simulator-action@v5
         with:
-          # https://github.com/futureware-tech/simulator-action/wiki/Devices-macos-latest
-          model: 'iPhone 16 Pro Max'
+          model: 'iPhone 17 Pro Max'
           os: "iOS"
-          os_version: "^18.6"
+          os_version: "26.5"
           shutdown_after_job: true
           wait_for_boot: true
 
-      - name: Run tests
-        working-directory: "src/serious_python/example/flet_example"
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
         run: |
-          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
-          flutter test integration_test --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          ts() { date '+%H:%M:%S'; }
+          echo "[$(ts)] >>> dart run serious_python:main package"
+          # certifi is a placeholder requirement: serious_python_darwin's
+          # sync_site_packages.sh only populates dist_ios/site-xcframeworks
+          # (which bundle-python-frameworks-ios.sh then requires at build
+          # time) when iOS-specific site-packages subdirs exist. Empty
+          # --requirements skips that branch and the build fails.
+          dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
+          echo "[$(ts)] >>> flutter test integration_test (per-file)"
+          # See macOS job for why each file runs as a separate invocation.
+          flutter test integration_test/interactivity_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/throughput_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/memory_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          echo "[$(ts)] >>> done"
 
-  android:
-    name: Test on Android (Python ${{ matrix.python_version }})
+  bridge_example_android:
+    name: Test Bridge example on Android (Python ${{ matrix.python_version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        # x86_64 matches the emulator architecture; only build/install for
+        # that ABI to keep CI fast.
         python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
         with:
           path: '.fvmrc'
           cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Enable KVM
         run: |
@@ -103,16 +199,20 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Gradle cache
-        uses: gradle/actions/setup-gradle@v3
+        # Stay on v5 — v6 moved the caching component to a separate
+        # `gradle-actions-caching` library under proprietary commercial
+        # Terms of Use (https://blog.gradle.org/github-actions-for-gradle-v6).
+        # v5 was the last fully MIT-licensed major and is on Node 24.
+        uses: gradle/actions/setup-gradle@v5
 
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd
+          key: avd-bridge
 
       - name: Setup Android Emulator + Run tests
         uses: reactivecircus/android-emulator-runner@v2
@@ -133,12 +233,38 @@ jobs:
           pre-emulator-launch-script: |
             sdkmanager --list_installed
           script: |
-            cd src/serious_python/example/flet_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
-            cd src/serious_python/example/flet_example && flutter test integration_test --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && dart run serious_python:main package app/src --platform Android --python-version ${{ matrix.python_version }}
+            # Per-file: `flutter test integration_test` (whole dir) reuses one
+            # VM session and the second file fails to start the app. See
+            # bridge_example_macos for the discovery.
+            cd src/serious_python/example/bridge_example && flutter test integration_test/interactivity_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test/throughput_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+            cd src/serious_python/example/bridge_example && flutter test integration_test/memory_test.dart --device-id emulator-${{ env.EMULATOR_PORT }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
-  windows:
-    name: Test on Windows (Python ${{ matrix.python_version }})
-    runs-on: windows-latest
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          REPO="$GITHUB_WORKSPACE"
+          ABI=x86_64
+          echo "=== serious_python_android/android/src/main/jniLibs/$ABI/ ==="
+          ls -la "$REPO/src/serious_python_android/android/src/main/jniLibs/$ABI/" 2>/dev/null || echo "(not found)"
+          echo
+          echo "=== example/build/app/outputs/apk/debug/*.apk ==="
+          APK=$(find "$REPO/src/serious_python/example/bridge_example/build" -name "*-debug.apk" 2>/dev/null | head -n1)
+          echo "APK: $APK"
+          if [ -n "$APK" ]; then
+            echo "Native libs inside APK:"
+            unzip -l "$APK" | grep -E "lib/$ABI/" || echo "(no lib/$ABI/ entries)"
+          fi
+
+  bridge_example_windows:
+    name: Test Bridge example on Windows (Python ${{ matrix.python_version }})
+    # Explicit pin instead of `windows-latest` to avoid silent image moves.
+    # `windows-2025-vs2026` is what GitHub redirects `windows-latest` to
+    # starting 2026-06-15 (Server 2025 + VS 2026).
+    runs-on: windows-2025-vs2026
     strategy:
       fail-fast: false
       matrix:
@@ -147,7 +273,7 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -155,37 +281,72 @@ jobs:
           path: '.fvmrc'
           cache: true
 
-      - name: Run tests
-        working-directory:  "src/serious_python/example/flet_example"
-        run: |
-          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
-          flutter test integration_test -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
-  linux:
-    name: Test on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
+      - name: Package + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
+        shell: bash
+        run: |
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }}
+          # bash + pipefail so the test step actually fails when flutter fails
+          # (default PowerShell shell on windows runners eats the failure when
+          # piping into tail).
+          set -o pipefail
+          # Per-file: `flutter test integration_test` (whole dir) reuses one
+          # VM session and the second file fails to start the app. See
+          # bridge_example_macos for the discovery.
+          flutter test integration_test/interactivity_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/throughput_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/memory_test.dart -d windows --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+
+      - name: Diagnostics on failure
+        if: failure()
+        shell: bash
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          set +e
+          DBG_DIR=build/windows/x64/runner/Debug
+          echo "=== runner/Debug dir ==="
+          ls -la $DBG_DIR/ || true
+          echo
+          echo "=== dart_bridge*.dll bundled? ==="
+          ls -la $DBG_DIR/dart_bridge*.dll || echo "(no dart_bridge dll bundled)"
+          echo
+          echo "=== runner/Debug/Lib (Python stdlib) ==="
+          ls $DBG_DIR/Lib | head -20 || true
+          echo
+          echo "=== runner/Debug/site-packages ==="
+          ls -la $DBG_DIR/site-packages/ || true
+
+  bridge_example_linux:
+    name: Test Bridge example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
-        arch: [arm64, amd64]
+        arch: [amd64, arm64]
         include:
-          - arch: arm64
-            runner: ubuntu-24.04-arm
-            title: ARM64
           - arch: amd64
             runner: ubuntu-24.04
             title: AMD64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            title: ARM64
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-
-      - name: Get Flutter version from ".fvmrc"
+      - name: Get Flutter version from .fvmrc
         uses: kuhnroyal/flutter-fvm-config-action/config@v3
         id: fvm-config-action
         with:
@@ -195,66 +356,103 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
-          channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}  # https://github.com/subosito/flutter-action/issues/345#issuecomment-2657332687
+          channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
 
-      - name: Install dependencies
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux desktop build deps
         run: |
           sudo apt-get update --allow-releaseinfo-change
           sudo apt-get install -y xvfb libgtk-3-dev
-          
           if [ "${{ matrix.arch }}" = "amd64" ]; then
             sudo apt-get install -y \
-              libgstreamer1.0-dev \
-              libgstreamer-plugins-base1.0-dev \
-              libgstreamer-plugins-bad1.0-dev \
-              gstreamer1.0-plugins-base \
-              gstreamer1.0-plugins-good \
-              gstreamer1.0-plugins-bad \
-              gstreamer1.0-plugins-ugly \
-              gstreamer1.0-libav \
-              gstreamer1.0-tools \
-              gstreamer1.0-x \
-              gstreamer1.0-alsa \
-              gstreamer1.0-gl \
-              gstreamer1.0-gtk3 \
-              gstreamer1.0-qt5 \
-              gstreamer1.0-pulseaudio
+              libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+              libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base \
+              gstreamer1.0-plugins-good gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly gstreamer1.0-libav
           else
             sudo apt-get install -y \
-              clang \
-              ninja-build \
-              gstreamer1.0-plugins-bad \
-              gstreamer1.0-plugins-ugly \
-              gstreamer1.0-libav
+              clang ninja-build gstreamer1.0-plugins-bad \
+              gstreamer1.0-plugins-ugly gstreamer1.0-libav
           fi
 
-      - name: Run tests
-        working-directory: src/serious_python/example/flet_example
+      - name: Package + run integration test
+        working-directory: src/serious_python/example/bridge_example
         run: |
           flutter pub get
-          dart run serious_python:main package app/src --platform Linux --python-version ${{ matrix.python_version }} --requirements flet==0.28.3
-          xvfb-run flutter test integration_test -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          dart run serious_python:main package app/src \
+            --platform Linux \
+            --python-version ${{ matrix.python_version }}
+          set -o pipefail
 
+          # Three back-to-back `xvfb-run` invocations race for display
+          # numbers — the second/third sometimes trips "Xvfb failed to
+          # start" because the previous Xvfb's display isn't released yet
+          # (3-of-6 Linux jobs in run 27441055242 hit this). Start one
+          # Xvfb up front, share DISPLAY across all three test runs.
+          Xvfb :99 -screen 0 1280x1024x24 >/tmp/xvfb.log 2>&1 &
+          XVFB_PID=$!
+          export DISPLAY=:99
+          trap 'kill $XVFB_PID 2>/dev/null || true' EXIT
+          # Brief settle so Xvfb is accepting connections before flutter
+          # test tries to open the window. xdpyinfo isn't in the ubuntu
+          # runner's default toolchain; a fixed sleep is sufficient.
+          sleep 1
+
+          # Per-file: `flutter test integration_test` (whole dir) reuses one
+          # VM session and the second file fails to start the app. See
+          # bridge_example_macos for the discovery.
+          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+
+      - name: Diagnostics on failure
+        if: failure()
+        working-directory: src/serious_python/example/bridge_example
+        run: |
+          set +e
+          DBG_DIR=build/linux/${{ matrix.arch == 'arm64' && 'arm64' || 'x64' }}/debug/bundle
+          echo "=== bundle dir ==="
+          ls -la $DBG_DIR/ 2>/dev/null
+          echo
+          echo "=== bundle/lib (bundled shared libs) ==="
+          ls -la $DBG_DIR/lib/ 2>/dev/null
+          echo
+          echo "=== readelf -d on libdart_bridge.so ==="
+          readelf -d $DBG_DIR/lib/libdart_bridge.so 2>/dev/null | grep -E "NEEDED|libpython" || echo "(libdart_bridge.so not found)"
+          echo
+          echo "=== bundle data/flutter_assets/native_assets/linux/ ==="
+          ls -la $DBG_DIR/data/flutter_assets/native_assets/linux/ 2>/dev/null
+          echo
+          echo "=== Python stdlib dir ==="
+          ls -d $DBG_DIR/python3.* 2>/dev/null | head -5
   publish:
     name: Publish to pub.dev
     needs:
-      - macos
-      - ios
-      - android
-      - windows
-      - linux
+      - bridge_example_macos
+      - bridge_example_ios
+      - bridge_example_android
+      - bridge_example_linux
+      - bridge_example_windows
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v8.2.0
 
       - name: Setup Flutter
         uses: kuhnroyal/flutter-fvm-config-action/setup@v3
@@ -302,13 +500,13 @@ jobs:
             "serious_python_darwin" \
             "serious_python_windows" \
             "serious_python_linux"; do
-            
+
             uv run "$SCRIPTS/patch_pubspec.py" "$pkg/pubspec.yaml" "$PKG_VER"
           done
 
       - name: Publish packages
         run: |
-          publish_pkg () { 
+          publish_pkg () {
             pushd "$1" >/dev/null
             dart pub publish --force
             popd >/dev/null

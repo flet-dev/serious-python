@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '2.0.0'
+  s.version          = '3.0.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -13,7 +13,12 @@ Pod::Spec.new do |s|
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Appveyor Systems Inc.' => 'hello@flet.dev' }
   s.source           = { :path => '.' }
-  #s.static_framework = true
+  # dart_bridge.xcframework (vendored below) contains static .a archives.
+  # CocoaPods 1.16+ refuses to install vendored xcframeworks with static
+  # libraries unless the consuming pod is itself declared as a static
+  # framework. Python.xcframework is also static, so this was always
+  # implicitly the case — just being explicit now.
+  s.static_framework = true
   s.source_files = ['Classes/**/*']
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
@@ -27,15 +32,30 @@ Pod::Spec.new do |s|
   }
   s.swift_version = '5.0'
 
-  python_version = ENV['SERIOUS_PYTHON_VERSION'] || "3.14"
+  # Python runtime versions come from the generated python_versions.properties
+  # (a snapshot of python-build's manifest.json — see serious_python's
+  # `gen_version_tables`). SERIOUS_PYTHON_VERSION selects the version; the rest
+  # derive from the table. The per-field env vars are escape hatches.
+  pv = {}
+  File.foreach(File.join(__dir__, 'python_versions.properties')) do |line|
+    line = line.strip
+    next if line.empty? || line.start_with?('#')
+    k, v = line.split('=', 2)
+    pv[k] = v
+  end
+  python_version = ENV['SERIOUS_PYTHON_VERSION'] || pv['default_python_version']
+  python_full_version = ENV['SERIOUS_PYTHON_FULL_VERSION'] || pv["#{python_version}.full_version"]
+  python_build_date = ENV['SERIOUS_PYTHON_BUILD_DATE'] || pv['python_build_release_date']
+  dart_bridge_version = ENV['DART_BRIDGE_VERSION'] || pv['dart_bridge_version']
+  raise "serious_python: unknown SERIOUS_PYTHON_VERSION '#{python_version}'" if python_full_version.nil?
 
   dist_ios = "dist_ios"
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
     ./symlink_pod.sh
-    ./prepare_ios.sh #{python_version}
-    ./prepare_macos.sh #{python_version}
+    ./prepare_ios.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
+    ./prepare_macos.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
     ./sync_site_packages.sh
 CMD
 

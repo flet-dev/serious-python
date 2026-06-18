@@ -1,10 +1,9 @@
-import logging
 import os
 import sys
 import urllib.request
 
 import flet as ft
-from flet.version import version
+from flet.version import flet_version
 
 # logging.basicConfig(level=logging.DEBUG)
 
@@ -49,18 +48,16 @@ def main(page: ft.Page):
     page.add(
         ft.Row(
             [
-                ft.IconButton(
-                    ft.Icons.REMOVE, key="test:decrement", on_click=minus_click
-                ),
+                ft.IconButton(ft.Icons.REMOVE, key="decrement", on_click=minus_click),
                 txt_number,
-                ft.IconButton(ft.Icons.ADD, key="test:increment", on_click=plus_click),
+                ft.IconButton(ft.Icons.ADD, key="increment", on_click=plus_click),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             expand=True,
         ),
         ft.Row(
             [
-                ft.Text(f"Flet version: {version}"),
+                ft.Text(f"Flet version: {flet_version}"),
                 ft.OutlinedButton("Check SSL", on_click=check_ssl),
                 ft.OutlinedButton("Exit app", on_click=lambda _: sys.exit(100)),
             ],
@@ -76,4 +73,4 @@ def main(page: ft.Page):
 
 
 if __name__ == "__main__":
-    ft.app(main)
+    ft.run(main)

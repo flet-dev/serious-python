@@ -1,5 +1,5 @@
 import 'package:flet_example/main.dart' as app;
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -26,15 +26,13 @@ void main() {
       expect(counterFound, isTrue);
 
       // Tap increment button
-      final incrementButton = find.byKey(const Key('increment'));
-      await tester.tap(incrementButton);
+      await tester.tap(find.byKey(const Key('increment')));
       await tester.pumpAndSettle();
       expect(find.text('1'), findsOneWidget);
 
       // Tap decrement button
-      final decrementButton = find.byKey(const Key('decrement'));
-      await tester.tap(decrementButton);
-      await tester.tap(decrementButton);
+      await tester.tap(find.byKey(const Key('decrement')));
+      await tester.tap(find.byKey(const Key('decrement')));
       await tester.pumpAndSettle();
       expect(find.text('-1'), findsOneWidget);
 

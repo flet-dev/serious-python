@@ -22,11 +22,11 @@ the `--python-version X.Y` flag of `serious_python:main package` (or the
 plugin build scripts). Defaults to the latest supported version when nothing
 is specified.
 
-| Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag |
-| ----- | --------------- | ------------- | -------------------------- |
-| 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`     |
-| 3.13  | 3.13.13         | 0.29.4        | `pyodide-2025.0-wasm32`     |
-| 3.14  | 3.14.5          | 314.0.0a2     | `pyemscripten-2026.0-wasm32`|
+| Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag       |
+| ----- | --------------- | ------------- | -------------------------------- |
+| 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`           |
+| 3.13  | 3.13.14         | 0.29.4        | `pyemscripten-2025.0-wasm32`      |
+| 3.14  | 3.14.6          | 314.0.0       | `pyemscripten-2026.0-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
@@ -34,12 +34,21 @@ The default is the latest stable row (currently **3.14**) when neither
 applied to `[project].requires-python` in your `pyproject.toml`, so most
 users never need to touch this flag directly.
 
-Source of truth: the `_pythonReleases` map in
-[`bin/package_command.dart`](bin/package_command.dart) (Dart side) and
-`flet_cli/utils/python_versions.py` (Python side). Adding a new short version
-means appending a row to both. Pre-release CPython lines (e.g. 3.15) can be
-listed with `prerelease: true` so they're opt-in via explicit
-`--python-version 3.15` (or `requires-python = "==3.15.*"`) without becoming
+`SERIOUS_PYTHON_VERSION` (short, e.g. `3.14`) is the only input you set — the
+full version, python-build release date, Pyodide version/tag, and dart_bridge
+version all derive from it. (`SERIOUS_PYTHON_FULL_VERSION`,
+`SERIOUS_PYTHON_BUILD_DATE`, `DART_BRIDGE_VERSION` exist as rarely-needed escape
+hatches.) A single `export SERIOUS_PYTHON_VERSION=3.13` covers both the
+packaging phase and the later Flutter build.
+
+Source of truth: the date-keyed `manifest.json` published by
+[`flet-dev/python-build`](https://github.com/flet-dev/python-build).
+serious_python pins one release and commits generated snapshots of it —
+`lib/src/python_versions.dart` (used by the CLI) and a `python_versions.properties`
+in each platform package (read by the native build configs). To bump versions
+see [CONTRIBUTING.md](CONTRIBUTING.md); never hand-edit the generated files.
+Pre-release CPython lines are marked `prerelease: true`, so they're opt-in via
+explicit `--python-version` (or `requires-python = "==3.15.*"`) without becoming
 the auto-resolved default.
 
 ## Usage
@@ -142,6 +151,11 @@ read by each platform plugin's build script (`build.gradle`, the
 phase and the Flutter build phase. See the [Python versions](#python-versions)
 table above for the matching CPython and Pyodide releases.
 
+> **Note:** changing the bundled Python version for an app you've already built
+> requires a clean build (delete the app's `build/` directory, or run
+> `flutter clean`) so stale compiled bytecode from the previous version isn't
+> reused.
+
 #### Installing requirements
 
 Python app dependencies are installed with the `--requirements` option (alias `-r`). The value is passed verbatim to `pip`, so any flag pip accepts works. Pass each dependency as its own option to support specifiers that contain commas:
@@ -193,6 +207,47 @@ Additional Python binary packages for iOS and Android can be built with adding a
 
 Request additional packages for iOS and Android on [Flet Discussions - Packages](https://github.com/flet-dev/flet/discussions/categories/packages).
 
+## How packaging works
+
+`dart run serious_python:main package` assembles two things, which the platform plugin then bundles into your Flutter app:
+
+1. **The CPython runtime + standard library** — a per-target build downloaded from [flet-dev/python-build](https://github.com/flet-dev/python-build) (and, for native extensions, [mobile-forge](https://github.com/flet-dev/mobile-forge)) and bundled by the plugin at build time.
+2. **Your app + its dependencies** — your Python sources are zipped into an **asset** (`app/app.zip` by default), and `pip`-installed packages are placed where each platform expects them.
+
+At runtime the plugin sets `PYTHONHOME` / `PYTHONPATH` (or, on Android, installs a custom importer) so the interpreter finds the stdlib, your dependencies, and your app.
+
+The on-disk layout differs per platform, mostly because each OS has different rules for shipping **native (compiled) extension modules** — the `.so`/`.pyd`/`.dylib` files inside packages like `numpy`:
+
+| Platform | Standard library | Site-packages (deps) | Native extension modules | Architectures |
+| --- | --- | --- | --- | --- |
+| **Android** | `stdlib.zip` asset, read via `zipimport` | `sitepackages.zip` asset, read via `zipimport` | relocated to `jniLibs/<abi>/`, **memory-mapped from the APK** (no extraction), resolved by a custom importer | natives per-ABI in `jniLibs`; pure zips are ABI-common (shipped once) |
+| **iOS** | dir inside the framework resource bundle | dir inside the framework resource bundle | each `.so` wrapped in a signed `.framework` inside an `.xcframework`, loaded via CPython's `AppleFrameworkLoader` (`.fwork` markers) | device `arm64` + simulator `arm64`/`x86_64` xcframework slices |
+| **macOS** | dir inside the framework resource bundle | dir (universal) | universal (`lipo`'d `arm64`+`x86_64`) `.so`, loaded directly | `arm64`+`x86_64` merged into fat binaries |
+| **Linux** | `<exe-dir>/python<X.Y>/` | `<exe-dir>/site-packages/` | on-disk `.so` (in `lib-dynload` / package dirs) | one of `x86_64` / `aarch64` per build |
+| **Windows** | `<exe-dir>/Lib/` | `<exe-dir>/site-packages/` | on-disk `.pyd`/`.dll` in `<exe-dir>/DLLs/` | `x86_64` |
+| **Web** | bundled inside Pyodide | `__pypackages__/` inside `app.zip` | Pyodide WebAssembly wheels | `wasm32` |
+
+### Your app program (all platforms)
+
+`package` copies your Python sources into a temp dir (honoring `--exclude` globs, optionally compiling to `.pyc` with `--compile-app`), zips it to `app/app.zip` (override with `-a`/`--asset`), and writes an `app.zip.hash` next to it. At runtime the asset is extracted once to the app's support directory (`<app-support>/flet/app`), guarded by a hash + an optional `invalidateKey` (typically your app version) so it only re-extracts when the bundle changes — debug builds always re-extract. Your app dir is placed first on `sys.path`; a sibling `__pypackages__/` is also added (so you can vendor pure-Python deps next to your code).
+
+`pip install` output goes to `build/site-packages` by default (override with the `SERIOUS_PYTHON_SITE_PACKAGES` env var). For mobile, packages are installed **per architecture** (a `sitecustomize.py` shim spoofs the wheel platform tag so the correct mobile wheels resolve), then merged or split per platform as shown above.
+
+### Android specifics
+
+- **Pure Python** (stdlib + dependencies) ships in two **stored** (uncompressed) ABI-common zips — `stdlib.zip` and `sitepackages.zip` — copied once to the app's files dir and imported in place via `zipimport`. Final `sys.path` (highest first): your app dir, the extract dir, `sitepackages.zip`, `stdlib.zip`.
+- **Native modules** (stdlib `lib-dynload` and site-package extensions) are relocated to `jniLibs/<abi>/lib<mangled>.so` and loaded **directly from the APK** (memory-mapped, never extracted to disk); a `sys.meta_path` finder resolves them from `.soref` markers left in the zips. This is why Android needs **no** `useLegacyPackaging` / `keepDebugSymbols` config and the stdlib is **not** duplicated per ABI.
+- **Path-hungry packages** (those that read bundled data via `__file__` / `pkg_resources` rather than `importlib.resources`) can be shipped extracted to disk instead of inside the zip — list them (comma-separated relative paths) in `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES`; they go into `extract.zip` and are unpacked to disk at first launch.
+- Works for both **single APK** (`flutter build apk`) and **Play Store App Bundles** (per-ABI config splits); under legacy packaging / `minSdk < 23` the same finder falls back to loading from the extracted `nativeLibraryDir`.
+
+### iOS / macOS specifics
+
+The CPython runtime, stdlib, and (on iOS) native extensions are bundled into `serious_python_darwin.framework` as resources. On **iOS**, the App Store forbids loose `.dylib`s, so every native extension `.so` is repackaged into a signed `.framework` inside an `.xcframework`, with a `.fwork` text marker left at the module's import path; CPython's `AppleFrameworkLoader` reads the marker and loads the framework binary. On **macOS**, native extensions stay as plain `.so`, merged into universal (`arm64`+`x86_64`) binaries at package time. `PYTHONHOME` is the framework's resource path; `sys.path` includes `<resources>/site-packages`, `<resources>/stdlib`, and `<resources>/stdlib/lib-dynload`.
+
+### Linux / Windows specifics
+
+The CPython runtime (`libpython3.so` + `libpython<X.Y>.so` on Linux; `python3.dll` + `python<XY>.dll` on Windows), `libdart_bridge`, the stdlib, and native modules are copied next to your app's executable at build time. `PYTHONHOME` is the executable's directory. On Windows, extension modules (`.pyd`) and their dependent DLLs live in `<exe-dir>/DLLs/`, which is added to `sys.path`.
+
 ## Platform notes
 
 ### Build matrix
@@ -224,17 +279,15 @@ MACOSX_DEPLOYMENT_TARGET = 10.15;
 
 ### Android
 
-To make `serious_python` work in your own Android app:
+No special native-library packaging config is required (see [How packaging works](#how-packaging-works)). serious_python loads native modules directly from the APK and ships pure Python in stored asset zips, so you don't need `useLegacyPackaging`, `keepDebugSymbols`, `extractNativeLibs`, or `android.bundle.enableUncompressedNativeLibs`. Just use a `minSdk` of 23+ so native libs stay uncompressed/page-aligned in the APK:
 
-If you build an App Bundle Edit `android/gradle.properties` and add the flag:
-
+```kotlin
+android {
+    defaultConfig {
+        minSdk = 23
+    }
+}
 ```
-android.bundle.enableUncompressedNativeLibs=false
-```
-
-If you build an APK Make sure `android/app/src/AndroidManifest.xml` has `android:extractNativeLibs="true"` in the `<application>` tag.
-
-For more information, see the [public issue](https://issuetracker.google.com/issues/147096055).
 
 ## Troubleshooting
 

@@ -36,3 +36,12 @@ dist/
 # Python
 .venv/
 __pypackages__/
+*.so
+*.pyd
+*.dylib
+*.dll
+*.egg-info/
+*.egg/
+
+# FVM
+.fvm/

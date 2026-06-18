@@ -9,6 +9,7 @@ import 'package:glob/list_local_fs.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
 import 'package:shelf/shelf.dart';
+import 'package:serious_python/src/python_versions.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import 'macos_utils.dart' as macos_utils;
@@ -24,69 +25,11 @@ const flutterPackagesFlutterEnvironmentVariable =
 const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
 
-const pythonVersionEnvironmentVariable = "SERIOUS_PYTHON_VERSION";
-const pythonDistReleaseEnvironmentVariable = "SERIOUS_PYTHON_DIST_RELEASE";
-const pyodideVersionEnvironmentVariable = "SERIOUS_PYTHON_PYODIDE_VERSION";
-
-const defaultPythonVersion = "3.14";
-
-class _PythonRelease {
-  const _PythonRelease({
-    required this.standaloneVersion,
-    required this.standaloneReleaseDate,
-    required this.pyodideVersion,
-    required this.pyodidePlatformTag,
-    required this.prerelease,
-  });
-
-  final String standaloneVersion;
-  final String standaloneReleaseDate;
-  final String pyodideVersion;
-  final String pyodidePlatformTag;
-
-  // When true, this release is supported by `--python-version` but is not
-  // picked automatically by the default or by `[project].requires-python`
-  // resolution on the Flet CLI side. Use for beta CPython lines.
-  final bool prerelease;
-}
-
-// Source of truth for the Python <-> CPython standalone <-> Pyodide mapping.
-// Mirror any change here in flet-cli's python_versions.py.
-const _pythonReleases = <String, _PythonRelease>{
-  "3.12": _PythonRelease(
-    standaloneVersion: "3.12.13",
-    standaloneReleaseDate: "20260602",
-    pyodideVersion: "0.27.7",
-    pyodidePlatformTag: "pyodide-2024.0-wasm32",
-    prerelease: false,
-  ),
-  "3.13": _PythonRelease(
-    standaloneVersion: "3.13.13",
-    standaloneReleaseDate: "20260602",
-    pyodideVersion: "0.29.4",
-    pyodidePlatformTag: "pyodide-2025.0-wasm32",
-    prerelease: false,
-  ),
-  "3.14": _PythonRelease(
-    standaloneVersion: "3.14.5",
-    standaloneReleaseDate: "20260602",
-    pyodideVersion: "314.0.0a2",
-    pyodidePlatformTag: "pyemscripten-2026.0-wasm32",
-    prerelease: false,
-  ),
-  // Add future pre-release CPython lines by setting `prerelease: true`. They
-  // become opt-in via `--python-version 3.15` (or an explicit
-  // `requires-python = "==3.15.*"` on the Flet CLI side) without becoming
-  // the default or matching open-ended `requires-python` specifiers.
-  //
-  // "3.15": _PythonRelease(
-  //   standaloneVersion: "3.15.0",
-  //   standaloneReleaseDate: "...",
-  //   pyodideVersion: "...",
-  //   pyodidePlatformTag: "...",
-  //   prerelease: true,
-  // ),
-};
+// Python runtime version data — `defaultPythonVersion`, `pythonReleases`, the
+// `*EnvironmentVariable` names, `dartBridgeVersion`, `pythonReleaseDate` — lives
+// in the generated `lib/src/python_versions.dart` (imported above). It is a
+// snapshot of python-build's manifest.json; regenerate with
+// `dart run serious_python:gen_version_tables`.
 
 const platforms = {
   "iOS": {
@@ -108,11 +51,10 @@ const platforms = {
     "arm64-v8a": {"tag": "android-24-arm64_v8a", "mac_ver": ""},
     "armeabi-v7a": {"tag": "android-24-armeabi_v7a", "mac_ver": ""},
     "x86_64": {"tag": "android-24-x86_64", "mac_ver": ""},
-    "x86": {"tag": "android-24-x86", "mac_ver": ""}
   },
   "Emscripten": {
     // The actual wheel platform tag is resolved per Python release from
-    // `_pythonReleases[...].pyodidePlatformTag` (see sitecustomize wiring
+    // `pythonReleases[...].pyodidePlatformTag` (see sitecustomize wiring
     // below) since it changes with each Pyodide ABI bump.
     "": {"tag": "", "mac_ver": ""}
   },
@@ -155,10 +97,24 @@ class PackageCommand extends Command {
   Directory? _buildDir;
   Directory? _pythonDir;
   late String _pythonShortVersion;
-  late _PythonRelease _release;
+  late PythonRelease _release;
 
   String get _pyodideRootUrl =>
       "https://cdn.jsdelivr.net/pyodide/v${_release.pyodideVersion}/full";
+
+  /// Root of the cross-plugin download cache. Honors `FLET_CACHE_DIR` (the
+  /// same env var `flet build` and the Android gradle task already use) and
+  /// otherwise falls back to `~/.flet/cache` (`%USERPROFILE%\.flet\cache`
+  /// on Windows). The CMake/shell plugins resolve this independently to the
+  /// same path — keep the layout in sync.
+  String _fletCacheRoot() {
+    final env = Platform.environment['FLET_CACHE_DIR'];
+    if (env != null && env.isNotEmpty) return env;
+    final home = Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        _buildDir!.path;
+    return path.join(home, '.flet', 'cache');
+  }
 
   @override
   final name = "package";
@@ -173,7 +129,7 @@ class PackageCommand extends Command {
         mandatory: true,
         help: "Install dependencies for specific platform, e.g. 'Android'.");
     argParser.addOption('python-version',
-        allowed: _pythonReleases.keys.toList(),
+        allowed: pythonReleases.keys.toList(),
         help: "Short Python version to bundle (e.g. 3.13). Defaults to "
             "\$$pythonVersionEnvironmentVariable env var or "
             "'$defaultPythonVersion'.");
@@ -253,14 +209,16 @@ class PackageCommand extends Command {
       _pythonShortVersion = argResults?['python-version'] ??
           Platform.environment[pythonVersionEnvironmentVariable] ??
           defaultPythonVersion;
-      final baseRelease = _pythonReleases[_pythonShortVersion];
+      final baseRelease = pythonReleases[_pythonShortVersion];
       if (baseRelease == null) {
         stderr.writeln(
-            "Unknown Python version: $_pythonShortVersion. Supported: ${_pythonReleases.keys.join(", ")}");
+            "Unknown Python version: $_pythonShortVersion. Supported: ${pythonReleases.keys.join(", ")}");
         exit(2);
       }
-      _release = _PythonRelease(
-        standaloneVersion: baseRelease.standaloneVersion,
+      _release = PythonRelease(
+        standaloneVersion:
+            Platform.environment[pythonFullVersionEnvironmentVariable] ??
+                baseRelease.standaloneVersion,
         standaloneReleaseDate:
             Platform.environment[pythonDistReleaseEnvironmentVariable] ??
                 baseRelease.standaloneReleaseDate,
@@ -396,7 +354,7 @@ class PackageCommand extends Command {
           // versions, so installing 32-bit wheels would be wasted work.
           if (platform == "Android" &&
               _pythonShortVersion != "3.12" &&
-              (arch.key == "armeabi-v7a" || arch.key == "x86")) {
+              arch.key == "armeabi-v7a") {
             continue;
           }
           String? sitePackagesDir;
@@ -696,8 +654,13 @@ class PackageCommand extends Command {
         var pythonArchiveFilename =
             "cpython-${_release.standaloneVersion}+${_release.standaloneReleaseDate}-$arch-install_only_stripped.tar.gz";
 
+        // Cache CPython by release date: the same tarball is reused across
+        // every example/project until `_release.standaloneReleaseDate` bumps.
+        var pythonCacheDir = Directory(path.join(_fletCacheRoot(),
+            'python-build-standalone', _release.standaloneReleaseDate));
+        await pythonCacheDir.create(recursive: true);
         var pythonArchivePath =
-            path.join(_buildDir!.path, pythonArchiveFilename);
+            path.join(pythonCacheDir.path, pythonArchiveFilename);
 
         if (!await File(pythonArchivePath).exists()) {
           // download Python distr from GitHub
@@ -709,11 +672,15 @@ class PackageCommand extends Command {
                 "Downloading Python distributive from $url to $pythonArchivePath");
           } else {
             stdout.writeln(
-                "Downloading Python distributive from $url to a build directory");
+                "Downloading Python distributive from $url to $pythonArchivePath");
           }
 
+          // Write to a .tmp sibling first so a Ctrl-C / network blip doesn't
+          // poison the cache with a truncated archive on the next run.
+          var tmpPath = "$pythonArchivePath.tmp";
           var response = await http.get(Uri.parse(url));
-          await File(pythonArchivePath).writeAsBytes(response.bodyBytes);
+          await File(tmpPath).writeAsBytes(response.bodyBytes);
+          await File(tmpPath).rename(pythonArchivePath);
         }
 
         // extract Python from archive
@@ -727,6 +694,8 @@ class PackageCommand extends Command {
         await Process.run(
             'tar', ['-xzf', pythonArchivePath, '-C', _pythonDir!.path]);
 
+        stdout.writeln("Python distributive extracted to ${_pythonDir!.path}");
+
         if (Platform.isMacOS) {
           duplicateSysconfigFile(_pythonDir!.path);
         }
@@ -737,8 +706,9 @@ class PackageCommand extends Command {
         ? path.join(_pythonDir!.path, 'python', 'python.exe')
         : path.join(_pythonDir!.path, 'python', 'bin', 'python3');
 
-    // Run the python executable
-    verbose([pythonExePath, ...args].join(" "));
+    // Always log the Python command so a silent pip install (typical during
+    // `pip install git+…` while git is cloning) doesn't look like a hang.
+    stdout.writeln("Running: ${[pythonExePath, ...args].join(" ")}");
     return await runExec(pythonExePath, args, environment: environment);
   }
 

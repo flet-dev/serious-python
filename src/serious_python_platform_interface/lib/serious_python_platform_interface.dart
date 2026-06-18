@@ -2,6 +2,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 import 'src/method_channel_serious_python.dart';
 
+export 'src/dart_bridge_ffi.dart';
 export 'src/utils.dart';
 
 abstract class SeriousPythonPlatform extends PlatformInterface {
@@ -23,10 +24,6 @@ abstract class SeriousPythonPlatform extends PlatformInterface {
   static set instance(SeriousPythonPlatform instance) {
     PlatformInterface.verifyToken(instance, _token);
     _instance = instance;
-  }
-
-  Future<String?> getPlatformVersion() {
-    throw UnimplementedError('platformVersion() has not been implemented.');
   }
 
   Future<String?> run(String appPath,
