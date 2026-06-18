@@ -128,6 +128,7 @@ String _dartFile(String release, String defaultPython, String dartBridge,
     ..writeln('    required this.standaloneReleaseDate,')
     ..writeln('    required this.pyodideVersion,')
     ..writeln('    required this.pyodidePlatformTag,')
+    ..writeln('    required this.androidAbis,')
     ..writeln('    required this.prerelease,')
     ..writeln('  });')
     ..writeln()
@@ -135,18 +136,27 @@ String _dartFile(String release, String defaultPython, String dartBridge,
     ..writeln('  final String standaloneReleaseDate;')
     ..writeln('  final String pyodideVersion;')
     ..writeln('  final String pyodidePlatformTag;')
+    ..writeln('')
+    ..writeln('  /// Android ABIs python-build publishes distributions for')
+    ..writeln('  /// this minor. 32-bit Android was dropped in 3.13 (PEP 738);')
+    ..writeln('  /// only 3.12 still carries `armeabi-v7a`.')
+    ..writeln('  final List<String> androidAbis;')
+    ..writeln('')
     ..writeln('  final bool prerelease;')
     ..writeln('}')
     ..writeln()
     ..writeln('const pythonReleases = <String, PythonRelease>{');
   for (final s in shorts) {
     final r = pythons[s] as Map<String, dynamic>;
+    final abis = (r['android_abis'] as List).cast<String>();
+    final abisLiteral = abis.map((a) => '"$a"').join(', ');
     b
       ..writeln('  "$s": PythonRelease(')
       ..writeln('    standaloneVersion: "${r['full_version']}",')
       ..writeln('    standaloneReleaseDate: "${r['standalone_release_date']}",')
       ..writeln('    pyodideVersion: "${r['pyodide_version']}",')
       ..writeln('    pyodidePlatformTag: "${r['pyodide_platform_tag']}",')
+      ..writeln('    androidAbis: [$abisLiteral],')
       ..writeln('    prerelease: ${r['prerelease'] == true},')
       ..writeln('  ),');
   }
@@ -165,6 +175,8 @@ String _propertiesFile(String release, String defaultPython, String dartBridge,
   for (final s in shorts) {
     final r = pythons[s] as Map<String, dynamic>;
     b.writeln('$s.full_version=${r['full_version']}');
+    final abis = (r['android_abis'] as List).cast<String>();
+    b.writeln('$s.android_abis=${abis.join(",")}');
   }
   return b.toString();
 }
