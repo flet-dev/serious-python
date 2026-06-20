@@ -1,12 +1,10 @@
 print("Hello from Python program!")
 
+import _imp
 import os
 import sys
 import traceback
 from pathlib import Path
-from time import sleep
-
-import _imp
 
 _imp.extension_suffixes()
 
@@ -58,7 +56,7 @@ def test_numpy_basic():
 
         assert (array([1, 2]) + array([3, 5])).tolist() == [4, 7]
         return "numpy basic test - OK"
-    except Exception as e:
+    except Exception:
         return f"numpy: test_basic - error: {traceback.format_exc()}"
 
 
@@ -142,7 +140,6 @@ def test_sqlite():
 
 
 def test_pyjnius():
-    from time import sleep
 
     from jnius import autoclass
 
@@ -168,8 +165,8 @@ def test_pyjnius():
 
 
 r += test_sqlite()
-# r += test_pyjnius()
-# r += test_lru()
+r += test_pyjnius()
+r += test_lru()
 r += test_numpy_basic()
 test_numpy_performance()
 

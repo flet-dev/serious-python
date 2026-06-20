@@ -100,6 +100,21 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       stdlibZip,
     ];
 
+    // pyjnius support: load its JNI helper (libpyjni.so, from the flet-libpyjni
+    // dependency) via Java's `System.loadLibrary`, which runs its JNI_OnLoad —
+    // capturing the JavaVM + app ClassLoader that pyjnius's `PyJni_*` calls rely
+    // on. `dart:ffi`'s dlopen (used for libdart_bridge) never triggers
+    // JNI_OnLoad, so this Java-side load must happen before the interpreter
+    // imports `jnius`. Best-effort: a no-op (UnsatisfiedLinkError) for apps that
+    // don't depend on pyjnius, since libpyjni.so isn't bundled then.
+    var jniReady = false;
+    try {
+      await methodChannel.invokeMethod('loadLibrary', {'libname': 'pyjni'});
+      jniReady = true;
+    } catch (_) {
+      // pyjnius not in use (or libpyjni.so absent) — nothing to do.
+    }
+
     final env = <String, String>{
       'PYTHONINSPECT': '1',
       'PYTHONDONTWRITEBYTECODE': '1',
@@ -108,6 +123,7 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
       'LC_CTYPE': 'UTF-8',
       'PYTHONHOME': base,
       'PYTHONPATH': pythonPaths.join(':'),
+      if (jniReady) 'FLET_JNI_READY': '1',
       ...?environmentVariables,
     };
 

@@ -4,6 +4,7 @@
 * Resolve the support dir via `path_provider` `getApplicationSupportDirectory()` (== `context.getFilesDir()`) and drop the custom `getFilesDir` method channel; the payload base moves from `flet/py` to `flet/`.
 * Synthesize an empty `__init__.py` for `__init__`-less package directories when building `stdlib.zip`/`sitepackages.zip`, so `zipimport` can import PEP 420 namespace packages (e.g. `flask.sansio`).
 * `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES` entries now support `*`/`?` wildcards matched against the top-level name (e.g. `flask*` also extracts `flask-<version>.dist-info/`).
+* Restore `pyjnius` support under the FFI model: re-add the `loadLibrary` method channel and load its JNI helper (`libpyjni.so`) via Java `System.loadLibrary` before the interpreter starts, so the helper's `JNI_OnLoad` captures the `JavaVM` + app ClassLoader (`dart:ffi`'s `dlopen` for `libdart_bridge` never triggers `JNI_OnLoad`). Best-effort — a no-op for apps that don't depend on pyjnius.
 * Version bump aligning with the `serious_python_*` 4.0.0 release.
 
 ## 3.0.0
