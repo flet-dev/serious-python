@@ -114,8 +114,25 @@ val siteSrcDir: String? = System.getenv("SERIOUS_PYTHON_SITE_PACKAGES")
 // name) at each module's path in the pure zip. Pure code ships in ABI-common
 // stored zips; path-hungry packages from SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES
 // are moved whole into extract.zip and excluded from sitepackages.zip.
+//
+// Each entry matches either an exact path or anything under it (`flask` ->
+// flask/...). An entry containing a `*` or `?` wildcard is a glob matched
+// against the top-level path component, so `flask*` also catches the sibling
+// `flask-<version>.dist-info/` (and any `flask_*` package).
 val extractPackages: List<String> = (System.getenv("SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES") ?: "")
     .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+fun globToRegex(glob: String): Regex =
+    Regex(glob.map { c ->
+        when (c) {
+            '*' -> ".*"
+            '?' -> "."
+            else -> Regex.escape(c.toString())
+        }
+    }.joinToString(""))
+val extractGlobs: List<Regex> =
+    extractPackages.filter { '*' in it || '?' in it }.map(::globToRegex)
+val extractPlain: List<String> =
+    extractPackages.filter { '*' !in it && '?' !in it }
 val primaryAbi = abis.first()                       // pure zips are ABI-common: build once
 val assetsDir = file("src/main/assets")
 val bootstrapPy = file("../python/_sp_bootstrap.py")
@@ -129,7 +146,9 @@ fun extDottedName(rel: String): String {               // slash-rel path -> dott
 }
 fun mangledLib(dotted: String) = "lib" + dotted.replace('.', '-') + ".so"
 fun sorefPath(rel: String) = rel.replace(extTag, ".soref")
-fun isAllowlisted(rel: String) = extractPackages.any { rel == it || rel.startsWith("$it/") }
+fun isAllowlisted(rel: String): Boolean =
+    extractPlain.any { rel == it || rel.startsWith("$it/") } ||
+    (extractGlobs.isNotEmpty() && extractGlobs.any { it.matches(rel.substringBefore('/')) })
 
 // Minimal STORED (uncompressed) zip so members stay readable via zipimport.get_data
 // with no zlib at runtime.
