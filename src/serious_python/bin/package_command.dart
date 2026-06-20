@@ -20,6 +20,11 @@ const pyodideLockFile = "pyodide-lock.json";
 
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
+// Staging dir for the processed app (copy/compile/cleanup output). When set,
+// native platforms (macOS/iOS/Windows/Linux/Android) consume the unpacked app
+// from here and do NOT receive an `app.zip` asset; web (Emscripten) still gets
+// the zip.
+const appEnvironmentVariable = "SERIOUS_PYTHON_APP";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
 const allowSourceDistrosEnvironmentVariable =
@@ -334,6 +339,15 @@ class PackageCommand extends Command {
         }
       }
 
+      // app staging dir (native platforms only): when set, the processed app is
+      // copied here for the platform native build to place into the bundle, and
+      // no `app.zip` asset is produced. Web keeps the zip.
+      final appPackageRootEnv = Platform.environment[appEnvironmentVariable];
+      final appPackageRoot =
+          (appPackageRootEnv != null && appPackageRootEnv.isNotEmpty)
+              ? appPackageRootEnv
+              : null;
+
       // install requirements
       if (requirements.isNotEmpty && !skipSitePackages) {
         if (await Directory(sitePackagesRoot).exists()) {
@@ -524,15 +538,32 @@ class PackageCommand extends Command {
         }
       }
 
-      // create archive
-      stdout.writeln(
-          "Creating app archive at ${dest.path} from a temp directory");
-      await zipDirectoryPosix(tempDir, dest);
+      if (isWeb) {
+        // Web (Pyodide) still ships the app as a zip asset.
+        stdout.writeln(
+            "Creating app archive at ${dest.path} from a temp directory");
+        await zipDirectoryPosix(tempDir, dest);
 
-      // create hash file
-      stdout.writeln("Writing app archive hash to ${dest.path}.hash");
-      await File("${dest.path}.hash")
-          .writeAsString(await calculateFileHash(dest.path));
+        // create hash file
+        stdout.writeln("Writing app archive hash to ${dest.path}.hash");
+        await File("${dest.path}.hash")
+            .writeAsString(await calculateFileHash(dest.path));
+      } else {
+        // Native platforms: stage the unpacked app for the platform native
+        // build to copy into the bundle (Android zips it as a stored asset).
+        if (appPackageRoot == null) {
+          throw Exception(
+              "$appEnvironmentVariable environment variable must be set for "
+              "$platform packaging (staging dir for the unpacked app).");
+        }
+        final appStagingDir = Directory(appPackageRoot);
+        stdout.writeln("Staging unpacked app to ${appStagingDir.path}");
+        if (await appStagingDir.exists()) {
+          await appStagingDir.delete(recursive: true);
+        }
+        await appStagingDir.create(recursive: true);
+        await copyDirectory(tempDir, appStagingDir, tempDir.path, []);
+      }
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {

@@ -1,3 +1,9 @@
+## 4.0.0
+
+* Ship the app as a *stored* `app.zip` asset in the APK and unpack it once (version-keyed) to `<application-support>/flet/app` on the first launch after install/update, via the new `prepareApp()`. The version-keyed unpack moved out of `run()`; user data in the sibling `<application-support>/data` is preserved across updates.
+* Resolve the support dir via `path_provider` `getApplicationSupportDirectory()` (== `context.getFilesDir()`) and drop the custom `getFilesDir` method channel; the payload base moves from `flet/py` to `flet/`.
+* Version bump aligning with the `serious_python_*` 4.0.0 release.
+
 ## 3.0.0
 
 * **In-process Python (dart_bridge FFI).** The Python lifecycle now runs through `libdart_bridge.so` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport.

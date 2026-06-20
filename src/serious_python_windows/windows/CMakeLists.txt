@@ -216,3 +216,16 @@ if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES} AND EXISTS "$ENV{SERIOUS_PYTHON_SIT
       "${SP_RUNNER_OUT}/site-packages"
   )
 endif()
+
+# The app's Python sources (staged unpacked by serious_python's `package`
+# command) ship as a bare `app/` dir next to the bundled CPython Lib/DLLs/
+# site-packages; the runtime adds `<exeDir>/app` to sys.path (no extraction).
+if(DEFINED ENV{SERIOUS_PYTHON_APP} AND EXISTS "$ENV{SERIOUS_PYTHON_APP}")
+  add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${SP_RUNNER_OUT}/app"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SP_RUNNER_OUT}/app"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "$ENV{SERIOUS_PYTHON_APP}"
+      "${SP_RUNNER_OUT}/app"
+  )
+endif()

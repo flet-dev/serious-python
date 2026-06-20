@@ -1,3 +1,8 @@
+## 4.0.0
+
+* `prepareApp()` returns the app dir from the `python.bundle` resource (`<resourcePath>/app`); the app's Python sources ship unpacked as an `app` resource bundle next to `stdlib` + `site-packages` (no first-launch extraction).
+* Version bump aligning with the `serious_python_*` 4.0.0 release.
+
 ## 3.0.0
 
 * **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `dart_bridge.xcframework` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport; the Swift plugin registers the dart_bridge inittab, the pod is declared `static_framework` for xcframework vendoring, and the embedded `Python.app` is stripped from `Python.framework`.

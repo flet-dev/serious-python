@@ -103,8 +103,6 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
-    } else if (call.method.equals("getFilesDir")) {
-      result.success(context.getFilesDir().getAbsolutePath());
     } else if (call.method.equals("extractAsset")) {
       // Stream an APK asset to disk as one whole file (e.g. stdlib.zip).
       try {

@@ -166,3 +166,14 @@ if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES} AND EXISTS "$ENV{SERIOUS_PYTHON_SIT
     file(COPY \"$ENV{SERIOUS_PYTHON_SITE_PACKAGES}/\" DESTINATION \"${CMAKE_BINARY_DIR}/bundle/site-packages\")
   ")
 endif()
+
+# The app's Python sources (staged unpacked by serious_python's `package`
+# command) are bundled as a bare `app/` dir next to the stdlib + site-packages;
+# the runtime adds `<exeDir>/app` to sys.path (no extraction at launch).
+if(DEFINED ENV{SERIOUS_PYTHON_APP} AND EXISTS "$ENV{SERIOUS_PYTHON_APP}")
+  install(CODE "
+    file(REMOVE_RECURSE \"${CMAKE_BINARY_DIR}/bundle/app\")
+    file(MAKE_DIRECTORY \"${CMAKE_BINARY_DIR}/bundle/app\")
+    file(COPY \"$ENV{SERIOUS_PYTHON_APP}/\" DESTINATION \"${CMAKE_BINARY_DIR}/bundle/app\")
+  ")
+endif()

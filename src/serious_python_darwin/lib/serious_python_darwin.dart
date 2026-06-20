@@ -17,6 +17,20 @@ class SeriousPythonDarwin extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonDarwin();
   }
 
+  /// The app ships unpacked inside the `python.bundle` resource at
+  /// `<resourcePath>/app` (placed by the darwin podspec `resource_bundles`,
+  /// next to `stdlib` + `site-packages`).
+  @override
+  Future<String> prepareApp() async {
+    final resourcePath =
+        await methodChannel.invokeMethod<String>('getResourcePath');
+    if (resourcePath == null) {
+      throw StateError(
+          'serious_python: failed to resolve plugin resource path');
+    }
+    return p.join(resourcePath, 'app');
+  }
+
   @override
   Future<String?> run(String appPath,
       {String? script,

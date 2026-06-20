@@ -17,11 +17,18 @@ Separating channels means the throughput / memory hot path is just `bridge.send`
 
 ```sh
 # From this directory:
-dart run serious_python:main package app/src --platform Darwin \
-  --python-version 3.14
+export SERIOUS_PYTHON_VERSION=3.14   # read by BOTH the package step and `flutter build`
+export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
+dart run serious_python:main package app/src --platform Darwin
 ```
 
-Substitute `Darwin` with `Linux`, `Windows`, `iOS`, or `Android`. Each platform plugin's CMake / Gradle pipeline downloads the prebuilt `dart_bridge` native binary from [flet-dev/dart-bridge](https://github.com/flet-dev/dart-bridge) at build time — no `--bridge` flag, no PyPI wheel.
+Set `SERIOUS_PYTHON_VERSION` as an **environment variable** (not the `--python-version`
+flag): the native build also reads it at `flutter run`/`flutter build` time, so a single
+`export` keeps the bundled runtime and the installed packages on the same Python version.
+`SERIOUS_PYTHON_APP` is where the processed app is staged for the platform build to
+bundle (native targets ship the app unpacked next to the stdlib/site-packages — Android
+ships it as a stored asset). Substitute `Darwin` with `Linux`, `Windows`, `iOS`, or `Android`. Each platform plugin's CMake / Gradle pipeline downloads the prebuilt `dart_bridge` native binary from [flet-dev/dart-bridge](https://github.com/flet-dev/dart-bridge) at build time — no `--bridge` flag, no PyPI wheel.
 
 ## Run
 

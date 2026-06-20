@@ -53,14 +53,6 @@ the auto-resolved default.
 
 ## Usage
 
-Zip your Python app into `app.zip`, copy to `app` (or any other) directory in the root of your Flutter app and add it as an asset to `pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - app/app.zip
-```
-
 Import Serious Python package into your app:
 
 `import 'package:serious_python/serious_python.dart';`
@@ -72,24 +64,26 @@ The plugin is built against iOS 13.0, so you might need to update iOS version in
 platform :ios, '13.0'
 ```
 
-Create an instance of `SeriousPython` class and call its `run()` method:
+Package your Python app with the CLI (see [Packaging Python app](#packaging-python-app) below). Its sources are placed **unpacked inside the app bundle**, next to the Python stdlib and site-packages — on Android they ship as a *stored* `app.zip` asset inside the APK and are unpacked once on first launch. Then run it:
 
 ```dart
-SeriousPython.run("app/app.zip");
+SeriousPython.run();
 ```
 
-When the app starts the archive is unpacked to a temporary directory and Serious Python plugin will try to run `main.py` in the root of the archive. Current directory is changed to a temporary directory.
+`run()` resolves the packaged app, changes the current directory to a writable per-app data directory (`<application-support>/data`), and runs `main.py` (or `main.pyc`) in the root of the app.
+
+> **Note:** the app directory is **read-only** inside the bundle (signed `.app`, iOS bundle, Program Files). Write your data — files, SQLite databases, etc. — under the current directory or another writable location, not next to your code.
 
 If your Python app has a different entry point it could be specified with `appFileName` parameter:
 
 ```dart
-SeriousPython.run("app/app.zip", appFileName: "my_app.py");
+SeriousPython.run(appFileName: "my_app.py");
 ```
 
 You can pass a map with environment variables that should be available in your Python program:
 
 ```dart
-SeriousPython.run("app/app.zip",
+SeriousPython.run(
     appFileName: "my_app.py",
     environmentVariables: {"a": "1", "b": "2"});
 ```
@@ -97,7 +91,7 @@ SeriousPython.run("app/app.zip",
 By default, Serious Python expects Python dependencies installed into `__pypackages__` directory in the root of app directory. You can add additional paths to look for 3rd-party packages using `modulePaths` parameter:
 
 ```dart
-SeriousPython.run("app/app.zip",
+SeriousPython.run(
     appFileName: "my_app.py",
     modulePaths: ["/absolute/path/to/my/site-packages"]);
 ```
@@ -105,8 +99,10 @@ SeriousPython.run("app/app.zip",
 By default the Python program runs in a background thread so the Flutter UI stays responsive. Pass `sync: true` to run it on the calling thread instead — useful for short utility programs or when calling from a Dart isolate; long-running synchronous programs will freeze the UI on the main isolate:
 
 ```dart
-SeriousPython.run("app/app.zip", sync: true);
+SeriousPython.run(sync: true);
 ```
+
+If you just need the path to the unpacked app (e.g. to drive the runtime yourself), call `SeriousPython.prepareApp()` — it returns the app directory, performing the one-time Android unpack if needed.
 
 ### Packaging Python app
 
@@ -128,28 +124,38 @@ dart run serious_python:main package app/src -p {platform}
 
 where `{platform}` can be one of the following: `Android`, `iOS`, `Darwin`, `Windows`, `Linux` or `Emscripten`. (`Darwin` covers both macOS apps and is the value used internally by `platform.system()` in the bundled Python; it is **not** spelled `macOS`.)
 
-By default, the command creates `app/app.zip` asset, but you can change its path/name with `--asset` argument:
+For **native** targets (`Android`, `iOS`, `Darwin`, `Windows`, `Linux`) the processed app is staged into the directory given by the `SERIOUS_PYTHON_APP` environment variable, and the platform's native build copies it into the app bundle (Android ships it as a *stored* `app.zip` asset, unpacked on first launch). For the **web** (`Emscripten`) target the command instead creates an `app/app.zip` asset (loaded by Pyodide in the browser); change its path/name with `--asset`:
 
 ```
-dart run serious_python:main package --asset assets/myapp.zip app/src -p {platform}
+dart run serious_python:main package --asset assets/myapp.zip app/src -p Emscripten
 ```
 
 #### Selecting a Python version
 
-Pick which CPython line to bundle with `--python-version` (or set
-`SERIOUS_PYTHON_VERSION` in the build environment):
+Pick which CPython line to bundle with the **`SERIOUS_PYTHON_VERSION`
+environment variable** (supported short versions today are **3.12**, **3.13**,
+**3.14**; the default is the latest stable):
 
 ```
-dart run serious_python:main package app/src -p Android --python-version 3.13 -r flet
+export SERIOUS_PYTHON_VERSION=3.13
+dart run serious_python:main package app/src -p Android -r flet
 ```
 
-Supported short versions today are **3.12**, **3.13**, **3.14**; the default
-is the latest stable. The same env var (`SERIOUS_PYTHON_VERSION`) is also
-read by each platform plugin's build script (`build.gradle`, the
+`SERIOUS_PYTHON_VERSION` is read **in two places**: by the `package` command
+above, and by each platform plugin's native build (`build.gradle`, the
 `serious_python_darwin` podspec, the Linux/Windows `CMakeLists.txt`) when
-`flutter build` runs later, so a single `export` covers both the packaging
-phase and the Flutter build phase. See the [Python versions](#python-versions)
-table above for the matching CPython and Pyodide releases.
+`flutter build` runs later. A single `export` covers both phases.
+
+> **Important:** the `package` command also accepts a `--python-version` flag,
+> but it **only affects the `package` step** (which interpreter the
+> site-packages are installed for) — it does **not** reach the later
+> `flutter build`. Using the flag alone produces a **mismatched** app (e.g.
+> 3.13 packages bundled with the default-latest `Python.framework` / runtime).
+> For a manual two-step build, set the `SERIOUS_PYTHON_VERSION` env var so both
+> phases agree. (`flet build` exports it for you.)
+
+See the [Python versions](#python-versions) table above for the matching CPython
+and Pyodide releases.
 
 > **Note:** changing the bundled Python version for an app you've already built
 > requires a clean build (delete the app's `build/` directory, or run
@@ -174,18 +180,17 @@ dart run serious_python:main package app/src -p iOS \
 
 > The comma-separated form (`--requirements flet,numpy==2.1.1`) was removed in **0.9.2** as a breaking change so dependency specifiers containing `,` (like `pandas>=2.2,<3`) can be expressed; use the per-option form shown above instead.
 
-To package for `iOS` and `Android` platforms developer should set `SERIOUS_PYTHON_SITE_PACKAGES` environment variable with a path to a temp directory for installed app packages. The contents of that directory is embedded into app bundle during app compilation.
+For all **native** platforms (`iOS`, `Android`, `Darwin`, `Windows`, `Linux`) set the `SERIOUS_PYTHON_SITE_PACKAGES` environment variable to a directory for the installed `pip` packages, and `SERIOUS_PYTHON_APP` to a directory for the processed app sources. The platform's native build embeds both into the app bundle during compilation (your app sources unpacked next to `site-packages`).
 
 For example:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/app
 dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirements.txt
 ```
 
-For macOS, Linux and Windows app packages are installed into `__pypackages__` inside app package asset zip.
-
-Make sure generated asset is added to `pubspec.yaml`.
+For the **web** (`Emscripten`) target there is no `SERIOUS_PYTHON_APP`; the app and its `__pypackages__` are zipped into the `app/app.zip` asset instead — make sure it's added to `pubspec.yaml`.
 
 ## Python app structure
 
@@ -212,7 +217,7 @@ Request additional packages for iOS and Android on [Flet Discussions - Packages]
 `dart run serious_python:main package` assembles two things, which the platform plugin then bundles into your Flutter app:
 
 1. **The CPython runtime + standard library** — a per-target build downloaded from [flet-dev/python-build](https://github.com/flet-dev/python-build) (and, for native extensions, [mobile-forge](https://github.com/flet-dev/mobile-forge)) and bundled by the plugin at build time.
-2. **Your app + its dependencies** — your Python sources are zipped into an **asset** (`app/app.zip` by default), and `pip`-installed packages are placed where each platform expects them.
+2. **Your app + its dependencies** — your Python sources are placed **unpacked inside the app bundle**, next to the stdlib/site-packages (on Android they ship as a *stored* `app.zip` asset, and on the web inside `app/app.zip` — see below), and `pip`-installed packages are placed where each platform expects them.
 
 At runtime the plugin sets `PYTHONHOME` / `PYTHONPATH` (or, on Android, installs a custom importer) so the interpreter finds the stdlib, your dependencies, and your app.
 
@@ -229,13 +234,13 @@ The on-disk layout differs per platform, mostly because each OS has different ru
 
 ### Your app program (all platforms)
 
-`package` copies your Python sources into a temp dir (honoring `--exclude` globs, optionally compiling to `.pyc` with `--compile-app`), zips it to `app/app.zip` (override with `-a`/`--asset`), and writes an `app.zip.hash` next to it. At runtime the asset is extracted once to the app's support directory (`<app-support>/flet/app`), guarded by a hash + an optional `invalidateKey` (typically your app version) so it only re-extracts when the bundle changes — debug builds always re-extract. Your app dir is placed first on `sys.path`; a sibling `__pypackages__/` is also added (so you can vendor pure-Python deps next to your code).
+`package` copies your Python sources into a temp dir (honoring `--exclude` globs, optionally compiling to `.pyc` with `--compile-app`). For **native** platforms it stages them to `SERIOUS_PYTHON_APP`, and the platform build drops them **unpacked into the bundle** next to the stdlib/site-packages — `<resourcePath>/app` (iOS/macOS), `<exe-dir>/app` (Windows/Linux). There's no first-launch extraction; `SeriousPython.prepareApp()` just returns that path. On **Android** the sources are zipped into a *stored* `app.zip` asset and unpacked once (version-keyed by your app version) to `<application-support>/flet/app` on the first launch after an install/update. On the **web** they're zipped into `app/app.zip` and loaded by Pyodide. Your app dir is placed first on `sys.path`; a sibling `__pypackages__/` is also added (so you can vendor pure-Python deps next to your code). At run time the current directory is set to a writable `<application-support>/data` (the app dir itself is read-only).
 
 `pip install` output goes to `build/site-packages` by default (override with the `SERIOUS_PYTHON_SITE_PACKAGES` env var). For mobile, packages are installed **per architecture** (a `sitecustomize.py` shim spoofs the wheel platform tag so the correct mobile wheels resolve), then merged or split per platform as shown above.
 
 ### Android specifics
 
-- **Pure Python** (stdlib + dependencies) ships in two **stored** (uncompressed) ABI-common zips — `stdlib.zip` and `sitepackages.zip` — copied once to the app's files dir and imported in place via `zipimport`. Final `sys.path` (highest first): your app dir, the extract dir, `sitepackages.zip`, `stdlib.zip`.
+- **Pure Python** (stdlib + dependencies) ships in two **stored** (uncompressed) ABI-common zips — `stdlib.zip` and `sitepackages.zip` — copied once (version-keyed) to `<application-support>/flet/` (alongside the unpacked `app/` and `extract/`) and imported in place via `zipimport`. Final `sys.path` (highest first): your app dir (`<application-support>/flet/app`), the extract dir, `sitepackages.zip`, `stdlib.zip`.
 - **Native modules** (stdlib `lib-dynload` and site-package extensions) are relocated to `jniLibs/<abi>/lib<mangled>.so` and loaded **directly from the APK** (memory-mapped, never extracted to disk); a `sys.meta_path` finder resolves them from `.soref` markers left in the zips. This is why Android needs **no** `useLegacyPackaging` / `keepDebugSymbols` config and the stdlib is **not** duplicated per ABI.
 - **Path-hungry packages** (those that read bundled data via `__file__` / `pkg_resources` rather than `importlib.resources`) can be shipped extracted to disk instead of inside the zip — list them (comma-separated relative paths) in `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES`; they go into `extract.zip` and are unpacked to disk at first launch.
 - Works for both **single APK** (`flutter build apk`) and **Play Store App Bundles** (per-ABI config splits); under legacy packaging / `minSdk < 23` the same finder falls back to loading from the extracted `nativeLibraryDir`.
@@ -263,18 +268,19 @@ The following matrix shows which platform you should build on to target specific
 
 ### macOS
 
-macOS 10.15 (Catalina) is the minimal supported vesion of macOS.
+macOS 11.0 (Big Sur) is the minimal supported version of macOS (the bundled
+`Python.framework` requires 11.0).
 
 You have to update your Flutter app's `macos/Podfile` to have this line at the very top:
 
 ```ruby
-platform :osx, '10.15'
+platform :osx, '11.0'
 ```
 
 Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
 
 ```objc
-MACOSX_DEPLOYMENT_TARGET = 10.15;
+MACOSX_DEPLOYMENT_TARGET = 11.0;
 ```
 
 ### Android
@@ -302,7 +308,5 @@ dart run serious_python:main package app/src -p Darwin --verbose
 ## Examples
 
 [Python REPL with Flask backend](example/flask_example).
-
-[Flet app](example/flet_example).
 
 [Run Python app](example/run_example).

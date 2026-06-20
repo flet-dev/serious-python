@@ -1,6 +1,6 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - serious_python_darwin (2.0.0):
+  - serious_python_darwin (4.0.0):
     - Flutter
     - FlutterMacOS
 
@@ -16,8 +16,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  serious_python_darwin: 6d58c9837595683a71e20114bdd4607568c98e84
+  serious_python_darwin: 4858dfeb2d3d99e30a645bc25851c8f702db1890
 
-PODFILE CHECKSUM: 9ebaf0ce3d369aaa26a9ea0e159195ed94724cf3
+PODFILE CHECKSUM: c2e95c8c0fe03c5c57e438583cae4cc732296009
 
 COCOAPODS: 1.14.3

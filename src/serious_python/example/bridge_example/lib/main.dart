@@ -46,8 +46,8 @@ class BridgeExampleHandle {
   }
 
   /// Brief retry to cover the startup window where Python's handler hasn't
-  /// registered yet. Matches the pattern in flet_example's
-  /// `_DartBridgeBackendChannel._retrySend`.
+  /// registered yet. Matches the pattern in flet's build template
+  /// (`_DartBridgeBackendChannel._retrySend`).
   static void _retrySend(PythonBridge bridge, Uint8List bytes) {
     const interval = Duration(milliseconds: 50);
     const deadline = Duration(seconds: 30);

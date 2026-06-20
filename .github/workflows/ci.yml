@@ -18,6 +18,7 @@ env:
   ROOT: "${{ github.workspace }}"
   SCRIPTS: "${{ github.workspace }}/.github/scripts"
   SERIOUS_PYTHON_SITE_PACKAGES: "${{ github.workspace }}/site-packages"
+  SERIOUS_PYTHON_APP: "${{ github.workspace }}/python-app"
   UV_PYTHON: "3.12"
   # futureware-tech/simulator-action upstream still declares node20 in
   # action.yml (no Node 24 release as of v5). Force the runner to execute

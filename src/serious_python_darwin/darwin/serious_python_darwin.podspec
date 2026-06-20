@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '3.0.0'
+  s.version          = '4.0.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -23,7 +23,7 @@ Pod::Spec.new do |s|
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
   s.ios.deployment_target = '13.0'
-  s.osx.deployment_target = '10.15'
+  s.osx.deployment_target = '11.0'
 
   # Flutter.framework does not contain a i386 slice.
   s.pod_target_xcconfig = {
@@ -72,7 +72,8 @@ puts `#{prepare_command}`
   s.ios.resource_bundles = {
     'python' => [
       "dist_ios/stdlib",
-      "dist_ios/site-packages"
+      "dist_ios/site-packages",
+      "dist_ios/app"
     ]
   }
 
@@ -81,7 +82,8 @@ puts `#{prepare_command}`
   s.osx.resource_bundles = {
     'python' => [
       "dist_macos/stdlib",
-      "dist_macos/site-packages"
+      "dist_macos/site-packages",
+      "dist_macos/app"
     ]
   }
 end

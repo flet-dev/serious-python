@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.flet.serious_python_android"
-version = "3.0.0"
+version = "4.0.0"
 
 rootProject.allprojects {
     repositories {
@@ -134,6 +134,7 @@ fun isAllowlisted(rel: String) = extractPackages.any { rel == it || rel.startsWi
 // Minimal STORED (uncompressed) zip so members stay readable via zipimport.get_data
 // with no zlib at runtime.
 class StoredZip(val out: ZipOutputStream) {
+    private val names = mutableSetOf<String>()
     fun add(name: String, data: ByteArray) {
         val e = ZipEntry(name).apply {
             method = ZipEntry.STORED
@@ -142,6 +143,31 @@ class StoredZip(val out: ZipOutputStream) {
             crc = CRC32().apply { update(data) }.value
         }
         out.putNextEntry(e); out.write(data); out.closeEntry()
+        names.add(name)
+    }
+    // zipimport cannot import PEP 420 namespace packages — package directories
+    // with no __init__.py (e.g. flask's `flask/sansio/`). On a real filesystem
+    // the path finder imports them implicitly, but inside a stored zip served by
+    // zipimport they're invisible. Inject an empty __init__.py into every package
+    // dir that has importable content (a .py/.pyc/.soref module) but no __init__,
+    // turning namespace packages into regular ones zipimport can resolve. Call
+    // before close(). (Not needed for extract.zip — that's unpacked to disk.)
+    fun synthesizePackageInits() {
+        val moduleExts = listOf(".py", ".pyc", ".soref")
+        val pkgDirs = sortedSetOf<String>()
+        for (n in names) {
+            if (moduleExts.none { n.endsWith(it) }) continue
+            if (n.split('/').any { it == "__pycache__" }) continue
+            var dir = n.substringBeforeLast('/', "")
+            while (dir.isNotEmpty()) {
+                pkgDirs.add(dir)
+                dir = dir.substringBeforeLast('/', "")
+            }
+        }
+        for (d in pkgDirs) {
+            if ("$d/__init__.py" in names || "$d/__init__.pyc" in names) continue
+            add("$d/__init__.py", ByteArray(0))
+        }
     }
     fun close() = out.close()
 }
@@ -247,6 +273,7 @@ for (abi in abis) {
             // The dart-bridge Android shim (F) installs the finder before `site`. A
             // sitecustomize fallback can be re-enabled for bridges without that shim:
             //   zip?.add("sitecustomize.py", "import _sp_bootstrap\n_sp_bootstrap.install()\n".toByteArray())
+            zip?.synthesizePackageInits()
             zip?.close()
             bundleFile.delete()                                     // fake-zip must not ship
         }
@@ -278,6 +305,7 @@ for (abi in abis) {
                     else -> zip?.add(rel, f.readBytes())
                 }
             }
+            siteZip?.synthesizePackageInits()
             siteZip?.close()
             extractZip?.close()
         }
@@ -315,6 +343,28 @@ for (abi in abis) {
     packageTasks.add("copyDartBridge_$abi")
 }
 
+// The app's Python sources (already processed by serious_python's `package`
+// command into SERIOUS_PYTHON_APP) ship as a STORED, ABI-common `app.zip`
+// asset alongside stdlib.zip/sitepackages.zip; the plugin unpacks it to the
+// files dir on first launch (version-keyed). Built once, regardless of ABI.
+val appSrcDir: String? = System.getenv("SERIOUS_PYTHON_APP")
+tasks.register("packageApp") {
+    outputs.dir(assetsDir)
+    outputs.upToDateWhen { false }
+    doLast {
+        if (appSrcDir == null || appSrcDir.isBlank()) return@doLast
+        val appDir = File(appSrcDir)
+        if (!appDir.isDirectory)
+            throw GradleException("serious_python: SERIOUS_PYTHON_APP dir not found: $appSrcDir")
+        val zip = storedZip(File(assetsDir, "app.zip"))
+        appDir.walkTopDown().filter { it.isFile }.forEach { f ->
+            val rel = f.relativeTo(appDir).path.replace(File.separatorChar, '/')
+            zip.add(rel, f.readBytes())
+        }
+        zip.close()
+    }
+}
+
 val copyOrUntar = tasks.register("copyOrUntar") {
     if (System.getenv("SERIOUS_PYTHON_BUILD_DIST") != null) {
         dependsOn("copyBuildDist")
@@ -324,5 +374,5 @@ val copyOrUntar = tasks.register("copyOrUntar") {
 }
 
 tasks.named("preBuild") {
-    dependsOn(copyOrUntar)
+    dependsOn(copyOrUntar, "packageApp")
 }

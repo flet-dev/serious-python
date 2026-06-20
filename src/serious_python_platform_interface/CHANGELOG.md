@@ -1,3 +1,9 @@
+## 4.0.0
+
+* Add `prepareApp()` to `SeriousPythonPlatform` — materializes the packaged app on disk (if needed) and returns the directory containing its entry point.
+* Remove the runtime zip-extraction helpers (`extractAssetZip` / `extractFileZip` / `extractAssetOrFile` / `extractAsset`); apps now ship unpacked in the bundle (or, on Android, as a stored asset unpacked by the platform plugin). `getDirFiles` is retained.
+* Version bump aligning with the `serious_python_*` 4.0.0 release (app files unpacked in the bundle).
+
 ## 3.0.0
 
 * Remove the scaffold `getPlatformVersion` method from the platform interface and its method-channel implementation.

@@ -30,7 +30,7 @@ import 'package:serious_python_platform_interface/serious_python_platform_interf
 /// ui.messages.listen((Uint8List bytes) { /* UI events */ });
 /// logs.messages.listen((Uint8List bytes) { /* log lines */ });
 ///
-/// await SeriousPython.run('app/main.py', environmentVariables: {
+/// await SeriousPython.run(environmentVariables: {
 ///   'MY_APP_UI_PORT':   '${ui.port}',
 ///   'MY_APP_LOGS_PORT': '${logs.port}',
 /// });
