@@ -75,7 +75,6 @@ void main() {
   // Fire-and-forget: Python's main.py blocks forever waiting for messages.
   // Awaiting SeriousPython.run() would deadlock the UI.
   unawaited(SeriousPython.run(
-    'app/app.zip',
     environmentVariables: {
       _controlPortEnv: '${control.port}',
       _echoPortEnv: '${echo.port}',

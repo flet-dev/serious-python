@@ -1,6 +1,6 @@
 # run_example
 
-Before running the app run the following command to package Python app to an asset.
+Before running the app, run the following command to package the Python app for the target platform.
 
 For Android:
 

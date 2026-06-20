@@ -44,7 +44,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# serious_python packaging artifacts (built by `dart run serious_python:main package`)
-/app/app.zip
-/app/app.zip.hash
 pubspec.lock

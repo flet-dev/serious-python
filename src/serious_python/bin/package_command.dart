@@ -282,16 +282,17 @@ class PackageCommand extends Command {
         await _buildDir!.create();
       }
 
-      // asset path
+      // asset path (only the web/Emscripten target produces an `app.zip` asset;
+      // native platforms stage the unpacked app to SERIOUS_PYTHON_APP instead,
+      // so they create neither the `app/` dir nor an `app.zip`).
       if (assetPath == null) {
         assetPath = "app/app.zip";
       } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
         assetPath = assetPath.substring(1);
       }
 
-      // create dest dir
       final dest = File(path.join(currentPath, assetPath));
-      if (!await dest.parent.exists()) {
+      if (isWeb && !await dest.parent.exists()) {
         stdout.writeln("Creating asset directory: ${dest.parent.path}");
         await dest.parent.create(recursive: true);
       }
