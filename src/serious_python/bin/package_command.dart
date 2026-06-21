@@ -29,13 +29,16 @@ const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
 const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
-// Swift Package Manager (darwin) host-side staging. When `SERIOUS_PYTHON_DARWIN_SPM`
-// is set (by `flet build` when the build uses SPM), the package command runs the
-// SPM equivalent of the podspec `prepare_command` — assembling the dist and mapping
-// it into the plugin's Package.swift layout — since SPM has no pod-install hook.
-// `SERIOUS_PYTHON_DARWIN_DIR` optionally overrides the resolved plugin `darwin/` dir;
-// `SERIOUS_PYTHON_SPM_KEY_FILE` overrides where the SP_NATIVE_SET cache-bust key is
-// written for the caller to export into the `flutter build` environment.
+// Swift Package Manager (darwin) host-side staging. For iOS/macOS the package
+// command runs the SPM equivalent of the podspec `prepare_command` — assembling
+// the dist and mapping it into the plugin's Package.swift layout — since SPM has
+// no pod-install hook. SPM is Flutter's default darwin integration since 3.44, so
+// this happens **by default**; set `SERIOUS_PYTHON_DARWIN_SPM` to a falsy value
+// (0/false/no/off) to opt out and build with CocoaPods (e.g. `flet build` sets it
+// false when the app uses a non-SPM plugin). `SERIOUS_PYTHON_DARWIN_DIR` optionally
+// overrides the resolved plugin `darwin/` dir; `SERIOUS_PYTHON_SPM_KEY_FILE` overrides
+// where the SP_NATIVE_SET cache-bust key is written for the caller to export into the
+// `flutter build` environment.
 const darwinSpmEnvironmentVariable = "SERIOUS_PYTHON_DARWIN_SPM";
 const darwinDirEnvironmentVariable = "SERIOUS_PYTHON_DARWIN_DIR";
 const spmKeyFileEnvironmentVariable = "SERIOUS_PYTHON_SPM_KEY_FILE";
@@ -576,14 +579,13 @@ class PackageCommand extends Command {
         await copyDirectory(tempDir, appStagingDir, tempDir.path, []);
 
         // Swift Package Manager (darwin) host-side staging: the podspec
-        // prepare_command doesn't run under SPM, so assemble the dist and map
-        // it into the plugin's Package.swift layout here (app is now staged).
-        // Driven explicitly by `SERIOUS_PYTHON_DARWIN_SPM` (set by `flet build`,
-        // or by a standalone consumer that builds with SPM) — the package command
-        // can't infer the build system (the `flutter` on PATH may not be the one
-        // building the app). CocoaPods builds leave it unset; the podspec stages.
+        // prepare_command doesn't run under SPM, so assemble the dist and map it
+        // into the plugin's Package.swift layout here (app is now staged). SPM is
+        // Flutter's default darwin integration since 3.44, so this runs **by
+        // default**; set `SERIOUS_PYTHON_DARWIN_SPM` to a falsy value (0/false/
+        // no/off) to opt out and build with CocoaPods (the podspec stages then).
         if ((platform == "iOS" || platform == "Darwin") &&
-            _isTruthy(Platform.environment[darwinSpmEnvironmentVariable])) {
+            !_isFalsy(Platform.environment[darwinSpmEnvironmentVariable])) {
           await _stageDarwinSpm(platform, currentPath);
         }
       }
@@ -665,8 +667,8 @@ class PackageCommand extends Command {
     return proc.exitCode;
   }
 
-  static bool _isTruthy(String? v) =>
-      v != null && const ["1", "true", "yes", "on"].contains(v.toLowerCase());
+  static bool _isFalsy(String? v) =>
+      v != null && const ["0", "false", "no", "off"].contains(v.toLowerCase());
 
   // Run the darwin SPM staging (prepare_spm.sh: assemble dist + map into the
   // plugin's Package.swift layout) and persist the SP_NATIVE_SET cache-bust key
