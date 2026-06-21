@@ -26,6 +26,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
-  assets:
-    - app/app.zip

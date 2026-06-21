@@ -1,5 +1,19 @@
 script_dir=$(cd "$(dirname "$0")" && pwd -P)
 
+# App sources are arch- and platform-independent; stage them as a bare `app/`
+# resource bundle into BOTH dist trees, regardless of whether site-packages
+# exist (an app may have no pip dependencies). The per-target resource bundle
+# (dist_ios / dist_macos) picks the right one at build time. This MUST run
+# outside the SERIOUS_PYTHON_SITE_PACKAGES guard below — otherwise a
+# dependency-free app never gets bundled and the runtime can't find main.py.
+if [[ -n "$SERIOUS_PYTHON_APP" && -d "$SERIOUS_PYTHON_APP" ]]; then
+    for app_dist in "$script_dir/dist_ios" "$script_dir/dist_macos"; do
+        rm -rf "$app_dist/app"
+        mkdir -p "$app_dist/app"
+        rsync -a --exclude '.pod' "$SERIOUS_PYTHON_APP/" "$app_dist/app/"
+    done
+fi
+
 if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]]; then
 
     if [[ -d "$SERIOUS_PYTHON_SITE_PACKAGES/iphoneos.arm64" && -d "$SERIOUS_PYTHON_SITE_PACKAGES/iphonesimulator.arm64" && -d "$SERIOUS_PYTHON_SITE_PACKAGES/iphonesimulator.x86_64" ]]; then
@@ -54,6 +68,4 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         # time to invoke this sync script; it does not belong in the bundle.
         rsync -av --delete --exclude '.pod' "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
     fi
-else
-    echo "SERIOUS_PYTHON_SITE_PACKAGES is not set."
 fi

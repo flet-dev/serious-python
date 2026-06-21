@@ -1,11 +1,12 @@
 # run_example
 
-Before running the app run the following command to package Python app to an asset.
+Before running the app, run the following command to package the Python app for the target platform.
 
 For Android:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
 dart run serious_python:main package app/src -p Android -r -r -r app/src/requirements.txt
 ```
 
@@ -13,6 +14,7 @@ For iOS:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
 dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirements.txt
 ```
 
@@ -20,6 +22,7 @@ For macOS:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
 dart run serious_python:main package app/src -p Darwin -r -r -r app/src/requirements.txt
 ```
 
@@ -27,6 +30,7 @@ For Windows:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
 dart run serious_python:main package app/src -p Windows -r -r -r app/src/requirements.txt
 ```
 
@@ -34,6 +38,7 @@ For Linux:
 
 ```
 export SERIOUS_PYTHON_SITE_PACKAGES=$(pwd)/build/site-packages
+export SERIOUS_PYTHON_APP=$(pwd)/build/python-app
 dart run serious_python:main package app/src -p Linux -r -r -r app/src/requirements.txt
 ```
 

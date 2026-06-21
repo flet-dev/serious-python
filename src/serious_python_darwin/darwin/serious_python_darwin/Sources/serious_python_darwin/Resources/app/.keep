@@ -1,0 +1,2 @@
+# Placeholder so the SwiftPM resource path exists in an unstaged checkout;
+# serious_python_darwin's package step fills this directory before `flutter build`.

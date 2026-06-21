@@ -1,12 +1,10 @@
 print("Hello from Python program!")
 
+import _imp
 import os
 import sys
 import traceback
 from pathlib import Path
-from time import sleep
-
-import _imp
 
 _imp.extension_suffixes()
 
@@ -58,7 +56,7 @@ def test_numpy_basic():
 
         assert (array([1, 2]) + array([3, 5])).tolist() == [4, 7]
         return "numpy basic test - OK"
-    except Exception as e:
+    except Exception:
         return f"numpy: test_basic - error: {traceback.format_exc()}"
 
 
@@ -142,34 +140,38 @@ def test_sqlite():
 
 
 def test_pyjnius():
-    from time import sleep
+    # pyjnius is Android-only (needs a JVM + the app's Android classes). On other
+    # platforms guard it like the other tests so it returns a message instead of
+    # crashing the script before the result file is written.
+    try:
+        from jnius import autoclass
 
-    from jnius import autoclass
+        activity = autoclass(os.getenv("MAIN_ACTIVITY_HOST_CLASS_NAME")).mActivity
+        Secure = autoclass("android.provider.Settings$Secure")
 
-    activity = autoclass(os.getenv("MAIN_ACTIVITY_HOST_CLASS_NAME")).mActivity
-    Secure = autoclass("android.provider.Settings$Secure")
+        version = autoclass("android.os.Build$VERSION")
+        os_build = autoclass("android.os.Build")
+        base_os = version.BASE_OS
 
-    version = autoclass("android.os.Build$VERSION")
-    os_build = autoclass("android.os.Build")
-    base_os = version.BASE_OS
+        DisplayMetrics = autoclass("android.util.DisplayMetrics")
+        metrics = DisplayMetrics()
 
-    DisplayMetrics = autoclass("android.util.DisplayMetrics")
-    metrics = DisplayMetrics()
-
-    return (
-        str(activity.getClass().getName())
-        + " os: "
-        + str(os_build)
-        + " FLET_JNI_READY: "
-        + str(os.getenv("FLET_JNI_READY"))
-        + " DPI: "
-        + str(metrics.getDeviceDensity())
-    )
+        return (
+            str(activity.getClass().getName())
+            + " os: "
+            + str(os_build)
+            + " FLET_JNI_READY: "
+            + str(os.getenv("FLET_JNI_READY"))
+            + " DPI: "
+            + str(metrics.getDeviceDensity())
+        )
+    except Exception as e:
+        return f"\npyjnius: not available on this platform - {e}"
 
 
 r += test_sqlite()
-# r += test_pyjnius()
-# r += test_lru()
+r += test_pyjnius()
+r += test_lru()
 r += test_numpy_basic()
 test_numpy_performance()
 

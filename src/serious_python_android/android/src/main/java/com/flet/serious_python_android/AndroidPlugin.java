@@ -103,8 +103,18 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
-    } else if (call.method.equals("getFilesDir")) {
-      result.success(context.getFilesDir().getAbsolutePath());
+    } else if (call.method.equals("loadLibrary")) {
+      // Load a native library by name via Java's System.loadLibrary(), which —
+      // unlike dart:ffi's dlopen-based DynamicLibrary.open used for
+      // libdart_bridge — runs the library's JNI_OnLoad. That's how pyjnius's
+      // helper (libpyjni.so) captures the JavaVM + app ClassLoader. Called from
+      // app code here, so JNI_OnLoad sees the app's class loader.
+      try {
+        System.loadLibrary((String) call.argument("libname"));
+        result.success(null);
+      } catch (Throwable e) {
+        result.error("loadLibrary", e.getMessage(), null);
+      }
     } else if (call.method.equals("extractAsset")) {
       // Stream an APK asset to disk as one whole file (e.g. stdlib.zip).
       try {

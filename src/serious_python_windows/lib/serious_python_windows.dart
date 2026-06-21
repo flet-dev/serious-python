@@ -19,6 +19,13 @@ class SeriousPythonWindows extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonWindows();
   }
 
+  /// The app ships unpacked inside the bundle at `<exeDir>/app` (placed by the
+  /// Windows CMakeLists, next to the bundled CPython `Lib`/`DLLs`/`site-packages`).
+  @override
+  Future<String> prepareApp() async {
+    return p.join(p.dirname(Platform.resolvedExecutable), 'app');
+  }
+
   @override
   Future<String?> run(String appPath,
       {String? script,

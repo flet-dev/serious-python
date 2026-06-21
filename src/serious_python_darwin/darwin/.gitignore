@@ -36,3 +36,14 @@ Icon?
 /Flutter/Generated.xcconfig
 /Flutter/ephemeral/
 /Flutter/flutter_export_environment.sh
+
+# --- SwiftPM staging (materialized by serious_python's package step) ---
+serious_python_darwin/Python-ios.xcframework
+serious_python_darwin/Python-macos.xcframework
+serious_python_darwin/dart_bridge.xcframework
+serious_python_darwin/extra-xcframeworks/
+serious_python_darwin/.build/
+serious_python_darwin/.swiftpm/
+# resource trees are staged; keep only the committed .keep placeholders
+serious_python_darwin/Sources/serious_python_darwin/Resources/*/*
+!serious_python_darwin/Sources/serious_python_darwin/Resources/*/.keep

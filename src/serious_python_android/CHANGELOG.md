@@ -1,3 +1,12 @@
+## 4.0.0
+
+* Ship the app as a *stored* `app.zip` asset in the APK and unpack it once (version-keyed) to `<application-support>/flet/app` on the first launch after install/update, via the new `prepareApp()`. The version-keyed unpack moved out of `run()`; user data in the sibling `<application-support>/data` is preserved across updates.
+* Resolve the support dir via `path_provider` `getApplicationSupportDirectory()` (== `context.getFilesDir()`) and drop the custom `getFilesDir` method channel; the payload base moves from `flet/py` to `flet/`.
+* Synthesize an empty `__init__.py` for `__init__`-less package directories when building `stdlib.zip`/`sitepackages.zip`, so `zipimport` can import PEP 420 namespace packages (e.g. `flask.sansio`).
+* `SERIOUS_PYTHON_ANDROID_EXTRACT_PACKAGES` entries now support `*`/`?` wildcards matched against the top-level name (e.g. `flask*` also extracts `flask-<version>.dist-info/`).
+* Restore `pyjnius` support under the FFI model: re-add the `loadLibrary` method channel and load its JNI helper (`libpyjni.so`) via Java `System.loadLibrary` before the interpreter starts, so the helper's `JNI_OnLoad` captures the `JavaVM` + app ClassLoader (`dart:ffi`'s `dlopen` for `libdart_bridge` never triggers `JNI_OnLoad`). Best-effort — a no-op for apps that don't depend on pyjnius.
+* Version bump aligning with the `serious_python_*` 4.0.0 release.
+
 ## 3.0.0
 
 * **In-process Python (dart_bridge FFI).** The Python lifecycle now runs through `libdart_bridge.so` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport.

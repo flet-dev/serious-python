@@ -60,7 +60,10 @@ elseif(DEFINED ENV{USERPROFILE})
 else()
   set(FLET_CACHE_DIR "$ENV{HOME}/.flet/cache")
 endif()
-set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_FULL_VERSION}")
+# Date-keyed so a same-version re-release (new build date) re-downloads instead
+# of being served stale from a previous release's cache. dart-bridge stays
+# version-keyed (its re-releases bump the version).
+set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_FULL_VERSION}-${PYTHON_BUILD_DATE}")
 set(DB_CACHE "${FLET_CACHE_DIR}/dart-bridge/v${DART_BRIDGE_VERSION}")
 file(MAKE_DIRECTORY "${PB_CACHE}" "${DB_CACHE}")
 
@@ -102,8 +105,23 @@ function(_sp_download url dest)
 endfunction()
 
 _sp_download("${PYTHON_URL}" "${PYTHON_FILE}")
-if(NOT EXISTS "${PYTHON_PACKAGE}/python.exe")
+# Re-extract when the tree is missing OR was unpacked for a different
+# version/release (a marker keyed to version + build date), so a same-version
+# re-release replaces it instead of being skipped.
+set(_py_build_id "${PYTHON_FULL_VERSION}-${PYTHON_BUILD_DATE}")
+set(_py_marker "${PYTHON_PACKAGE}/.python_build_id")
+set(_py_extract TRUE)
+if(EXISTS "${_py_marker}")
+  file(READ "${_py_marker}" _py_cur)
+  string(STRIP "${_py_cur}" _py_cur)
+  if(_py_cur STREQUAL "${_py_build_id}")
+    set(_py_extract FALSE)
+  endif()
+endif()
+if(_py_extract)
+  file(REMOVE_RECURSE "${PYTHON_PACKAGE}")
   file(ARCHIVE_EXTRACT INPUT "${PYTHON_FILE}" DESTINATION "${PYTHON_PACKAGE}")
+  file(WRITE "${_py_marker}" "${_py_build_id}")
 endif()
 
 # ---- dart_bridge prebuilt DLLs --------------------------------------------
@@ -214,5 +232,18 @@ if(DEFINED ENV{SERIOUS_PYTHON_SITE_PACKAGES} AND EXISTS "$ENV{SERIOUS_PYTHON_SIT
     COMMAND ${CMAKE_COMMAND} -E copy_directory
       "$ENV{SERIOUS_PYTHON_SITE_PACKAGES}"
       "${SP_RUNNER_OUT}/site-packages"
+  )
+endif()
+
+# The app's Python sources (staged unpacked by serious_python's `package`
+# command) ship as a bare `app/` dir next to the bundled CPython Lib/DLLs/
+# site-packages; the runtime adds `<exeDir>/app` to sys.path (no extraction).
+if(DEFINED ENV{SERIOUS_PYTHON_APP} AND EXISTS "$ENV{SERIOUS_PYTHON_APP}")
+  add_custom_command(TARGET CopyPythonDLLs POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf "${SP_RUNNER_OUT}/app"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SP_RUNNER_OUT}/app"
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+      "$ENV{SERIOUS_PYTHON_APP}"
+      "${SP_RUNNER_OUT}/app"
   )
 endif()

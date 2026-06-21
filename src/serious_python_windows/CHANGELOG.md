@@ -1,3 +1,8 @@
+## 4.0.0
+
+* `prepareApp()` returns `<exeDir>/app`; the app's Python sources ship unpacked next to the bundled CPython `Lib`/`DLLs`/`site-packages` (no first-launch extraction). The CMakeLists copies `SERIOUS_PYTHON_APP` into the runner output.
+* Version bump aligning with the `serious_python_*` 4.0.0 release.
+
 ## 3.0.0
 
 * **In-process Python (dart_bridge FFI).** The Python lifecycle is absorbed into `dart_bridge.dll` / `dart_bridge.pyd` (from `flet-dev/dart-bridge` **1.4.0**) instead of a socket transport; both Release and Debug `dart_bridge.pyd` ship so 3.13/3.14 Debug builds resolve too.

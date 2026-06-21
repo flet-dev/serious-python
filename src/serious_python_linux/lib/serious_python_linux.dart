@@ -22,6 +22,13 @@ class SeriousPythonLinux extends SeriousPythonPlatform {
     SeriousPythonPlatform.instance = SeriousPythonLinux();
   }
 
+  /// The app ships unpacked inside the bundle at `<exeDir>/app` (placed by the
+  /// Linux CMakeLists, next to the `python3.<minor>` stdlib + `site-packages`).
+  @override
+  Future<String> prepareApp() async {
+    return p.join(p.dirname(Platform.resolvedExecutable), 'app');
+  }
+
   @override
   Future<String?> run(String appPath,
       {String? script,

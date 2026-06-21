@@ -20,10 +20,28 @@ const pyodideLockFile = "pyodide-lock.json";
 
 const defaultSitePackagesDir = "__pypackages__";
 const sitePackagesEnvironmentVariable = "SERIOUS_PYTHON_SITE_PACKAGES";
+// Staging dir for the processed app (copy/compile/cleanup output). When set,
+// native platforms (macOS/iOS/Windows/Linux/Android) consume the unpacked app
+// from here and do NOT receive an `app.zip` asset; web (Emscripten) still gets
+// the zip.
+const appEnvironmentVariable = "SERIOUS_PYTHON_APP";
 const flutterPackagesFlutterEnvironmentVariable =
     "SERIOUS_PYTHON_FLUTTER_PACKAGES";
 const allowSourceDistrosEnvironmentVariable =
     "SERIOUS_PYTHON_ALLOW_SOURCE_DISTRIBUTIONS";
+// Swift Package Manager (darwin) host-side staging. For iOS/macOS the package
+// command runs the SPM equivalent of the podspec `prepare_command` — assembling
+// the dist and mapping it into the plugin's Package.swift layout — since SPM has
+// no pod-install hook. SPM is Flutter's default darwin integration since 3.44, so
+// this happens **by default**; set `SERIOUS_PYTHON_DARWIN_SPM` to a falsy value
+// (0/false/no/off) to opt out and build with CocoaPods (e.g. `flet build` sets it
+// false when the app uses a non-SPM plugin). `SERIOUS_PYTHON_DARWIN_DIR` optionally
+// overrides the resolved plugin `darwin/` dir; `SERIOUS_PYTHON_SPM_KEY_FILE` overrides
+// where the SP_NATIVE_SET cache-bust key is written for the caller to export into the
+// `flutter build` environment.
+const darwinSpmEnvironmentVariable = "SERIOUS_PYTHON_DARWIN_SPM";
+const darwinDirEnvironmentVariable = "SERIOUS_PYTHON_DARWIN_DIR";
+const spmKeyFileEnvironmentVariable = "SERIOUS_PYTHON_SPM_KEY_FILE";
 
 // Python runtime version data — `defaultPythonVersion`, `pythonReleases`, the
 // `*EnvironmentVariable` names, `dartBridgeVersion`, `pythonReleaseDate` — lives
@@ -277,16 +295,17 @@ class PackageCommand extends Command {
         await _buildDir!.create();
       }
 
-      // asset path
+      // asset path (only the web/Emscripten target produces an `app.zip` asset;
+      // native platforms stage the unpacked app to SERIOUS_PYTHON_APP instead,
+      // so they create neither the `app/` dir nor an `app.zip`).
       if (assetPath == null) {
         assetPath = "app/app.zip";
       } else if (assetPath.startsWith("/") || assetPath.startsWith("\\")) {
         assetPath = assetPath.substring(1);
       }
 
-      // create dest dir
       final dest = File(path.join(currentPath, assetPath));
-      if (!await dest.parent.exists()) {
+      if (isWeb && !await dest.parent.exists()) {
         stdout.writeln("Creating asset directory: ${dest.parent.path}");
         await dest.parent.create(recursive: true);
       }
@@ -333,6 +352,15 @@ class PackageCommand extends Command {
           sitePackagesRoot = envValue;
         }
       }
+
+      // app staging dir (native platforms only): when set, the processed app is
+      // copied here for the platform native build to place into the bundle, and
+      // no `app.zip` asset is produced. Web keeps the zip.
+      final appPackageRootEnv = Platform.environment[appEnvironmentVariable];
+      final appPackageRoot =
+          (appPackageRootEnv != null && appPackageRootEnv.isNotEmpty)
+              ? appPackageRootEnv
+              : null;
 
       // install requirements
       if (requirements.isNotEmpty && !skipSitePackages) {
@@ -524,15 +552,43 @@ class PackageCommand extends Command {
         }
       }
 
-      // create archive
-      stdout.writeln(
-          "Creating app archive at ${dest.path} from a temp directory");
-      await zipDirectoryPosix(tempDir, dest);
+      if (isWeb) {
+        // Web (Pyodide) still ships the app as a zip asset.
+        stdout.writeln(
+            "Creating app archive at ${dest.path} from a temp directory");
+        await zipDirectoryPosix(tempDir, dest);
 
-      // create hash file
-      stdout.writeln("Writing app archive hash to ${dest.path}.hash");
-      await File("${dest.path}.hash")
-          .writeAsString(await calculateFileHash(dest.path));
+        // create hash file
+        stdout.writeln("Writing app archive hash to ${dest.path}.hash");
+        await File("${dest.path}.hash")
+            .writeAsString(await calculateFileHash(dest.path));
+      } else {
+        // Native platforms: stage the unpacked app for the platform native
+        // build to copy into the bundle (Android zips it as a stored asset).
+        if (appPackageRoot == null) {
+          throw Exception(
+              "$appEnvironmentVariable environment variable must be set for "
+              "$platform packaging (staging dir for the unpacked app).");
+        }
+        final appStagingDir = Directory(appPackageRoot);
+        stdout.writeln("Staging unpacked app to ${appStagingDir.path}");
+        if (await appStagingDir.exists()) {
+          await appStagingDir.delete(recursive: true);
+        }
+        await appStagingDir.create(recursive: true);
+        await copyDirectory(tempDir, appStagingDir, tempDir.path, []);
+
+        // Swift Package Manager (darwin) host-side staging: the podspec
+        // prepare_command doesn't run under SPM, so assemble the dist and map it
+        // into the plugin's Package.swift layout here (app is now staged). SPM is
+        // Flutter's default darwin integration since 3.44, so this runs **by
+        // default**; set `SERIOUS_PYTHON_DARWIN_SPM` to a falsy value (0/false/
+        // no/off) to opt out and build with CocoaPods (the podspec stages then).
+        if ((platform == "iOS" || platform == "Darwin") &&
+            !_isFalsy(Platform.environment[darwinSpmEnvironmentVariable])) {
+          await _stageDarwinSpm(platform, currentPath);
+        }
+      }
     } catch (e) {
       stdout.writeln("Error: $e");
     } finally {
@@ -609,6 +665,65 @@ class PackageCommand extends Command {
       exit(1);
     }
     return proc.exitCode;
+  }
+
+  static bool _isFalsy(String? v) =>
+      v != null && const ["0", "false", "no", "off"].contains(v.toLowerCase());
+
+  // Run the darwin SPM staging (prepare_spm.sh: assemble dist + map into the
+  // plugin's Package.swift layout) and persist the SP_NATIVE_SET cache-bust key
+  // for `flet build` to export into the `flutter build` environment.
+  Future<void> _stageDarwinSpm(String platform, String projectPath) async {
+    final darwinDir = await _resolveDarwinDir(projectPath);
+    if (darwinDir == null) {
+      stdout.writeln("SPM staging skipped: could not resolve serious_python_darwin "
+          "(set $darwinDirEnvironmentVariable or ensure "
+          ".dart_tool/package_config.json is present).");
+      return;
+    }
+    final spmPlatform = platform == "iOS" ? "ios" : "macos";
+    final script = path.join(darwinDir, "prepare_spm.sh");
+    stdout.writeln("SPM: staging $spmPlatform via $script");
+    final result = await Process.run("/bin/sh", [script, spmPlatform],
+        workingDirectory: darwinDir);
+    if ((result.stderr as String).isNotEmpty) {
+      verbose(result.stderr as String);
+    }
+    if (result.exitCode != 0) {
+      throw Exception("prepare_spm.sh failed (exit ${result.exitCode}):\n"
+          "${result.stderr}");
+    }
+    // stage_spm.sh prints the key as its last stdout line.
+    final key = (result.stdout as String)
+        .trim()
+        .split("\n")
+        .where((l) => l.trim().isNotEmpty)
+        .last
+        .trim();
+    final keyFile = Platform.environment[spmKeyFileEnvironmentVariable] ??
+        path.join(projectPath, "build", ".serious_python_spm_key");
+    await File(keyFile).parent.create(recursive: true);
+    await File(keyFile).writeAsString(key);
+    stdout.writeln("SPM: SP_NATIVE_SET=$key -> $keyFile");
+  }
+
+  // Resolve serious_python_darwin's `darwin/` directory — an explicit override
+  // (set by flet) wins, else read the flutter project's package config.
+  Future<String?> _resolveDarwinDir(String projectPath) async {
+    final override = Platform.environment[darwinDirEnvironmentVariable];
+    if (override != null && override.isNotEmpty) return override;
+    final pc =
+        File(path.join(projectPath, ".dart_tool", "package_config.json"));
+    if (!await pc.exists()) return null;
+    final data = jsonDecode(await pc.readAsString()) as Map<String, dynamic>;
+    for (final pkg in (data["packages"] as List)) {
+      if (pkg["name"] == "serious_python_darwin") {
+        final base = Uri.directory(path.join(projectPath, ".dart_tool"));
+        final root = base.resolve(pkg["rootUri"] as String).toFilePath();
+        return path.join(root, "darwin");
+      }
+    }
+    return null;
   }
 
   Future<void> zipDirectoryPosix(Directory source, File dest) async {

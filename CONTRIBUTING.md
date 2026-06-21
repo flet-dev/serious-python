@@ -10,9 +10,9 @@ Bump version in:
 
 Bump `serious_python` dependency version with `flutter pub get` in example lock files:
 
-* `src/serious_python/example/flet_example/pubspec.lock`
 * `src/serious_python/example/flask_example/pubspec.lock`
 * `src/serious_python/example/run_example/pubspec.lock`
+* `src/serious_python/example/bridge_example/pubspec.lock`
 
 Update `CHANGELOG.md`.
 
