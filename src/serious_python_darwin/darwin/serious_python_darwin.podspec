@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
   # framework. Python.xcframework is also static, so this was always
   # implicitly the case — just being explicit now.
   s.static_framework = true
-  s.source_files = ['Classes/**/*']
+  s.source_files = ['serious_python_darwin/Sources/serious_python_darwin/**/*.swift']
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
   s.ios.deployment_target = '13.0'

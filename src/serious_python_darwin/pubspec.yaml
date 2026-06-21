@@ -5,8 +5,10 @@ repository: https://github.com/flet-dev/serious-python
 version: 4.0.0
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
-  flutter: ">=3.7.0"
+  # Swift Package Manager support (the FlutterFramework SwiftPM convention) lands
+  # in Flutter 3.44 / Dart 3.11; this is also the de-facto floor from dart_bridge.
+  sdk: ">=3.11.0 <4.0.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
