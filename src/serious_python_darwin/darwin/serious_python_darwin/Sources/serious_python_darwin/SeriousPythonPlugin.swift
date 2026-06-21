@@ -45,25 +45,38 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case "getResourcePath":
-            // The python.bundle that prepare_{ios,macos}.sh assembles ends up
-            // inside this plugin's framework bundle as a Resources subbundle.
-            // Dart calls this to discover the stdlib / site-packages layout
-            // before invoking `serious_python_run`.
-            guard let frameworkBundle = Bundle(for: type(of: self)).resourceURL else {
-                result(FlutterError(code: "FRAMEWORK_BUNDLE_ERROR",
-                                    message: "Failed to get framework resource URL",
-                                    details: nil))
-                return
-            }
-            let pythonBundleURL = frameworkBundle.appendingPathComponent("python.bundle")
-            guard let pythonBundle = Bundle(url: pythonBundleURL),
-                  let resourcePath = pythonBundle.resourcePath else {
-                result(FlutterError(code: "PYTHON_BUNDLE_ERROR",
-                                    message: "Failed to load python.bundle",
-                                    details: pythonBundleURL.path))
-                return
-            }
-            result(resourcePath)
+            // Dart calls this to discover the stdlib / site-packages / app layout
+            // before invoking `serious_python_run`. The two build systems put the
+            // trees in different bundles:
+            #if SWIFT_PACKAGE
+                // SwiftPM: staged as `.copy` resources into Bundle.module, whose
+                // resourcePath contains stdlib/ site-packages/ app/ directly.
+                guard let resourcePath = Bundle.module.resourcePath else {
+                    result(FlutterError(code: "PYTHON_BUNDLE_ERROR",
+                                        message: "Failed to resolve Bundle.module resourcePath",
+                                        details: nil))
+                    return
+                }
+                result(resourcePath)
+            #else
+                // CocoaPods: the python.bundle that prepare_{ios,macos}.sh assembles
+                // lives inside the plugin framework as a Resources subbundle.
+                guard let frameworkBundle = Bundle(for: type(of: self)).resourceURL else {
+                    result(FlutterError(code: "FRAMEWORK_BUNDLE_ERROR",
+                                        message: "Failed to get framework resource URL",
+                                        details: nil))
+                    return
+                }
+                let pythonBundleURL = frameworkBundle.appendingPathComponent("python.bundle")
+                guard let pythonBundle = Bundle(url: pythonBundleURL),
+                      let resourcePath = pythonBundle.resourcePath else {
+                    result(FlutterError(code: "PYTHON_BUNDLE_ERROR",
+                                        message: "Failed to load python.bundle",
+                                        details: pythonBundleURL.path))
+                    return
+                }
+                result(resourcePath)
+            #endif
 
         default:
             result(FlutterMethodNotImplemented)

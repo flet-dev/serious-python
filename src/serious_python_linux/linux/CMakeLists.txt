@@ -57,7 +57,10 @@ if(DEFINED ENV{FLET_CACHE_DIR})
 else()
   set(FLET_CACHE_DIR "$ENV{HOME}/.flet/cache")
 endif()
-set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_FULL_VERSION}")
+# Date-keyed so a same-version re-release (new build date) re-downloads instead
+# of being served stale from a previous release's cache. dart-bridge stays
+# version-keyed (its re-releases bump the version).
+set(PB_CACHE "${FLET_CACHE_DIR}/python-build/v${PYTHON_FULL_VERSION}-${PYTHON_BUILD_DATE}")
 set(DB_CACHE "${FLET_CACHE_DIR}/dart-bridge/v${DART_BRIDGE_VERSION}")
 file(MAKE_DIRECTORY "${PB_CACHE}" "${DB_CACHE}")
 
@@ -90,8 +93,23 @@ set(PYTHON_PACKAGE ${CMAKE_BINARY_DIR}/python)
 set(PYTHON_URL https://github.com/flet-dev/python-build/releases/download/${PYTHON_BUILD_DATE}/python-linux-dart-${PYTHON_FULL_VERSION}-${PYTHON_ARCH}.tar.gz)
 set(PYTHON_FILE "${PB_CACHE}/python-linux-dart-${PYTHON_FULL_VERSION}-${PYTHON_ARCH}.tar.gz")
 _sp_download("${PYTHON_URL}" "${PYTHON_FILE}")
-if(NOT EXISTS "${PYTHON_PACKAGE}/lib/libpython3.so")
+# Re-extract when the tree is missing OR was unpacked for a different
+# version/release (a marker keyed to version + build date), so a same-version
+# re-release replaces it instead of being skipped.
+set(_py_build_id "${PYTHON_FULL_VERSION}-${PYTHON_BUILD_DATE}")
+set(_py_marker "${PYTHON_PACKAGE}/.python_build_id")
+set(_py_extract TRUE)
+if(EXISTS "${_py_marker}")
+  file(READ "${_py_marker}" _py_cur)
+  string(STRIP "${_py_cur}" _py_cur)
+  if(_py_cur STREQUAL "${_py_build_id}")
+    set(_py_extract FALSE)
+  endif()
+endif()
+if(_py_extract)
+  file(REMOVE_RECURSE "${PYTHON_PACKAGE}")
   file(ARCHIVE_EXTRACT INPUT "${PYTHON_FILE}" DESTINATION "${PYTHON_PACKAGE}")
+  file(WRITE "${_py_marker}" "${_py_build_id}")
 endif()
 
 # ---- dart_bridge prebuilt .so ---------------------------------------------

@@ -65,12 +65,13 @@ jobs:
           fi
 
   bridge_example_macos:
-    name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
+    name: Test Bridge example on macOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
     runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
+        build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -87,15 +88,34 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Configure ${{ matrix.build_system }}
+        run: |
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            flutter config --enable-swift-package-manager
+          else
+            flutter config --no-enable-swift-package-manager
+          fi
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         run: |
+          # SPM is the package command's default: it does host-side staging and
+          # writes the SP_NATIVE_SET cache-bust key (we export it into the build).
+          # CocoaPods opts out via SERIOUS_PYTHON_DARWIN_SPM=false; the podspec
+          # prepare_command stages then. (The SPM job leaves the var unset so it
+          # exercises the default path docs/readme commands use.)
+          if [ "${{ matrix.build_system }}" = "cocoapods" ]; then
+            export SERIOUS_PYTHON_DARWIN_SPM=false
+          fi
           dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
+          fi
           # Each test file is invoked separately. `flutter test integration_test`
           # over the directory reuses one VM session, but the second file's
           # `runApp()` then trips "Unable to start the app on the device" —
@@ -107,13 +127,14 @@ jobs:
           flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
   bridge_example_ios:
-    name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
+    name: Test Bridge example on iOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
     runs-on: macos-26
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
+        build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -130,7 +151,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -145,17 +166,34 @@ jobs:
           shutdown_after_job: true
           wait_for_boot: true
 
+      - name: Configure ${{ matrix.build_system }}
+        run: |
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            flutter config --enable-swift-package-manager
+          else
+            flutter config --no-enable-swift-package-manager
+          fi
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         run: |
           ts() { date '+%H:%M:%S'; }
+          # SPM is the default; CocoaPods opts out (the SPM job leaves the var
+          # unset to exercise the default path docs/readme commands use).
+          if [ "${{ matrix.build_system }}" = "cocoapods" ]; then
+            export SERIOUS_PYTHON_DARWIN_SPM=false
+          fi
           echo "[$(ts)] >>> dart run serious_python:main package"
           # certifi is a placeholder requirement: serious_python_darwin's
           # sync_site_packages.sh only populates dist_ios/site-xcframeworks
-          # (which bundle-python-frameworks-ios.sh then requires at build
-          # time) when iOS-specific site-packages subdirs exist. Empty
-          # --requirements skips that branch and the build fails.
+          # (the iOS native C-extensions — embedded by the podspec script_phase
+          # under CocoaPods, or enumerated into extra-xcframeworks under SPM)
+          # when iOS-specific site-packages subdirs exist. Empty --requirements
+          # skips that branch and the build fails.
           dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
+          fi
           echo "[$(ts)] >>> flutter test integration_test (per-file)"
           # See macOS job for why each file runs as a separate invocation.
           flutter test integration_test/interactivity_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
@@ -188,7 +226,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -286,7 +324,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
@@ -364,7 +402,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-

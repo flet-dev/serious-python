@@ -1,5 +1,9 @@
 ## 4.0.0
 
+* **Swift Package Manager support (dual with CocoaPods).** The plugin now builds under SPM as well as CocoaPods, so apps can use either integration (CocoaPods goes read-only in December 2026; Flutter ships SPM on by default since 3.44). A new `darwin/serious_python_darwin/Package.swift` builds the same Swift source as the podspec, with `getResourcePath` resolving `Bundle.module` under SPM (`#if SWIFT_PACKAGE`) and the framework `python.bundle` under CocoaPods.
+  * SPM has no pod-install hook, so the staging the podspec `prepare_command` does runs on the host before `flutter build` instead: `prepare_spm.sh` assembles the dist (`prepare_<platform>.sh` + `sync_site_packages.sh`) and `stage_spm.sh` maps it into the package layout — `Python-{ios,macos}.xcframework` + `dart_bridge.xcframework` as local-path binary targets, the iOS native C-extensions enumerated from `extra-xcframeworks/`, and `stdlib`/`site-packages`/`app` as `.copy` resources. On iOS the extensions ship as embedded, signed frameworks (CPython's `.fwork` finder resolves them); on macOS they load flat from the resource trees.
+  * The manifest reads `SP_NATIVE_SET` (a hash of the staged native set) so SwiftPM re-resolves when requirements / app / Python version change — SwiftPM caches its package graph on manifest text + environment, not on the staged dirs it enumerates.
+  * The **SPM path** needs Flutter **3.44** / Dart **3.11**; the plugin's minimum is unchanged because `Package.swift` is dormant on older Flutter (which uses the CocoaPods path).
 * `prepareApp()` returns the app dir from the `python.bundle` resource (`<resourcePath>/app`); the app's Python sources ship unpacked as an `app` resource bundle next to `stdlib` + `site-packages` (no first-launch extraction).
 * Version bump aligning with the `serious_python_*` 4.0.0 release.
 
