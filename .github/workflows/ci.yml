@@ -65,12 +65,13 @@ jobs:
           fi
 
   bridge_example_macos:
-    name: Test Bridge example on macOS (Python ${{ matrix.python_version }})
+    name: Test Bridge example on macOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
     runs-on: macos-26
     strategy:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
+        build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -92,10 +93,29 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Configure ${{ matrix.build_system }}
+        run: |
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            flutter config --enable-swift-package-manager
+          else
+            flutter config --no-enable-swift-package-manager
+          fi
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         run: |
+          # SPM does host-side staging in the package command (gated on
+          # SERIOUS_PYTHON_DARWIN_SPM) and exports the SP_NATIVE_SET cache-bust
+          # key into the build; CocoaPods stages via the podspec prepare_command.
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SERIOUS_PYTHON_DARWIN_SPM=1
+          else
+            export SERIOUS_PYTHON_DARWIN_SPM=false
+          fi
           dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
+          fi
           # Each test file is invoked separately. `flutter test integration_test`
           # over the directory reuses one VM session, but the second file's
           # `runApp()` then trips "Unable to start the app on the device" —
@@ -106,56 +126,15 @@ jobs:
           flutter test integration_test/throughput_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
           flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
-  # Smoke-test the Swift Package Manager build path (the CocoaPods jobs above
-  # cover the full python matrix; one version is enough to guard SPM).
-  bridge_example_macos_spm:
-    name: Test Bridge example on macOS via Swift Package Manager (Python 3.14)
-    runs-on: macos-26
-    env:
-      SERIOUS_PYTHON_VERSION: '3.14'
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
-        with:
-          path: '.fvmrc'
-          cache: true
-
-      - name: Cache flet downloads
-        uses: actions/cache@v5
-        with:
-          path: ~/.flet/cache
-          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py3.14-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
-          restore-keys: |
-            flet-cache-${{ runner.os }}-${{ runner.arch }}-py3.14-
-            flet-cache-${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Enable Swift Package Manager
-        run: flutter config --enable-swift-package-manager
-
-      - name: Package (SPM staging) + run integration test
-        working-directory: "src/serious_python/example/bridge_example"
-        run: |
-          # Host-side SPM staging (the podspec prepare_command has no SPM hook):
-          # the package command assembles + maps the runtime into the plugin's
-          # Package.swift layout and writes the SP_NATIVE_SET cache-bust key,
-          # which we export into the flutter build — the same handoff that
-          # `flet build` performs.
-          SERIOUS_PYTHON_DARWIN_SPM=1 \
-            dart run serious_python:main package app/src --platform Darwin --python-version 3.14
-          export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
-          flutter test integration_test/interactivity_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=3.14
-
   bridge_example_ios:
-    name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
+    name: Test Bridge example on iOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
     runs-on: macos-26
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         python_version: ['3.12', '3.13', '3.14']
+        build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -187,17 +166,34 @@ jobs:
           shutdown_after_job: true
           wait_for_boot: true
 
+      - name: Configure ${{ matrix.build_system }}
+        run: |
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            flutter config --enable-swift-package-manager
+          else
+            flutter config --no-enable-swift-package-manager
+          fi
+
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
         run: |
           ts() { date '+%H:%M:%S'; }
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SERIOUS_PYTHON_DARWIN_SPM=1
+          else
+            export SERIOUS_PYTHON_DARWIN_SPM=false
+          fi
           echo "[$(ts)] >>> dart run serious_python:main package"
           # certifi is a placeholder requirement: serious_python_darwin's
           # sync_site_packages.sh only populates dist_ios/site-xcframeworks
-          # (which bundle-python-frameworks-ios.sh then requires at build
-          # time) when iOS-specific site-packages subdirs exist. Empty
-          # --requirements skips that branch and the build fails.
+          # (the iOS native C-extensions — embedded by the podspec script_phase
+          # under CocoaPods, or enumerated into extra-xcframeworks under SPM)
+          # when iOS-specific site-packages subdirs exist. Empty --requirements
+          # skips that branch and the build fails.
           dart run serious_python:main package app/src --platform iOS --python-version ${{ matrix.python_version }} --requirements certifi
+          if [ "${{ matrix.build_system }}" = "spm" ]; then
+            export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
+          fi
           echo "[$(ts)] >>> flutter test integration_test (per-file)"
           # See macOS job for why each file runs as a separate invocation.
           flutter test integration_test/interactivity_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}

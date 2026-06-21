@@ -578,9 +578,12 @@ class PackageCommand extends Command {
         // Swift Package Manager (darwin) host-side staging: the podspec
         // prepare_command doesn't run under SPM, so assemble the dist and map
         // it into the plugin's Package.swift layout here (app is now staged).
+        // Driven explicitly by `SERIOUS_PYTHON_DARWIN_SPM` (set by `flet build`,
+        // or by a standalone consumer that builds with SPM) — the package command
+        // can't infer the build system (the `flutter` on PATH may not be the one
+        // building the app). CocoaPods builds leave it unset; the podspec stages.
         if ((platform == "iOS" || platform == "Darwin") &&
-            (Platform.environment[darwinSpmEnvironmentVariable] ?? "")
-                .isNotEmpty) {
+            _isTruthy(Platform.environment[darwinSpmEnvironmentVariable])) {
           await _stageDarwinSpm(platform, currentPath);
         }
       }
@@ -661,6 +664,9 @@ class PackageCommand extends Command {
     }
     return proc.exitCode;
   }
+
+  static bool _isTruthy(String? v) =>
+      v != null && const ["1", "true", "yes", "on"].contains(v.toLowerCase());
 
   // Run the darwin SPM staging (prepare_spm.sh: assemble dist + map into the
   // plugin's Package.swift layout) and persist the SP_NATIVE_SET cache-bust key
