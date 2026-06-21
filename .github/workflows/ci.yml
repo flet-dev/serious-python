@@ -106,6 +106,48 @@ jobs:
           flutter test integration_test/throughput_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
           flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
+  # Smoke-test the Swift Package Manager build path (the CocoaPods jobs above
+  # cover the full python matrix; one version is enough to guard SPM).
+  bridge_example_macos_spm:
+    name: Test Bridge example on macOS via Swift Package Manager (Python 3.14)
+    runs-on: macos-26
+    env:
+      SERIOUS_PYTHON_VERSION: '3.14'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Flutter
+        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        with:
+          path: '.fvmrc'
+          cache: true
+
+      - name: Cache flet downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.flet/cache
+          key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py3.14-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
+          restore-keys: |
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-py3.14-
+            flet-cache-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Enable Swift Package Manager
+        run: flutter config --enable-swift-package-manager
+
+      - name: Package (SPM staging) + run integration test
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          # Host-side SPM staging (the podspec prepare_command has no SPM hook):
+          # the package command assembles + maps the runtime into the plugin's
+          # Package.swift layout and writes the SP_NATIVE_SET cache-bust key,
+          # which we export into the flutter build — the same handoff that
+          # `flet build` performs.
+          SERIOUS_PYTHON_DARWIN_SPM=1 \
+            dart run serious_python:main package app/src --platform Darwin --python-version 3.14
+          export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
+          flutter test integration_test/interactivity_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=3.14
+
   bridge_example_ios:
     name: Test Bridge example on iOS (Python ${{ matrix.python_version }})
     runs-on: macos-26
