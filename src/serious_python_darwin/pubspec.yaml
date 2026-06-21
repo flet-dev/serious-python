@@ -5,10 +5,12 @@ repository: https://github.com/flet-dev/serious-python
 version: 4.0.0
 
 environment:
-  # Swift Package Manager support (the FlutterFramework SwiftPM convention) lands
-  # in Flutter 3.44 / Dart 3.11; this is also the de-facto floor from dart_bridge.
-  sdk: ">=3.11.0 <4.0.0"
-  flutter: ">=3.44.0"
+  # The Swift Package Manager build path needs Flutter 3.44 / Dart 3.11 (the
+  # FlutterFramework SwiftPM convention), but `Package.swift` is simply ignored on
+  # older Flutter — which uses the CocoaPods path instead — so SPM support does
+  # not raise the plugin's minimum. Keep the existing floor.
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.7.0"
 
 dependencies:
   flutter:
