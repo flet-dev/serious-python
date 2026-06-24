@@ -101,7 +101,7 @@ android.defaultConfig.ndk.abiFilters.each { abi ->
     // 条件注册下载任务
     if (!destFile.exists() || destFile.length() == 0) {
         tasks.register(downloadTaskName, Download) {
-            src "https://v6.gh-proxy.org/https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
+            src "https://github.com/flet-dev/python-build/releases/download/v${python_version}/python-android-dart-${python_version}-${abi}.tar.gz"
             dest destFile
         }
     } else {
