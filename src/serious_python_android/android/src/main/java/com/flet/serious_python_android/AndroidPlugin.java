@@ -131,18 +131,25 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       // Load a native library by name via Java's System.loadLibrary(), which —
       // unlike dart:ffi's dlopen-based DynamicLibrary.open used for
       // libdart_bridge — runs the library's JNI_OnLoad. That's how pyjnius's
-      // helper (libpyjni.so) captures the JavaVM + app ClassLoader. Called from
-      // app code here, so JNI_OnLoad sees the app's class loader.
+      // helper (libpyjni.so) captures the JavaVM + app ClassLoader.
       //
-      // MUST stay on the platform main thread. Loading off a background thread
-      // (even with the worker's context ClassLoader pinned to the app loader)
-      // breaks pyjnius — its JNI_OnLoad relies on running on the main thread.
-      try {
-        System.loadLibrary((String) call.argument("libname"));
-        result.success(null);
-      } catch (Throwable e) {
-        result.error("loadLibrary", e.getMessage(), null);
-      }
+      // Run off the main thread (dlopen + JNI_OnLoad can be slow). System.loadLibrary
+      // resolves the .so via the calling class's loader (AndroidPlugin -> app loader)
+      // regardless of thread, and JNI_OnLoad's FindClass uses that same loader; we
+      // also pin the worker's context loader to the app loader so JNI_OnLoad sees it
+      // if it reads the thread context loader.
+      final String libname = call.argument("libname");
+      runAsync(result, "loadLibrary", () -> {
+        Thread t = Thread.currentThread();
+        ClassLoader prev = t.getContextClassLoader();
+        t.setContextClassLoader(context.getClassLoader());
+        try {
+          System.loadLibrary(libname);
+        } finally {
+          t.setContextClassLoader(prev);
+        }
+        return null;
+      });
     } else if (call.method.equals("extractAsset")) {
       // Stream an APK asset to disk as one whole file (e.g. stdlib.zip).
       final String asset = call.argument("asset");
