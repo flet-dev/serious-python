@@ -1,3 +1,7 @@
+## 4.1.0
+
+* Version bump aligning with the `serious_python_*` 4.1.0 release.
+
 ## 4.0.0
 
 * `prepareApp()` returns `<exeDir>/app`; the app's Python sources ship unpacked next to the bundled CPython `Lib`/`DLLs`/`site-packages` (no first-launch extraction). The CMakeLists copies `SERIOUS_PYTHON_APP` into the runner output.

@@ -1,3 +1,7 @@
+## 4.1.0
+
+* Version bump aligning with the `serious_python_*` 4.1.0 release.
+
 ## 4.0.0
 
 * Add `prepareApp()` to `SeriousPythonPlatform` — materializes the packaged app on disk (if needed) and returns the directory containing its entry point.

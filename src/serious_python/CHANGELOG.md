@@ -1,3 +1,7 @@
+## 4.1.0
+
+* **Android:** run first-launch asset unpacking and native library loading off the platform main thread so they no longer block vsync — boot-time animations (e.g. a splash / boot screen spinner) stay smooth while the app starts. Also ship consumer ProGuard rules that keep the pyjnius bootstrap classes, fixing pyjnius in release (minified) Android builds. See `serious_python_android` 4.1.0.
+
 ## 4.0.0
 
 * **App packaging lifted into serious_python.** Your Python app now ships **unpacked inside the application bundle**, next to the Python stdlib and site-packages, on macOS / iOS / Windows / Linux — no first-launch `app.zip` extraction. On **Android** the app ships as a *stored* `app.zip` asset inside the APK and is unpacked once (version-keyed) to the app-support files dir on the first launch after an install/update, like the existing `extract.zip`. Web (Pyodide) is unchanged. The `package` command stages the processed app into **`SERIOUS_PYTHON_APP`** (symmetric with `SERIOUS_PYTHON_SITE_PACKAGES`); each platform's native build copies it into the bundle (Android zips it as a stored asset).

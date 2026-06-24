@@ -1,3 +1,7 @@
+## 4.1.0
+
+* Version bump aligning with the `serious_python_*` 4.1.0 release.
+
 ## 4.0.0
 
 * **Swift Package Manager support (dual with CocoaPods).** The plugin now builds under SPM as well as CocoaPods, so apps can use either integration (CocoaPods goes read-only in December 2026; Flutter ships SPM on by default since 3.44). A new `darwin/serious_python_darwin/Package.swift` builds the same Swift source as the podspec, with `getResourcePath` resolving `Bundle.module` under SPM (`#if SWIFT_PACKAGE`) and the framework `python.bundle` under CocoaPods.
