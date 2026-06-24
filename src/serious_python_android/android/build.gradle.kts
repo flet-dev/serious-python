@@ -78,6 +78,10 @@ configure<LibraryExtension> {
         ndk {
             abiFilters.addAll(abis)
         }
+        // Keep rules for classes pyjnius / the native runtime resolve by name at
+        // runtime (e.g. PythonActivity.mActivity); merged into the consuming app's
+        // R8 pass so release builds don't obfuscate/strip them.
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     // No jniLibs packaging config needed: the native modules are real ELF .so that
