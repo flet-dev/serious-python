@@ -5,6 +5,11 @@ import android.content.ContextWrapper;
 import androidx.annotation.NonNull;
 import android.system.Os;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin;
 import io.flutter.embedding.engine.plugins.activity.ActivityAware;
@@ -30,6 +35,25 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
 
   private MethodChannel channel;
   private Context context;
+
+  // Heavy native work (asset extraction/unzipping, native library loading) must
+  // NOT run on the platform main thread: it would block Android's Choreographer
+  // and starve Flutter's vsync, freezing on-screen animations (e.g. the boot
+  // spinner). Run it on a background executor and post the MethodChannel result
+  // back on the main thread (Flutter requires result callbacks there).
+  private final ExecutorService ioExecutor = Executors.newSingleThreadExecutor();
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+
+  private void runAsync(@NonNull Result result, String errorCode, Callable<Object> work) {
+    ioExecutor.execute(() -> {
+      try {
+        Object value = work.call();
+        mainHandler.post(() -> result.success(value));
+      } catch (Throwable e) {
+        mainHandler.post(() -> result.error(errorCode, e.getMessage(), null));
+      }
+    });
+  }
 
   @Override
   public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
@@ -107,19 +131,30 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
       // Load a native library by name via Java's System.loadLibrary(), which —
       // unlike dart:ffi's dlopen-based DynamicLibrary.open used for
       // libdart_bridge — runs the library's JNI_OnLoad. That's how pyjnius's
-      // helper (libpyjni.so) captures the JavaVM + app ClassLoader. Called from
-      // app code here, so JNI_OnLoad sees the app's class loader.
-      try {
-        System.loadLibrary((String) call.argument("libname"));
-        result.success(null);
-      } catch (Throwable e) {
-        result.error("loadLibrary", e.getMessage(), null);
-      }
+      // helper (libpyjni.so) captures the JavaVM + app ClassLoader.
+      //
+      // Run off the main thread (dlopen + JNI_OnLoad can be slow). System.loadLibrary
+      // resolves the .so via the calling class's loader (AndroidPlugin -> app loader)
+      // regardless of thread, and JNI_OnLoad's FindClass uses that same loader; we
+      // also pin the worker's context loader to the app loader so JNI_OnLoad sees it
+      // if it reads the thread context loader.
+      final String libname = call.argument("libname");
+      runAsync(result, "loadLibrary", () -> {
+        Thread t = Thread.currentThread();
+        ClassLoader prev = t.getContextClassLoader();
+        t.setContextClassLoader(context.getClassLoader());
+        try {
+          System.loadLibrary(libname);
+        } finally {
+          t.setContextClassLoader(prev);
+        }
+        return null;
+      });
     } else if (call.method.equals("extractAsset")) {
       // Stream an APK asset to disk as one whole file (e.g. stdlib.zip).
-      try {
-        String asset = call.argument("asset");
-        String dest = call.argument("dest");
+      final String asset = call.argument("asset");
+      final String dest = call.argument("dest");
+      runAsync(result, "extractAsset", () -> {
         java.io.File destFile = new java.io.File(dest);
         if (destFile.getParentFile() != null) destFile.getParentFile().mkdirs();
         byte[] buf = new byte[1 << 16];
@@ -128,15 +163,13 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
           int n;
           while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         }
-        result.success(dest);
-      } catch (Exception e) {
-        result.error("extractAsset", e.getMessage(), null);
-      }
+        return dest;
+      });
     } else if (call.method.equals("unzipAsset")) {
       // Unpack an APK asset zip (e.g. extract.zip) into a directory tree.
-      try {
-        String asset = call.argument("asset");
-        String destDir = call.argument("dest");
+      final String asset = call.argument("asset");
+      final String destDir = call.argument("dest");
+      runAsync(result, "unzipAsset", () -> {
         java.io.File root = new java.io.File(destDir);
         byte[] buf = new byte[1 << 16];
         try (java.io.InputStream in = context.getAssets().open(asset);
@@ -155,10 +188,8 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
             }
           }
         }
-        result.success(destDir);
-      } catch (Exception e) {
-        result.error("unzipAsset", e.getMessage(), null);
-      }
+        return destDir;
+      });
     } else {
       result.notImplemented();
     }
@@ -167,6 +198,7 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
   @Override
   public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
     channel.setMethodCallHandler(null);
+    ioExecutor.shutdown();
   }
 
   @Override

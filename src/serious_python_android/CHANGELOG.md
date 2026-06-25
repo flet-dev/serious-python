@@ -1,3 +1,9 @@
+## 4.1.0
+
+* Run the `extractAsset` / `unzipAsset` / `loadLibrary` method-channel handlers on a background `Executor` (posting the `Result` back on the main looper) instead of inline on the platform main thread. The first-launch asset unpack and the pyjnius native-library load no longer block Android's `Choreographer`, so Flutter's vsync isn't starved and on-screen animations (e.g. a boot/splash spinner) stay smooth while the app starts.
+* Ship consumer ProGuard/R8 keep rules (`-keep class com.flet.serious_python_android.** { *; }`) so release (minified) builds don't obfuscate or strip the classes pyjnius resolves by name at runtime. Without them R8 renamed `PythonActivity` and dropped its static `mActivity` field, breaking pyjnius in release builds with `type object 'C.f' has no attribute 'mActivity'` (debug builds were unaffected).
+* Version bump aligning with the `serious_python_*` 4.1.0 release.
+
 ## 4.0.0
 
 * Ship the app as a *stored* `app.zip` asset in the APK and unpack it once (version-keyed) to `<application-support>/flet/app` on the first launch after install/update, via the new `prepareApp()`. The version-keyed unpack moved out of `run()`; user data in the sibling `<application-support>/data` is preserved across updates.
