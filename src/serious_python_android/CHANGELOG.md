@@ -1,3 +1,7 @@
+## Unreleased
+
+* Fix app crashing on launch on Android 8.1 and below (API < 28). The `getAppVersion` method-channel handler, called on every startup, used `PackageInfo.getLongVersionCode()` (API 28+) unconditionally. R8 outlines this call into a synthetic class that it can merge with other API 28+ outlines — notably Flutter 3.41's `ImageDecoder`-based image decoder — and invoking that merged class on API < 28 fails verification with `NoClassDefFoundError: android.graphics.ImageDecoder$OnHeaderDecodedListener`. The call is now guarded with a `Build.VERSION.SDK_INT` check, falling back to the deprecated `versionCode` int field on older devices.
+
 ## 4.1.0
 
 * Run the `extractAsset` / `unzipAsset` / `loadLibrary` method-channel handlers on a background `Executor` (posting the `Result` back on the main looper) instead of inline on the platform main thread. The first-launch asset unpack and the pyjnius native-library load no longer block Android's `Choreographer`, so Flutter's vsync isn't starved and on-screen animations (e.g. a boot/splash spinner) stay smooth while the app starts.

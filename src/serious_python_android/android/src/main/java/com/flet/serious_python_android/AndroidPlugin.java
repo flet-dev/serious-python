@@ -122,7 +122,16 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
         android.content.pm.PackageManager pm = context.getPackageManager();
         android.content.pm.PackageInfo info = pm.getPackageInfo(packageName, 0);
         String versionName = info.versionName;
-        long versionCode = info.getLongVersionCode();
+        // PackageInfo.getLongVersionCode() is API 28+. Calling it unconditionally
+        // makes the Android Gradle plugin (R8) outline the call into a synthetic
+        // class that it may merge with other API 28+ outlines (e.g. Flutter's
+        // ImageDecoder-based image decoder). Invoking that merged class on
+        // API < 28 fails verification with NoClassDefFoundError and crashes the
+        // app on launch, because getAppVersion runs on every startup. Guard the
+        // call so older devices use the deprecated int field instead.
+        long versionCode = (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P)
+            ? info.getLongVersionCode()
+            : (long) info.versionCode;
         result.success(versionName + "+" + versionCode);
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
