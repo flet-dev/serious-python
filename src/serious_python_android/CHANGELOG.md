@@ -1,3 +1,7 @@
+## 4.1.1
+
+* Fix the embedded interpreter crashing on startup on a **non-primary ABI** (e.g. an x86_64 emulator when `arm64-v8a` is the primary ABI) with `ModuleNotFoundError: No module named '_sysconfigdata__android_<arch>-linux-android'`. The ABI-common `stdlib.zip` was built from the primary ABI only, dropping every other ABI's arch-specific `_sysconfigdata__android_<arch>` module — which CPython imports at startup via `sysconfig` (pulled in by `ctypes`). The primary `splitStdlib` task now also harvests each other ABI's `_sysconfigdata__android_<arch>` into `stdlib.zip` (only that arch-specific module, so the generic ABI-identical `_sysconfigdata__linux_` shipped by some versions like 3.12 isn't duplicated).
+
 ## 4.1.0
 
 * Run the `extractAsset` / `unzipAsset` / `loadLibrary` method-channel handlers on a background `Executor` (posting the `Result` back on the main looper) instead of inline on the platform main thread. The first-launch asset unpack and the pyjnius native-library load no longer block Android's `Choreographer`, so Flutter's vsync isn't starved and on-screen animations (e.g. a boot/splash spinner) stay smooth while the app starts.

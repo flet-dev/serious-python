@@ -302,14 +302,18 @@ for (abi in abis) {
                     }
                 }
             }
-            // `_sysconfigdata__<arch>` is the one pure-stdlib module whose name and
-            // contents are ARCH-SPECIFIC: each ABI ships its own (e.g.
-            // `_sysconfigdata__android_x86_64-linux-android`) and CPython imports
-            // the one matching the running device at startup (sysconfig, pulled in
-            // by ctypes). Since stdlib.zip is ABI-common and built from the primary
-            // ABI only, harvest every other ABI's sysconfigdata into it — otherwise
-            // a non-primary ABI (e.g. an x86_64 emulator when arm64-v8a is primary)
+            // `_sysconfigdata__android_<arch>` is ARCH-SPECIFIC: each ABI ships its
+            // own (e.g. `_sysconfigdata__android_x86_64-linux-android`) and CPython
+            // imports the one matching the running device at startup (sysconfig,
+            // pulled in by ctypes). Since stdlib.zip is ABI-common and built from the
+            // primary ABI only, harvest every other ABI's into it — otherwise a
+            // non-primary ABI (e.g. an x86_64 emulator when arm64-v8a is primary)
             // crashes with `ModuleNotFoundError: _sysconfigdata__android_...`.
+            //
+            // Match ONLY the `_sysconfigdata__android_<arch>` files (unique per ABI),
+            // not the generic, ABI-identical `_sysconfigdata__linux_` that some
+            // versions (e.g. 3.12) also ship — the primary already added that via the
+            // stdlib loop above, so harvesting it again would be a duplicate zip entry.
             if (isPrimary) {
                 abis.filter { it != abi }.forEach { otherAbi ->
                     val otherBundle = File(file("src/main/jniLibs/$otherAbi"), "libpythonbundle.so")
@@ -318,7 +322,9 @@ for (abi in abis) {
                             val oen = ozf.entries()
                             while (oen.hasMoreElements()) {
                                 val oe = oen.nextElement()
-                                if (!oe.isDirectory && oe.name.startsWith("stdlib/_sysconfigdata")) {
+                                if (!oe.isDirectory &&
+                                    oe.name.startsWith("stdlib/_sysconfigdata__android")
+                                ) {
                                     zip?.add(
                                         oe.name.removePrefix("stdlib/"),
                                         ozf.getInputStream(oe).readBytes(),
