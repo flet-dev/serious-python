@@ -259,6 +259,16 @@ for (abi in abis) {
     // (+ .soref markers in stdlib.zip), stdlib/* -> stdlib.zip root, then delete it.
     tasks.register("splitStdlib_$abi") {
         dependsOn("untarFile_$abi")
+        // The ABI-common stdlib.zip is built once (from the primary ABI) but must
+        // also carry every OTHER ABI's arch-specific `_sysconfigdata__<arch>` (see
+        // the harvest in doLast). Make the primary task depend on the other ABIs'
+        // untar so their bundles exist to read, and hold non-primary tasks until
+        // the primary has read them (each task deletes its own bundle at the end).
+        if (isPrimary) {
+            abis.forEach { other -> if (other != abi) dependsOn("untarFile_$other") }
+        } else {
+            mustRunAfter("splitStdlib_$primaryAbi")
+        }
         // The doLast rewrites jniLibs/<abi> (mangled libs in, bundle out); declare it as a
         // tracked output and always re-run so AGP's native-libs merge re-packages.
         outputs.dir(jniDir)
@@ -289,6 +299,39 @@ for (abi in abis) {
                         }
                         name.startsWith("stdlib/") -> zip?.add(name.removePrefix("stdlib/"), data)
                         else -> zip?.add(name, data)
+                    }
+                }
+            }
+            // `_sysconfigdata__android_<arch>` is ARCH-SPECIFIC: each ABI ships its
+            // own (e.g. `_sysconfigdata__android_x86_64-linux-android`) and CPython
+            // imports the one matching the running device at startup (sysconfig,
+            // pulled in by ctypes). Since stdlib.zip is ABI-common and built from the
+            // primary ABI only, harvest every other ABI's into it — otherwise a
+            // non-primary ABI (e.g. an x86_64 emulator when arm64-v8a is primary)
+            // crashes with `ModuleNotFoundError: _sysconfigdata__android_...`.
+            //
+            // Match ONLY the `_sysconfigdata__android_<arch>` files (unique per ABI),
+            // not the generic, ABI-identical `_sysconfigdata__linux_` that some
+            // versions (e.g. 3.12) also ship — the primary already added that via the
+            // stdlib loop above, so harvesting it again would be a duplicate zip entry.
+            if (isPrimary) {
+                abis.filter { it != abi }.forEach { otherAbi ->
+                    val otherBundle = File(file("src/main/jniLibs/$otherAbi"), "libpythonbundle.so")
+                    if (otherBundle.exists()) {
+                        ZipFile(otherBundle).use { ozf ->
+                            val oen = ozf.entries()
+                            while (oen.hasMoreElements()) {
+                                val oe = oen.nextElement()
+                                if (!oe.isDirectory &&
+                                    oe.name.startsWith("stdlib/_sysconfigdata__android")
+                                ) {
+                                    zip?.add(
+                                        oe.name.removePrefix("stdlib/"),
+                                        ozf.getInputStream(oe).readBytes(),
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
