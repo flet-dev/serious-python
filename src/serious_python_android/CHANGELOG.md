@@ -1,5 +1,6 @@
 ## 4.1.1
 
+* Fix app crashing on launch on Android 8.1 and below (API < 28). The `getAppVersion` method-channel handler, called on every startup, used `PackageInfo.getLongVersionCode()` (API 28+) unconditionally. R8 outlines this call into a synthetic class that it can merge with other API 28+ outlines — notably Flutter 3.41's `ImageDecoder`-based image decoder — and invoking that merged class on API < 28 fails verification with `NoClassDefFoundError: android.graphics.ImageDecoder$OnHeaderDecodedListener`. The call is now guarded with a `Build.VERSION.SDK_INT` check, falling back to the deprecated `versionCode` int field on older devices.
 * Fix the embedded interpreter crashing on startup on a **non-primary ABI** (e.g. an x86_64 emulator when `arm64-v8a` is the primary ABI) with `ModuleNotFoundError: No module named '_sysconfigdata__android_<arch>-linux-android'`. The ABI-common `stdlib.zip` was built from the primary ABI only, dropping every other ABI's arch-specific `_sysconfigdata__android_<arch>` module — which CPython imports at startup via `sysconfig` (pulled in by `ctypes`). The primary `splitStdlib` task now also harvests each other ABI's `_sysconfigdata__android_<arch>` into `stdlib.zip` (only that arch-specific module, so the generic ABI-identical `_sysconfigdata__linux_` shipped by some versions like 3.12 isn't duplicated).
 
 ## 4.1.0
