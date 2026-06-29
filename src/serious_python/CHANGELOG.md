@@ -1,3 +1,7 @@
+## 4.1.1
+
+* **Android:** fix two startup crashes — apps crashing on launch on Android 8.1 and below (API < 28) due to an unguarded `getLongVersionCode()` call, and the interpreter failing to start on a non-primary ABI (e.g. an x86_64 emulator) with `ModuleNotFoundError: No module named '_sysconfigdata__android_<arch>-linux-android'`. See `serious_python_android` 4.1.1.
+
 ## 4.1.0
 
 * **Android:** run first-launch asset unpacking and native library loading off the platform main thread so they no longer block vsync — boot-time animations (e.g. a splash / boot screen spinner) stay smooth while the app starts. Also ship consumer ProGuard rules that keep the pyjnius bootstrap classes, fixing pyjnius in release (minified) Android builds. See `serious_python_android` 4.1.0.
