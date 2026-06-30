@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.flet.serious_python_android"
-version = "4.1.1"
+version = "4.2.0"
 
 rootProject.allprojects {
     repositories {
@@ -50,9 +50,8 @@ if (pythonFullVersion == null) {
 }
 
 // ABIs come from python-build's manifest (the per-minor `android_abis` array,
-// flattened into python_versions.properties by `gen_version_tables`). 3.12
-// still ships armeabi-v7a; 3.13+ are 64-bit-only (PEP 738). A future minor
-// only needs the manifest edit — no Gradle change here.
+// flattened into python_versions.properties by `gen_version_tables`). A future
+// minor only needs the manifest edit — no Gradle change here.
 val abis: List<String> = (pv.getProperty("$pythonVersion.android_abis")
     ?: throw GradleException(
         "serious_python: python_versions.properties has no '$pythonVersion.android_abis'"))
