@@ -1,7 +1,7 @@
 ## 4.2.0
 
-* **Android:** `armeabi-v7a` (32-bit ARM) is now bundled for Python **3.13** and **3.14**, not just 3.12 — `flet-dev/python-build` `20260629` publishes 32-bit ARM runtimes for those minors. The `package` command's hardcoded "3.12-only" `armeabi-v7a` skip is replaced by a manifest-driven check against each minor's `PythonRelease.androidAbis`, so the wheel fan-out (and the Android plugin's `abiFilters`) follow whatever python-build publishes per minor.
-* Bundle **3.12.13 / 3.13.14 / 3.14.6** (python-build `20260629`; CPython-standalone `20260623`); Pyodide **0.27.7 / 0.29.4 / 314.0.1** (3.14 bumped 314.0.0 → 314.0.1).
+* **Android:** `armeabi-v7a` (32-bit ARM) is now bundled for Python **3.13** and **3.14**, not just 3.12 — `flet-dev/python-build` `20260630` publishes 32-bit ARM runtimes for those minors (built with `dart_bridge` **1.4.1**). The `package` command's hardcoded "3.12-only" `armeabi-v7a` skip is replaced by a manifest-driven check against each minor's `PythonRelease.androidAbis`, so the wheel fan-out (and the Android plugin's `abiFilters`) follow whatever python-build publishes per minor.
+* Bundle **3.12.13 / 3.13.14 / 3.14.6** (python-build `20260630`; CPython-standalone `20260623`); Pyodide **0.27.7 / 0.29.4 / 314.0.1** (3.14 bumped 314.0.0 → 314.0.1).
 
 ## 4.1.1
 
