@@ -1,3 +1,7 @@
+## 4.2.0
+
+* **`armeabi-v7a` (32-bit ARM) is now bundled for Python 3.13 and 3.14**, not just 3.12. `flet-dev/python-build` `20260630` publishes 32-bit ARM runtimes for those minors (built with `dart_bridge` **1.4.1**), so the per-minor `android_abis` in `python_versions.properties` now include `armeabi-v7a` across the board and `defaultConfig.ndk.abiFilters` + the per-ABI download/copy fan-out pick it up automatically — no Gradle change needed.
+
 ## 4.1.1
 
 * Fix app crashing on launch on Android 8.1 and below (API < 28). The `getAppVersion` method-channel handler, called on every startup, used `PackageInfo.getLongVersionCode()` (API 28+) unconditionally. R8 outlines this call into a synthetic class that it can merge with other API 28+ outlines — notably Flutter 3.41's `ImageDecoder`-based image decoder — and invoking that merged class on API < 28 fails verification with `NoClassDefFoundError: android.graphics.ImageDecoder$OnHeaderDecodedListener`. The call is now guarded with a `Build.VERSION.SDK_INT` check, falling back to the deprecated `versionCode` int field on older devices.

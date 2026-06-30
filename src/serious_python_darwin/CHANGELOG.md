@@ -1,3 +1,7 @@
+## 4.2.0
+
+* Bump the bundled python-build snapshot to `20260630` (`dart_bridge` `1.4.1`); aligns with the `serious_python_*` 4.2.0 release.
+
 ## 4.1.1
 
 * Version bump aligning with the `serious_python_*` 4.1.1 release.
