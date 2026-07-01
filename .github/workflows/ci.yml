@@ -34,6 +34,8 @@ env:
 jobs:
   version_tables_in_sync:
     name: Version tables in sync with manifest
+    # Tags only publish; tests run on branches/PRs before the tag is cut.
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -66,6 +68,7 @@ jobs:
 
   bridge_example_macos:
     name: Test Bridge example on macOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: macos-26
     strategy:
       fail-fast: false
@@ -128,6 +131,7 @@ jobs:
 
   bridge_example_ios:
     name: Test Bridge example on iOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: macos-26
     timeout-minutes: 25
     strategy:
@@ -203,6 +207,7 @@ jobs:
 
   bridge_example_android:
     name: Test Bridge example on Android (Python ${{ matrix.python_version }})
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -300,6 +305,7 @@ jobs:
 
   bridge_example_windows:
     name: Test Bridge example on Windows (Python ${{ matrix.python_version }})
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     # Explicit pin instead of `windows-latest` to avoid silent image moves.
     # `windows-2025-vs2026` is what GitHub redirects `windows-latest` to
     # starting 2026-06-15 (Server 2025 + VS 2026).
@@ -366,6 +372,7 @@ jobs:
 
   bridge_example_linux:
     name: Test Bridge example on Linux ${{ matrix.title }} (Python ${{ matrix.python_version }})
+    if: ${{ !startsWith(github.ref, 'refs/tags/') }}
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -482,7 +489,9 @@ jobs:
       - bridge_example_linux
       - bridge_example_windows
     runs-on: ubuntu-22.04
-    if: startsWith(github.ref, 'refs/tags/v')
+    # The bridge_example_* deps are skipped on tag builds (tags only publish);
+    # `!cancelled()` lets publish run despite those skipped needs.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') }}
     steps:
 
       - name: Checkout repository
