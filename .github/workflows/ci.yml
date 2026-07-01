@@ -31,6 +31,9 @@ env:
   # target python_version / platform, leaving the two halves mismatched.
   FLET_VERSION: "0.85.3"
 
+permissions:
+  contents: read
+
 jobs:
   version_tables_in_sync:
     name: Version tables in sync with manifest
@@ -39,10 +42,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
@@ -79,22 +84,26 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
 
       - name: Cache flet downloads
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Configure ${{ matrix.build_system }}
         run: |
@@ -143,26 +152,30 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
 
       - name: Cache flet downloads
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup iOS Simulator
         id: simulator
-        uses: futureware-tech/simulator-action@v5
+        uses: futureware-tech/simulator-action@e89aa8f93d3aec35083ff49d2854d07f7186f7f5 # v5
         with:
           model: 'iPhone 17 Pro Max'
           os: "iOS"
@@ -180,6 +193,10 @@ jobs:
 
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
+        env:
+          # Pass the simulator UDID via env rather than interpolating the
+          # step output straight into the run script (template injection).
+          SIMULATOR_UDID: ${{ steps.simulator.outputs.udid }}
         run: |
           ts() { date '+%H:%M:%S'; }
           # SPM is the default; CocoaPods opts out (the SPM job leaves the var
@@ -200,9 +217,9 @@ jobs:
           fi
           echo "[$(ts)] >>> flutter test integration_test (per-file)"
           # See macOS job for why each file runs as a separate invocation.
-          flutter test integration_test/interactivity_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
-          flutter test integration_test/throughput_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
-          flutter test integration_test/memory_test.dart --device-id ${{ steps.simulator.outputs.udid }} --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/interactivity_test.dart --device-id "$SIMULATOR_UDID" --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/throughput_test.dart --device-id "$SIMULATOR_UDID" --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
+          flutter test integration_test/memory_test.dart --device-id "$SIMULATOR_UDID" --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
           echo "[$(ts)] >>> done"
 
   bridge_example_android:
@@ -219,22 +236,26 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
 
       - name: Cache flet downloads
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Enable KVM
         run: |
@@ -247,19 +268,24 @@ jobs:
         # `gradle-actions-caching` library under proprietary commercial
         # Terms of Use (https://blog.gradle.org/github-actions-for-gradle-v6).
         # v5 was the last fully MIT-licensed major and is on Node 24.
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+        with:
+          # Disable the Gradle cache on tag/release builds to avoid cache poisoning.
+          cache-disabled: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: AVD cache
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         id: avd-cache
         with:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
           key: avd-bridge
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup Android Emulator + Run tests
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@e89f39f1abbbd05b1113a29cf4db69e7540cae5a # v2.37.0
         env:
           EMULATOR_PORT: 5554
         with:
@@ -318,22 +344,26 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
 
       - name: Cache flet downloads
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
@@ -390,29 +420,33 @@ jobs:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
 
       - name: Get Flutter version from .fvmrc
-        uses: kuhnroyal/flutter-fvm-config-action/config@v3
+        uses: kuhnroyal/flutter-fvm-config-action/config@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         id: fvm-config-action
         with:
           path: '.fvmrc'
 
       - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           flutter-version: ${{ steps.fvm-config-action.outputs.FLUTTER_VERSION }}
           channel: ${{ matrix.arch == 'arm64' && 'master' || 'stable' }}
           cache: true
 
       - name: Cache flet downloads
-        uses: actions/cache@v5
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.flet/cache
           key: flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-${{ hashFiles('src/serious_python/lib/src/python_versions.dart', 'src/serious_python/bin/package_command.dart', 'src/serious_python_android/android/build.gradle.kts', 'src/serious_python_darwin/darwin/prepare_macos.sh', 'src/serious_python_darwin/darwin/prepare_ios.sh', 'src/serious_python_windows/windows/CMakeLists.txt', 'src/serious_python_linux/linux/CMakeLists.txt') }}
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
+          # Read-only on tag/release builds to avoid cache poisoning.
+          lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Install Linux desktop build deps
         run: |
@@ -495,15 +529,20 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          # Publish runs on tags; disable the uv cache there to avoid
+          # release-time cache poisoning.
+          enable-cache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup Flutter
-        uses: kuhnroyal/flutter-fvm-config-action/setup@v3
+        uses: kuhnroyal/flutter-fvm-config-action/setup@c378498f1d1962d33039c3989411093ef8a17b2c # v3.3
         with:
           path: '.fvmrc'
           cache: true
