@@ -45,8 +45,9 @@ create_xcframework_from_dylibs() {
     simulator_arm64_dir=$2
     simulator_x86_64_dir=$3
     dylib_relative_path=$4
-    origin_prefix=$5
-    out_dir=$6
+    ext=${5:-$dylib_ext}
+    origin_prefix=$6
+    out_dir=$7
 
     dylib_tmp_dir=$(mktemp -d)
     pushd -- "${dylib_tmp_dir}" >/dev/null
@@ -60,12 +61,24 @@ create_xcframework_from_dylibs() {
     done
     framework_identifier=${framework_identifier:-framework}
 
+    # If neither simulator slice has this lib, leave the file untouched rather
+    # than fail `lipo` on an empty input (e.g. a device-only artifact). It then
+    # ships as-is in the flat base, exactly as before this conversion existed.
+    if [ -z "$(find "$simulator_arm64_dir" "$simulator_x86_64_dir" \
+                    \( -path "*/$dylib_without_ext.*.$ext" -o -path "*/$dylib_without_ext.$ext" \) \
+                    -type f 2>/dev/null | head -1)" ]; then
+        echo "  no simulator slice for $dylib_relative_path; leaving as-is"
+        popd >/dev/null
+        rm -rf "${dylib_tmp_dir}" >/dev/null
+        return
+    fi
+
     # creating "iphoneos" framework
     fd=iphoneos/$framework.framework
     mkdir -p $fd
     mv "$iphone_dir/$dylib_relative_path" $fd/$framework
     echo "Frameworks/$framework.framework/$framework" > "$iphone_dir/$dylib_without_ext.fwork"
-    install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
+    if [ "$ext" = "so" ]; then install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework; fi
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
     echo "$origin_prefix/$dylib_without_ext.fwork" > $fd/$framework.origin
 
@@ -73,12 +86,12 @@ create_xcframework_from_dylibs() {
     fd=iphonesimulator/$framework.framework
     mkdir -p $fd
     lipo -create \
-        $(find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$dylib_ext") \
-        $(find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$dylib_ext") \
+        $(find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$ext") \
+        $(find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$ext") \
         -output $fd/$framework
-    find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$dylib_ext" -delete
-    find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$dylib_ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$dylib_ext" -delete
-    install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework
+    find "$simulator_arm64_dir" -path "$simulator_arm64_dir/$dylib_without_ext.*.$ext" -o -path "$simulator_arm64_dir/$dylib_without_ext.$ext" -delete
+    find "$simulator_x86_64_dir" -path "$simulator_x86_64_dir/$dylib_without_ext.*.$ext" -o -path "$simulator_x86_64_dir/$dylib_without_ext.$ext" -delete
+    if [ "$ext" = "so" ]; then install_name_tool -id @rpath/$framework.framework/$framework $fd/$framework; fi
     create_plist $framework "org.python.$framework_identifier" $fd/Info.plist
     echo "$origin_prefix/$dylib_without_ext.fwork" > $fd/$framework.origin
 
