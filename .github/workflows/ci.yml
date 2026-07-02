@@ -607,3 +607,31 @@ jobs:
           publish_pkg src/serious_python_linux
           sleep 600
           publish_pkg src/serious_python
+
+  release:
+    name: Publish GitHub Release
+    needs:
+      - publish
+    runs-on: ubuntu-latest
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    permissions:
+      contents: write
+    steps:
+      - name: Detect pre-release
+        id: prerelease
+        env:
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_NAME" == *-* ]]; then
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          prerelease: ${{ steps.prerelease.outputs.is_prerelease == 'true' }}
+          generate_release_notes: true
