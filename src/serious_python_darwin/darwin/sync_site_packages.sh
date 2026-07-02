@@ -33,14 +33,9 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         cp -R $SERIOUS_PYTHON_SITE_PACKAGES/* $tmp_dir
 
         echo "Converting dylibs to xcframeworks..."
-        # Process BOTH .so (Python C-extensions) and .dylib (ctypes-loaded shared
-        # libs, e.g. llama-cpp-python's libllama/libggml*). Previously only *.so
-        # was framework-ized; *.dylib fell through and shipped the archs[0]=iphoneos
-        # DEVICE build, so it failed to dlopen on the simulator.
+        # Process BOTH .so (Python C-extensions) and .dylib (ctypes-loaded shared libs).
         for _sp_ext in so dylib; do
-        # -type f: skip SONAME symlinks (e.g. libfoo.dylib -> libfoo.1.dylib);
-        # only real Mach-O files are converted. Recipes should ship unversioned
-        # shared libs (as the flet-lib* recipes already do).
+        # -type f: only match regular files, skipping SONAME symlinks, so only real Mach-O files are converted.
         find "$tmp_dir/${archs[0]}" -name "*.$_sp_ext" -type f | while read full_dylib; do
             dylib_relative_path=${full_dylib#$tmp_dir/${archs[0]}/}
             create_xcframework_from_dylibs \
