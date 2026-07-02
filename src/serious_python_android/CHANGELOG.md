@@ -1,3 +1,7 @@
+## 4.2.1
+
+* Bump the bundled python-build snapshot to `20260701`; aligns with the `serious_python_*` 4.2.1 release. The Android runtimes are byte-identical to `20260630` (the release only rebuilds the iOS runtime).
+
 ## 4.2.0
 
 * **`armeabi-v7a` (32-bit ARM) is now bundled for Python 3.13 and 3.14**, not just 3.12. `flet-dev/python-build` `20260630` publishes 32-bit ARM runtimes for those minors (built with `dart_bridge` **1.4.1**), so the per-minor `android_abis` in `python_versions.properties` now include `armeabi-v7a` across the board and `defaultConfig.ndk.abiFilters` + the per-ABI download/copy fan-out pick it up automatically — no Gradle change needed.

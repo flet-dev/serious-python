@@ -1,3 +1,8 @@
+## 4.2.1
+
+* **iOS/macOS:** ctypes packages that ship plain `.dylib` shared libraries (e.g. `llama-cpp-python`'s `libllama` / `libggml`) now load on the **iOS simulator**. Such `.dylib`s are now packaged as per-slice xcframeworks (previously only `.so` C-extensions were), so they carry a simulator slice instead of shipping the device build and failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`; their install-name is preserved so multi-lib packages still resolve their sibling libs. See `serious_python_darwin` 4.2.1.
+* **iOS:** the `_multiprocessing` extension is now built into the runtime (importable, not spawnable) via `flet-dev/python-build` `20260701`. Bundled Python versions are unchanged from 4.2.0 (**3.12.13 / 3.13.14 / 3.14.6**).
+
 ## 4.2.0
 
 * **Android:** `armeabi-v7a` (32-bit ARM) is now bundled for Python **3.13** and **3.14**, not just 3.12 — `flet-dev/python-build` `20260630` publishes 32-bit ARM runtimes for those minors (built with `dart_bridge` **1.4.1**). The `package` command's hardcoded "3.12-only" `armeabi-v7a` skip is replaced by a manifest-driven check against each minor's `PythonRelease.androidAbis`, so the wheel fan-out (and the Android plugin's `abiFilters`) follow whatever python-build publishes per minor.
