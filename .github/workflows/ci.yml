@@ -102,7 +102,7 @@ jobs:
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
-          # Read-only on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Configure ${{ matrix.build_system }}
@@ -170,7 +170,7 @@ jobs:
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
-          # Read-only on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup iOS Simulator
@@ -254,7 +254,7 @@ jobs:
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
-          # Read-only on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Enable KVM
@@ -270,7 +270,7 @@ jobs:
         # v5 was the last fully MIT-licensed major and is on Node 24.
         uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
         with:
-          # Disable the Gradle cache on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           cache-disabled: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: AVD cache
@@ -281,7 +281,7 @@ jobs:
             ~/.android/avd/*
             ~/.android/adb*
           key: avd-bridge
-          # Read-only on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup Android Emulator + Run tests
@@ -362,7 +362,7 @@ jobs:
           restore-keys: |
             flet-cache-${{ runner.os }}-${{ runner.arch }}-py${{ matrix.python_version }}-
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
-          # Read-only on tag/release builds to avoid cache poisoning.
+          # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
 
       - name: Package + run integration test
@@ -537,8 +537,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
-          # Publish runs on tags; disable the uv cache there to avoid
-          # release-time cache poisoning.
+          # Avoid release-time cache poisoning.
           enable-cache: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
       - name: Setup Flutter
@@ -619,6 +618,8 @@ jobs:
     steps:
       - name: Detect pre-release
         id: prerelease
+        # Dart/pub pre-releases carry a semver hyphen suffix (e.g. v1.2.0-beta.1);
+        # mark those as GitHub pre-releases.
         env:
           REF_NAME: ${{ github.ref_name }}
         run: |
