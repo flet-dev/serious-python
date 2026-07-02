@@ -1,3 +1,8 @@
+## 4.2.1
+
+* Framework-ize ctypes `.dylib` shared libs (not just `.so` C-extensions) when syncing iOS site-packages, so `.dylib`-shipping packages (e.g. `llama-cpp-python`) load on the **iOS simulator** instead of failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`. Each `.dylib` becomes a device+simulator xcframework + `.fwork` pointer, exactly like `.so`; unlike `.so` (whose id is rewritten to the framework path), the `.dylib` install-name is preserved so multi-lib packages resolve their sibling libs. The `.so` path is unchanged.
+* Bump the bundled python-build snapshot to `20260701`: the iOS runtime now builds the `_multiprocessing` extension (importable, not spawnable). Python/`dart_bridge` versions are unchanged from `20260630`.
+
 ## 4.2.0
 
 * Bump the bundled python-build snapshot to `20260630` (`dart_bridge` `1.4.1`); aligns with the `serious_python_*` 4.2.0 release.

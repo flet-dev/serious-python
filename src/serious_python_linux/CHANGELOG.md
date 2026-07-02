@@ -1,3 +1,7 @@
+## 4.2.1
+
+* Bump the bundled python-build snapshot to `20260701`; aligns with the `serious_python_*` 4.2.1 release. The Linux runtimes are byte-identical to `20260630` (the release only rebuilds the iOS runtime).
+
 ## 4.2.0
 
 * Bump the bundled python-build snapshot to `20260630` (`dart_bridge` `1.4.1`); aligns with the `serious_python_*` 4.2.0 release.
