@@ -15,7 +15,8 @@ cache_root="${FLET_CACHE_DIR:-$HOME/.flet/cache}"
 # date — e.g. a rebuild that only re-signs binaries) downloads fresh instead of
 # being served stale from the previous release's cache. dart-bridge stays
 # version-keyed (its re-releases bump the version).
-pb_cache="$cache_root/python-build/v$python_full_version-$python_build_date"
+pb_id="$python_full_version-$python_build_date"
+pb_cache="$cache_root/python-build/v$pb_id"
 db_cache="$cache_root/dart-bridge/v$dart_bridge_version"
 mkdir -p "$pb_cache" "$db_cache"
 
@@ -34,14 +35,13 @@ fi
 # 3.14 site-packages, which trips C-extension ABI errors ("unknown slot ID") at
 # import. The marker keys the extracted dist to the version + release date, so a
 # same-version re-release (new build date) also re-extracts.
-build_id="$python_full_version-$python_build_date"
 marker="$dist/.python_build_id"
-if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$build_id" ]; then
+if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$pb_id" ]; then
     rm -rf "$dist"
     mkdir -p "$dist"
     tar -xzf "$python_ios_dist_path" -C "$dist"
     mv "$dist/python-stdlib" "$dist/stdlib"
-    echo "$build_id" > "$marker"
+    echo "$pb_id" > "$marker"
 fi
 
 # ---- flet-dev/dart-bridge (xcframework) -----------------------------------
@@ -55,7 +55,11 @@ if [ ! -f "$dart_bridge_path" ]; then
     mv "$dart_bridge_path.tmp" "$dart_bridge_path"
 fi
 
-if [ ! -d "$dist/xcframeworks/dart_bridge.xcframework" ]; then
+# Cache dart_bridge.xcframework by version; extract it if missing or if the version marker differs.
+db_marker="$dist/xcframeworks/.dart_bridge_version"
+if [ ! -d "$dist/xcframeworks/dart_bridge.xcframework" ] || [ "$(cat "$db_marker" 2>/dev/null)" != "$dart_bridge_version" ]; then
+    rm -rf "$dist/xcframeworks/dart_bridge.xcframework"
     mkdir -p "$dist/xcframeworks"
     unzip -q "$dart_bridge_path" -d "$dist/xcframeworks/"
+    echo "$dart_bridge_version" > "$db_marker"
 fi
