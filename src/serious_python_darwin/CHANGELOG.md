@@ -1,3 +1,9 @@
+## 4.3.0
+
+* Bump `dart_bridge` to **1.5.0**: multiprocessing child-interception exports (`serious_python_is_mp_invocation` / `serious_python_main`), kept alive against the host link's `-dead_strip` both by `__attribute__((used))` in the archive and by keep-alive references in `SeriousPythonPlugin.swift`. See the `serious_python` 4.3.0 notes.
+* `prepare_macos.sh` / `prepare_ios.sh`: the extracted `dart_bridge.xcframework` in `dist_*` is now keyed to the dart_bridge version (`.dart_bridge_version` marker) — previously a version bump kept staging the stale extraction from the earlier version.
+* `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
+
 ## 4.2.1
 
 * Framework-ize ctypes `.dylib` shared libs (not just `.so` C-extensions) when syncing iOS site-packages, so `.dylib`-shipping packages (e.g. `llama-cpp-python`) load on the **iOS simulator** instead of failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`. Each `.dylib` becomes a device+simulator xcframework + `.fwork` pointer, exactly like `.so`; unlike `.so` (whose id is rewritten to the framework path), the `.dylib` install-name is preserved so multi-lib packages resolve their sibling libs. The `.so` path is unchanged.

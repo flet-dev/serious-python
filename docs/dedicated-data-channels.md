@@ -288,7 +288,11 @@ def _pump(self):
 Real parallelism comes from C extensions that **release the GIL during
 their work** — NumPy, PyTorch, Pillow, cryptography. Pure-Python CPU work
 serialises on the GIL; for that, use `multiprocessing` or
-PEP 684 subinterpreters.
+PEP 684 subinterpreters. Caveat: `multiprocessing` works in the embedded
+runtime only on **desktop** hosts whose binary services the spawn re-exec
+protocol via `serious_python_main` (dart_bridge >= 1.5.0, flet >= 0.86 build
+template); it is not available on iOS/Android, where the OS forbids spawning
+child processes.
 
 ### Dart side — Isolate scope
 

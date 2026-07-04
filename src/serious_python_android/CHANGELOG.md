@@ -1,3 +1,7 @@
+## 4.3.0
+
+* `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed. No functional change on Android, which doesn't support process spawning.
+
 ## 4.2.1
 
 * Bump the bundled python-build snapshot to `20260701`; aligns with the `serious_python_*` 4.2.1 release. The Android runtimes are byte-identical to `20260630` (the release only rebuilds the iOS runtime).

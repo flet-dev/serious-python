@@ -1,3 +1,8 @@
+## 4.3.0
+
+* **Desktop multiprocessing support** ([flet-dev/flet#4283](https://github.com/flet-dev/flet/issues/4283)). `dart_bridge` **1.5.0** adds `serious_python_is_mp_invocation` / `serious_python_main` (+ `_w` wide-char variants on Windows): host apps call them first thing in `main` to detect CPython child command lines (`--multiprocessing-fork`, `-c "from multiprocessing..."` — spawn workers, the resource tracker, and the forkserver) and service them as a plain headless interpreter (`Py_Main`/`Py_BytesMain`, stable ABI) instead of re-launching the GUI. The exports rely on the `PYTHONHOME`/`PYTHONPATH` the parent already stamped process-wide.
+* `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
+
 ## 4.2.1
 
 * **iOS/macOS:** ctypes packages that ship plain `.dylib` shared libraries (e.g. `llama-cpp-python`'s `libllama` / `libggml`) now load on the **iOS simulator**. Such `.dylib`s are now packaged as per-slice xcframeworks (previously only `.so` C-extensions were), so they carry a simulator slice instead of shipping the device build and failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`; their install-name is preserved so multi-lib packages still resolve their sibling libs. See `serious_python_darwin` 4.2.1.
