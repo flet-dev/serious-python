@@ -1,3 +1,7 @@
+## 4.3.0
+
+* **Fix `flet build windows` failing with `file INSTALL cannot find "C:/WINDOWS/System32/vcruntime140_1.dll"`** for users who have VS Build Tools installed rather than full Visual Studio. The plugin harvests the CRT runtime DLLs (`msvcp140.dll` / `vcruntime140.dll` / `vcruntime140_1.dll`) from `%WINDIR%\System32`, but Flutter drives the CMake install step with the **32-bit** `cmake.exe` bundled in VS Build Tools. Under WOW64 file-system redirection that process sees `System32` transparently rewritten to `SysWOW64`, which holds the x86 CRT and doesn't contain `vcruntime140_1.dll` at all — so the x64 build copied wrong-arch DLLs and then failed. The CRT directory is now resolved via the `Sysnative` pseudo-folder (visible only to 32-bit processes, mapping back to the real 64-bit `System32`) when present, falling back to `System32` for native 64-bit cmake. See flet-dev/flet#6436.
+
 ## 4.2.1
 
 * Bump the bundled python-build snapshot to `20260701`; aligns with the `serious_python_*` 4.2.1 release. The Windows runtimes are byte-identical to `20260630` (the release only rebuilds the iOS runtime).
