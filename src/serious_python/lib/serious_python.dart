@@ -34,15 +34,24 @@ class SeriousPython {
   ///
   /// Set [sync] to `true` to sychronously run Python program; otherwise the
   /// program starts in a new thread.
+  ///
+  /// [targetPath], [checkHash], and [invalidateKey] control the extraction
+  /// cache used for zip assets.
   static Future<String?> run(String assetPath,
       {String? appFileName,
       List<String>? modulePaths,
       Map<String, String>? environmentVariables,
-      bool? sync}) async {
+      bool? sync,
+      String? targetPath,
+      bool checkHash = false,
+      String? invalidateKey}) async {
     // unpack app from asset
     String appPath = "";
     if (path.extension(assetPath) == ".zip") {
-      appPath = await extractAssetZip(assetPath);
+      appPath = await extractAssetZip(assetPath,
+          targetPath: targetPath,
+          checkHash: checkHash,
+          invalidateKey: invalidateKey);
       if (appFileName != null) {
         appPath = path.join(appPath, appFileName);
       } else if (await File(path.join(appPath, "main.pyc")).exists()) {
