@@ -3,6 +3,7 @@
 * **Desktop multiprocessing support** ([flet-dev/flet#4283](https://github.com/flet-dev/flet/issues/4283)). `dart_bridge` **1.5.0** adds `serious_python_is_mp_invocation` / `serious_python_main` (+ `_w` wide-char variants on Windows): host apps call them first thing in `main` to detect CPython child command lines (`--multiprocessing-fork`, `-c "from multiprocessing..."` — spawn workers, the resource tracker, and the forkserver) and service them as a plain headless interpreter (`Py_Main`/`Py_BytesMain`, stable ABI) instead of re-launching the GUI. The exports rely on the `PYTHONHOME`/`PYTHONPATH` the parent already stamped process-wide.
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
 * Bump the bundled python-build snapshot to `20260708`, which delivers `dart_bridge` **1.5.0**; Pyodide for 3.14 bumped **314.0.1 → 314.0.2**. Bundled Python versions are unchanged from 4.2.1 (**3.12.13 / 3.13.14 / 3.14.6**).
+* **Windows:** fix `flet build windows` failing with `file INSTALL cannot find "C:/WINDOWS/System32/vcruntime140_1.dll"` for users who build with VS Build Tools rather than full Visual Studio (a WOW64 file-system-redirection issue with the bundled 32-bit cmake). See `serious_python_windows` 4.3.0.
 
 ## 4.2.1
 

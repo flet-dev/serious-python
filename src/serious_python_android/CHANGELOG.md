@@ -2,6 +2,7 @@
 
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed. No functional change on Android, which doesn't support process spawning.
 * Bump the bundled python-build snapshot to `20260708` (`dart_bridge` **1.5.0**). The new multiprocessing child-interception exports are present in the runtime but not wired up on Android, which doesn't support process spawning.
+* Version bump aligning with the `serious_python_*` 4.3.0 release.
 
 ## 4.2.1
 

@@ -2,6 +2,7 @@
 
 * Bump `dart_bridge` to **1.5.0** (python-build snapshot `20260708`): multiprocessing child-interception exports, including the Windows wide-char variants `serious_python_is_mp_invocation_w` / `serious_python_main_w` (→ `Py_Main`) consumed by the flet build template's `wWinMain`. See the `serious_python` 4.3.0 notes.
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
+* **Fix `flet build windows` failing with `file INSTALL cannot find "C:/WINDOWS/System32/vcruntime140_1.dll"`** for users who have VS Build Tools installed rather than full Visual Studio. The plugin harvests the CRT runtime DLLs (`msvcp140.dll` / `vcruntime140.dll` / `vcruntime140_1.dll`) from `%WINDIR%\System32`, but Flutter drives the CMake install step with the **32-bit** `cmake.exe` bundled in VS Build Tools. Under WOW64 file-system redirection that process sees `System32` transparently rewritten to `SysWOW64`, which holds the x86 CRT and doesn't contain `vcruntime140_1.dll` at all — so the x64 build copied wrong-arch DLLs and then failed. The CRT directory is now resolved via the `Sysnative` pseudo-folder (visible only to 32-bit processes, mapping back to the real 64-bit `System32`) when present, falling back to `System32` for native 64-bit cmake. See flet-dev/flet#6436.
 
 ## 4.2.1
 
