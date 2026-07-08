@@ -2,7 +2,6 @@
 
 * Bump `dart_bridge` to **1.5.0** (python-build snapshot `20260708`): multiprocessing child-interception exports (`serious_python_is_mp_invocation` / `serious_python_main`), consumed by the flet build template's `main.cc` via `dlopen("libdart_bridge.so")`. Relevant on Linux since Python 3.14 made `forkserver` (which execs `sys.executable`) the default start method. See the `serious_python` 4.3.0 notes.
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
-* Version bump aligning with the `serious_python_*` 4.3.0 release.
 
 ## 4.2.1
 
