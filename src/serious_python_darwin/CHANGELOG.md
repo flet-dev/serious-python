@@ -1,6 +1,6 @@
 ## 4.3.0
 
-* Bump `dart_bridge` to **1.5.0**: multiprocessing child-interception exports (`serious_python_is_mp_invocation` / `serious_python_main`), kept alive against the host link's `-dead_strip` both by `__attribute__((used))` in the archive and by keep-alive references in `SeriousPythonPlugin.swift`. See the `serious_python` 4.3.0 notes.
+* Bump `dart_bridge` to **1.5.0** (python-build snapshot `20260708`): multiprocessing child-interception exports (`serious_python_is_mp_invocation` / `serious_python_main`), kept alive against the host link's `-dead_strip` both by `__attribute__((used))` in the archive and by keep-alive references in `SeriousPythonPlugin.swift`. See the `serious_python` 4.3.0 notes.
 * `prepare_macos.sh` / `prepare_ios.sh`: the extracted `dart_bridge.xcframework` in `dist_*` is now keyed to the dart_bridge version (`.dart_bridge_version` marker) — previously a version bump kept staging the stale extraction from the earlier version.
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed.
 
