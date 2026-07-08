@@ -1,3 +1,7 @@
+## 4.3.0
+
+* **Windows:** fix `flet build windows` failing with `file INSTALL cannot find "C:/WINDOWS/System32/vcruntime140_1.dll"` for users who build with VS Build Tools rather than full Visual Studio (a WOW64 file-system-redirection issue with the bundled 32-bit cmake). See `serious_python_windows` 4.3.0.
+
 ## 4.2.1
 
 * **iOS/macOS:** ctypes packages that ship plain `.dylib` shared libraries (e.g. `llama-cpp-python`'s `libllama` / `libggml`) now load on the **iOS simulator**. Such `.dylib`s are now packaged as per-slice xcframeworks (previously only `.so` C-extensions were), so they carry a simulator slice instead of shipping the device build and failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`; their install-name is preserved so multi-lib packages still resolve their sibling libs. See `serious_python_darwin` 4.2.1.

@@ -190,13 +190,31 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
 # This list could contain prebuilt libraries, or libraries created by an
 # external build triggered from this build file.
 string(REPLACE "\\" "/" SERIOUS_PYTHON_WINDIR "$ENV{WINDIR}")
+
+# CRT runtime DLLs (msvcp140 / vcruntime140 / vcruntime140_1) are harvested from
+# the OS's 64-bit System32. Flutter may drive the CMake install step with the
+# 32-bit cmake.exe bundled in VS Build Tools (users without full Visual Studio).
+# Under WOW64 file-system redirection a 32-bit process sees C:\Windows\System32
+# transparently rewritten to SysWOW64, which holds the x86 CRT and doesn't
+# contain vcruntime140_1.dll at all — so the x64 build copies wrong-arch DLLs and
+# then fails with "cannot find vcruntime140_1.dll" (flet-dev/flet#6436).
+# "Sysnative" is the documented pseudo-folder that maps a 32-bit process back to
+# the real 64-bit System32; it's visible only to 32-bit processes, so a native
+# 64-bit cmake has no Sysnative and keeps using System32. Configure- and
+# install-time cmake are the same binary under Flutter, so the path resolved here
+# stays valid when cmake_install.cmake later runs.
+set(_sp_crt_dir "${SERIOUS_PYTHON_WINDIR}/System32")
+if(EXISTS "${SERIOUS_PYTHON_WINDIR}/Sysnative")
+  set(_sp_crt_dir "${SERIOUS_PYTHON_WINDIR}/Sysnative")
+endif()
+
 set(serious_python_windows_bundled_libraries
   "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.dll"
   "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
   "$<IF:$<CONFIG:Debug>,${DART_BRIDGE_DEBUG_DLL},${DART_BRIDGE_RELEASE_DLL}>"
-  "${SERIOUS_PYTHON_WINDIR}/System32/msvcp140.dll"
-  "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140.dll"
-  "${SERIOUS_PYTHON_WINDIR}/System32/vcruntime140_1.dll"
+  "${_sp_crt_dir}/msvcp140.dll"
+  "${_sp_crt_dir}/vcruntime140.dll"
+  "${_sp_crt_dir}/vcruntime140_1.dll"
   PARENT_SCOPE
 )
 

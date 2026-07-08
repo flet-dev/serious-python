@@ -1,3 +1,7 @@
+## 4.3.0
+
+* Version bump aligning with the `serious_python_*` 4.3.0 release.
+
 ## 4.2.1
 
 * Framework-ize ctypes `.dylib` shared libs (not just `.so` C-extensions) when syncing iOS site-packages, so `.dylib`-shipping packages (e.g. `llama-cpp-python`) load on the **iOS simulator** instead of failing `dlopen` with `incompatible platform (have 'iOS', need 'iOS-simulator')`. Each `.dylib` becomes a device+simulator xcframework + `.fwork` pointer, exactly like `.so`; unlike `.so` (whose id is rewritten to the framework path), the `.dylib` install-name is preserved so multi-lib packages resolve their sibling libs. The `.so` path is unchanged.

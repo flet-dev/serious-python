@@ -1,3 +1,7 @@
+## 4.3.0
+
+* Version bump aligning with the `serious_python_*` 4.3.0 release.
+
 ## 4.2.1
 
 * Bump the bundled python-build snapshot to `20260701`; aligns with the `serious_python_*` 4.2.1 release. The Linux runtimes are byte-identical to `20260630` (the release only rebuilds the iOS runtime).
