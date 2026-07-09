@@ -48,7 +48,6 @@ class SeriousPythonLinux extends SeriousPythonPlatform {
     ];
 
     final env = <String, String>{
-      'PYTHONINSPECT': '1',
       'PYTHONDONTWRITEBYTECODE': '1',
       'PYTHONNOUSERSITE': '1',
       'PYTHONUNBUFFERED': '1',

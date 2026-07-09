@@ -16,6 +16,17 @@ private func _sp_init_keepalive(_ data: UnsafeMutableRawPointer?) -> Int
 @_silgen_name("DartBridge_EnqueueMessage")
 private func _sp_enqueue_keepalive(_ data: UnsafePointer<CChar>?, _ len: Int)
 
+// multiprocessing child-interception entry points,
+// dlsym'd by the host app's main.swift before NSApplicationMain.
+@_silgen_name("serious_python_is_mp_invocation")
+private func _sp_is_mp_keepalive(
+  _ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32
+@_silgen_name("serious_python_main")
+private func _sp_main_keepalive(
+  _ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
+) -> Int32
+
 /// Thin Flutter plugin: surfaces the python.bundle resource path to Dart.
 /// All Python lifecycle now lives in `serious_python_run`
 /// (dart_bridge.xcframework), invoked from Dart.
@@ -39,6 +50,8 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
             _ = _sp_run_keepalive(nil)
             _ = _sp_init_keepalive(nil)
             _sp_enqueue_keepalive(nil, 0)
+            _ = _sp_is_mp_keepalive(0, nil)
+            _ = _sp_main_keepalive(0, nil)
         }
     }
 
