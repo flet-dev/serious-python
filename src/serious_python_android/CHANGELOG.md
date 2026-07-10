@@ -1,3 +1,7 @@
+## 4.3.1
+
+* Fix `flet build apk --arch <abi>` shipping an **empty `sitepackages.zip`** whenever the selected ABI subset didn't include `arm64-v8a` (e.g. `--arch x86_64`) — the app bundled no Python site-packages at all and the very first dependency import failed at startup. The ABI-common pure-code zips (`sitepackages.zip` / `extract.zip`) were built from a hardcoded primary ABI (`abis.first()`, i.e. `arm64-v8a`); when only other ABIs were staged under `SERIOUS_PYTHON_SITE_PACKAGES`, the primary split task walked a nonexistent directory and silently produced a valid-but-empty zip. The primary ABI is now the first manifest ABI whose site-packages tree was actually staged. If none is staged at all (legitimate when packaging with no requirements), the build falls back to `abis.first()` and logs `sitepackages.zip will be empty` instead of staying silent.
+
 ## 4.3.0
 
 * `PYTHONINSPECT=1` is no longer set by any platform implementation. It had no effect on the embedded interpreter, but it leaked into the process environment where any *real* interpreter child (e.g. a serviced multiprocessing worker) would inherit it and hang in interactive mode after its command completed. No functional change on Android, which doesn't support process spawning.

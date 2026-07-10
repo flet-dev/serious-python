@@ -612,7 +612,7 @@ jobs:
     needs:
       - publish
     runs-on: ubuntu-latest
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    if: ${{ !cancelled() && needs.publish.result == 'success' && startsWith(github.ref, 'refs/tags/v') }}
     permissions:
       contents: write
     steps:

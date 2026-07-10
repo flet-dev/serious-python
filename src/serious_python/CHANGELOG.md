@@ -1,3 +1,7 @@
+## 4.3.1
+
+* **Android:** fix `flet build apk --arch x86_64` (or any `--arch` subset not including `arm64-v8a`) producing an APK with an **empty `sitepackages.zip`** — the app shipped without its Python dependencies and the first import failed at startup. See `serious_python_android` 4.3.1.
+
 ## 4.3.0
 
 * **Desktop multiprocessing support** ([flet-dev/flet#4283](https://github.com/flet-dev/flet/issues/4283)). `dart_bridge` **1.5.0** adds `serious_python_is_mp_invocation` / `serious_python_main` (+ `_w` wide-char variants on Windows): host apps call them first thing in `main` to detect CPython child command lines (`--multiprocessing-fork`, `-c "from multiprocessing..."` — spawn workers, the resource tracker, and the forkserver) and service them as a plain headless interpreter (`Py_Main`/`Py_BytesMain`, stable ABI) instead of re-launching the GUI. The exports rely on the `PYTHONHOME`/`PYTHONPATH` the parent already stamped process-wide.
