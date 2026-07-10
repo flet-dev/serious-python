@@ -1,3 +1,7 @@
+## 4.3.1
+
+* Version bump aligning with the `serious_python_*` 4.3.1 release.
+
 ## 4.3.0
 
 * Bump `dart_bridge` to **1.5.0** (python-build snapshot `20260708`): multiprocessing child-interception exports, including the Windows wide-char variants `serious_python_is_mp_invocation_w` / `serious_python_main_w` (→ `Py_Main`) consumed by the flet build template's `wWinMain`. See the `serious_python` 4.3.0 notes.

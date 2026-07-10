@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.flet.serious_python_android"
-version = "4.3.0"
+version = "4.3.1"
 
 rootProject.allprojects {
     repositories {
@@ -136,7 +136,18 @@ val extractGlobs: List<Regex> =
     extractPackages.filter { '*' in it || '?' in it }.map(::globToRegex)
 val extractPlain: List<String> =
     extractPackages.filter { '*' !in it && '?' !in it }
-val primaryAbi = abis.first()                       // pure zips are ABI-common: build once
+// Pure zips are ABI-common: build once, from the first ABI whose site-packages
+// tree was actually staged — `flet build --arch` may stage a subset of the ABIs
+// (e.g. only x86_64), and a hardcoded abis.first() would then walk a missing
+// dir and silently ship an EMPTY sitepackages.zip. No staged dir at all is
+// legitimate (packaged with no requirements): fall back to abis.first(), whose
+// empty walk correctly yields empty zips.
+val primaryAbi = abis.firstOrNull { siteSrcDir != null && File(siteSrcDir, it).isDirectory }
+    ?: abis.first().also {
+        logger.lifecycle(
+            "serious_python: no staged site-packages under $siteSrcDir; " +
+            "sitepackages.zip will be empty")
+    }
 val assetsDir = file("src/main/assets")
 val bootstrapPy = file("../python/_sp_bootstrap.py")
 

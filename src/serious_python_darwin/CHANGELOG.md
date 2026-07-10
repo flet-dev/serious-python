@@ -1,3 +1,7 @@
+## 4.3.1
+
+* Version bump aligning with the `serious_python_*` 4.3.1 release.
+
 ## 4.3.0
 
 * Bump `dart_bridge` to **1.5.0** (python-build snapshot `20260708`): multiprocessing child-interception exports (`serious_python_is_mp_invocation` / `serious_python_main`), kept alive against the host link's `-dead_strip` both by `__attribute__((used))` in the archive and by keep-alive references in `SeriousPythonPlugin.swift`. See the `serious_python` 4.3.0 notes.
