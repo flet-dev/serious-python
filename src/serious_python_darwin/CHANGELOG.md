@@ -1,3 +1,7 @@
+## 4.3.2
+
+* Bump the bundled python-build snapshot to `20260712`: `_pyrepl` is no longer pruned from the bundled stdlib. Python **3.14**'s `pdb` imports `_pyrepl` at module load, so anything importing `pdb` (e.g. pytest's debugging plugin) died with `ModuleNotFoundError: No module named '_pyrepl'` on iOS (3.13's `pdb` doesn't import it). Python/`dart_bridge` versions are unchanged.
+
 ## 4.3.1
 
 * Version bump aligning with the `serious_python_*` 4.3.1 release.

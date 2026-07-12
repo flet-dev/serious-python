@@ -1,3 +1,9 @@
+## 4.3.2
+
+* Bump the bundled python-build snapshot to `20260712`, fixing two on-device startup crashes affecting Python **3.13/3.14** apps (3.12 is unaffected). Bundled Python versions (**3.12.13 / 3.13.14 / 3.14.6**) and `dart_bridge` (**1.5.0**) are unchanged from 4.3.1.
+* **Android:** fix 3.13/3.14 apps crashing with `SIGSYS` before any app code runs on x86_64 (and other ABIs with a 32-bit-style `SYS_open`) — mimalloc's raw `open(2)` syscall is forbidden by Android's seccomp policy. See `serious_python_android` 4.3.2.
+* **iOS/Android:** `_pyrepl` is no longer pruned from the mobile stdlib — Python 3.14's `pdb` imports it at module load, so anything importing `pdb` (e.g. pytest's debugging plugin) failed with `ModuleNotFoundError: No module named '_pyrepl'`. See `serious_python_darwin` / `serious_python_android` 4.3.2.
+
 ## 4.3.1
 
 * **Android:** fix `flet build apk --arch x86_64` (or any `--arch` subset not including `arm64-v8a`) producing an APK with an **empty `sitepackages.zip`** — the app shipped without its Python dependencies and the first import failed at startup. See `serious_python_android` 4.3.1.
