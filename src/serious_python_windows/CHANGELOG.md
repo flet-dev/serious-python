@@ -1,3 +1,7 @@
+## 4.3.2
+
+* Bump the bundled python-build snapshot to `20260712`; aligns with the `serious_python_*` 4.3.2 release. The release contains only Android/iOS runtime fixes — no Windows-affecting changes.
+
 ## 4.3.1
 
 * Version bump aligning with the `serious_python_*` 4.3.1 release.

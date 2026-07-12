@@ -1,3 +1,9 @@
+## 4.3.2
+
+* Bump the bundled python-build snapshot to `20260712`, fixing two on-device crashes on Python **3.13/3.14** (3.12 is unaffected; Python/`dart_bridge` versions are unchanged):
+  * Apps died with `SIGSYS` at `dlopen()` of `libpython` — before the interpreter even started — on **x86_64/x86/armeabi-v7a**: mimalloc (bundled with CPython since 3.13) reads `/proc/sys/vm/overcommit_memory` during allocator init via a bare `open(2)` syscall, which Android's bionic seccomp policy forbids (only `openat(2)` is allowed). python-build now patches the call to `SYS_openat(AT_FDCWD, …)`. `arm64-v8a` was latently unaffected (no `SYS_open` there, so mimalloc already went through libc `open()` → `openat`), but emulators are typically x86_64.
+  * `_pyrepl` is no longer pruned from the bundled stdlib: Python 3.14's `pdb` imports it at module load, so anything importing `pdb` (e.g. pytest's debugging plugin) died with `ModuleNotFoundError: No module named '_pyrepl'`.
+
 ## 4.3.1
 
 * Fix `flet build apk --arch <abi>` shipping an **empty `sitepackages.zip`** whenever the selected ABI subset didn't include `arm64-v8a` (e.g. `--arch x86_64`) — the app bundled no Python site-packages at all and the very first dependency import failed at startup. The ABI-common pure-code zips (`sitepackages.zip` / `extract.zip`) were built from a hardcoded primary ABI (`abis.first()`, i.e. `arm64-v8a`); when only other ABIs were staged under `SERIOUS_PYTHON_SITE_PACKAGES`, the primary split task walked a nonexistent directory and silently produced a valid-but-empty zip. The primary ABI is now the first manifest ABI whose site-packages tree was actually staged. If none is staged at all (legitimate when packaging with no requirements), the build falls back to `abis.first()` and logs `sitepackages.zip will be empty` instead of staying silent.
