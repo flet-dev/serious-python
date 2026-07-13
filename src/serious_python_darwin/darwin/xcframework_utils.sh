@@ -105,3 +105,75 @@ create_xcframework_from_dylibs() {
     popd >/dev/null
     rm -rf "${dylib_tmp_dir}" >/dev/null
 }
+
+# Reconcile install names across the newly-created site-package frameworks.
+#
+# create_xcframework_from_dylibs renames each lib to a framework named by its
+# dotted relative path (opt/lib/libarrow.dylib -> opt.lib.libarrow.framework/
+# opt.lib.libarrow), but leaves the Mach-O install-id and every interdependent
+# @rpath reference at their ORIGINAL bare names (e.g. @rpath/libarrow.dylib):
+# it only rewrites the install-id, and only for ext=so. dyld links every one of
+# these frameworks at app launch (each is a Package.swift binaryTarget the
+# plugin depends on), so a bare @rpath/libarrow.dylib resolves to
+# Frameworks/libarrow.dylib -- which does not exist -- and the app crashes
+# BEFORE Python starts. See serious-python #223.
+#
+# This pass makes the install names match the framework layout:
+#   1. set every framework binary's own install-id to @rpath/<fw>.framework/<fw>
+#   2. rewrite every dep that pointed at a sibling's OLD id to that sibling's
+#      framework path, so interdependent libs (libarrow_python -> libarrow, or a
+#      C-extension -> its bundled .dylib) resolve at launch.
+# Only the frameworks created from site-packages are touched; the Python /
+# stdlib xcframeworks (passed as $2) are already correct and left untouched.
+reconcile_framework_install_names() {
+    local xcframeworks_dir=$1
+    local exclude_dir=$2
+
+    local -a map_old=()
+    local -a map_new=()
+
+    # Pass 1: fix each framework's own install-id; record old->new for deps.
+    local xcf fw newid bin oldid raw
+    for xcf in "$xcframeworks_dir"/*.xcframework; do
+        [ -d "$xcf" ] || continue
+        fw=$(basename "$xcf" .xcframework)
+        [ -n "$exclude_dir" ] && [ -e "$exclude_dir/$fw.xcframework" ] && continue
+        newid="@rpath/$fw.framework/$fw"
+        oldid=""
+        for bin in "$xcf"/*/"$fw.framework/$fw"; do
+            [ -f "$bin" ] || continue
+            if [ -z "$oldid" ]; then
+                # Buffer otool output before filtering: piping otool straight
+                # into `head -1` lets head close the pipe early, and the SIGPIPE
+                # race intermittently drops the first read (empty oldid), which
+                # cascades into a shifted/short map.
+                raw=$(otool -D "$bin" 2>/dev/null)
+                oldid=$(printf '%s\n' "$raw" | grep -v ':$' | grep -vi 'Architectures in' | head -1 | sed 's/^[[:space:]]*//')
+            fi
+            install_name_tool -id "$newid" "$bin" 2>/dev/null || true
+        done
+        if [ -n "$oldid" ] && [ "$oldid" != "$newid" ]; then
+            map_old+=("$oldid")
+            map_new+=("$newid")
+        fi
+    done
+
+    # Pass 2: rewrite interdependent refs to framework paths, then re-sign
+    # (install_name_tool invalidates the ad-hoc signature).
+    local i n=${#map_old[@]}
+    for xcf in "$xcframeworks_dir"/*.xcframework; do
+        [ -d "$xcf" ] || continue
+        fw=$(basename "$xcf" .xcframework)
+        [ -n "$exclude_dir" ] && [ -e "$exclude_dir/$fw.xcframework" ] && continue
+        for bin in "$xcf"/*/"$fw.framework/$fw"; do
+            [ -f "$bin" ] || continue
+            i=0
+            while [ $i -lt $n ]; do
+                # no-op if this binary does not reference map_old[i]
+                install_name_tool -change "${map_old[$i]}" "${map_new[$i]}" "$bin" 2>/dev/null || true
+                i=$((i+1))
+            done
+            codesign --force --sign - "$bin" >/dev/null 2>&1 || true
+        done
+    done
+}

@@ -49,6 +49,14 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         done
         done
 
+        # After every .so/.dylib is framework-ized, reconcile the Mach-O
+        # install names so the interdependent @rpath refs point at the new
+        # framework paths (serious-python #223). Without this, dyld cannot
+        # resolve e.g. @rpath/libarrow.dylib at launch and the app crashes
+        # before Python starts. Exclude the python/stdlib xcframeworks copied
+        # in above -- they are already correct.
+        reconcile_framework_install_names "$dist/site-xcframeworks" "$dist/python-xcframeworks"
+
         rm -rf $dist/site-packages
         mkdir -p $dist/site-packages
         cp -R $tmp_dir/${archs[0]}/* $dist/site-packages
