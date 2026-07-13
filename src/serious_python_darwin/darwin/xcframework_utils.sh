@@ -105,3 +105,97 @@ create_xcframework_from_dylibs() {
     popd >/dev/null
     rm -rf "${dylib_tmp_dir}" >/dev/null
 }
+
+# Reconcile install names across the newly-created site-package frameworks.
+#
+# create_xcframework_from_dylibs renames each lib to a framework named by its
+# dotted relative path (opt/lib/libarrow.dylib -> opt.lib.libarrow.framework/
+# opt.lib.libarrow), but leaves the Mach-O install-id and every interdependent
+# @rpath reference at their ORIGINAL bare names (e.g. @rpath/libarrow.dylib):
+# it only rewrites the install-id, and only for ext=so. dyld links every one of
+# these frameworks at app launch (each is a Package.swift binaryTarget the
+# plugin depends on), so a bare @rpath/libarrow.dylib resolves to
+# Frameworks/libarrow.dylib -- which does not exist -- and the app crashes
+# BEFORE Python starts. See serious-python #223.
+#
+# This pass makes the install names match the framework layout:
+#   1. set every framework binary's own install-id to @rpath/<fw>.framework/<fw>
+#   2. rewrite every dep that pointed at a sibling's OLD id to that sibling's
+#      framework path, so interdependent libs (libarrow_python -> libarrow, or a
+#      C-extension -> its bundled .dylib) resolve at launch.
+# Only the frameworks created from site-packages are touched; the Python /
+# stdlib xcframeworks (passed as $2) are already correct and left untouched.
+reconcile_framework_install_names() {
+    local xcframeworks_dir=$1
+    local exclude_dir=$2
+
+    local -a map_old=()
+    local -a map_new=()
+
+    # Pass 1: set each framework's own install-id to @rpath/<fw>.framework/<fw>,
+    # and record old-id -> new-id for the dep rewrite below. Read the old id from
+    # EVERY slice, not just the first: a lib whose slices carry divergent install
+    # names (e.g. an upstream build that baked an arch-specific absolute path
+    # instead of an @rpath id) would otherwise leave the other slices' deps
+    # unrewritten. Distinct old ids all map to the same new id.
+    local xcf fw newid bin oldid raw err j found
+    for xcf in "$xcframeworks_dir"/*.xcframework; do
+        [ -d "$xcf" ] || continue
+        fw=$(basename "$xcf" .xcframework)
+        [ -n "$exclude_dir" ] && [ -e "$exclude_dir/$fw.xcframework" ] && continue
+        newid="@rpath/$fw.framework/$fw"
+        for bin in "$xcf"/*/"$fw.framework/$fw"; do
+            [ -f "$bin" ] || continue
+            # Buffer otool output before filtering: piping otool straight into
+            # `head -1` lets head close the pipe early, and the SIGPIPE race
+            # intermittently drops the first read (empty oldid).
+            raw=$(otool -D "$bin" 2>/dev/null)
+            oldid=$(printf '%s\n' "$raw" | grep -v ':$' | grep -vi 'Architectures in' | head -1 | sed 's/^[[:space:]]*//')
+            # -id must succeed; a failure means the binary is unwritable/corrupt
+            # and the app would crash at launch, so surface it instead of hiding
+            # it behind `|| true` (stderr is captured and only printed on error,
+            # to keep the expected "will invalidate the code signature" warning
+            # off the build log).
+            if ! err=$(install_name_tool -id "$newid" "$bin" 2>&1); then
+                echo "reconcile_framework_install_names: install_name_tool -id failed for $bin: $err" >&2
+                return 1
+            fi
+            if [ -n "$oldid" ] && [ "$oldid" != "$newid" ]; then
+                found=0
+                for j in ${map_old[@]+"${map_old[@]}"}; do
+                    [ "$j" = "$oldid" ] && { found=1; break; }
+                done
+                [ "$found" -eq 0 ] && { map_old+=("$oldid"); map_new+=("$newid"); }
+            fi
+        done
+    done
+
+    # Pass 2: rewrite each binary's deps that point at a sibling's old id to that
+    # sibling's framework path, then re-sign (install_name_tool invalidates the
+    # ad-hoc signature). `install_name_tool -change` is a no-op returning 0 when
+    # the dep is absent, so a NON-zero rc means a dep that IS present could not be
+    # rewritten -- usually no Mach-O header space to grow the load command. That
+    # is fatal: it would leave a bare @rpath ref and reproduce the exact launch
+    # crash this pass exists to prevent, so fail the build rather than ship it.
+    local i n=${#map_old[@]}
+    for xcf in "$xcframeworks_dir"/*.xcframework; do
+        [ -d "$xcf" ] || continue
+        fw=$(basename "$xcf" .xcframework)
+        [ -n "$exclude_dir" ] && [ -e "$exclude_dir/$fw.xcframework" ] && continue
+        for bin in "$xcf"/*/"$fw.framework/$fw"; do
+            [ -f "$bin" ] || continue
+            i=0
+            while [ $i -lt $n ]; do
+                if ! err=$(install_name_tool -change "${map_old[$i]}" "${map_new[$i]}" "$bin" 2>&1); then
+                    echo "reconcile_framework_install_names: install_name_tool -change '${map_old[$i]}' -> '${map_new[$i]}' failed for $bin (no Mach-O header space?): $err" >&2
+                    return 1
+                fi
+                i=$((i+1))
+            done
+            if ! err=$(codesign --force --sign - "$bin" 2>&1); then
+                echo "reconcile_framework_install_names: codesign failed for $bin: $err" >&2
+                return 1
+            fi
+        done
+    done
+}
