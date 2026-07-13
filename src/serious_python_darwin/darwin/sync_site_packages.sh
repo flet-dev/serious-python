@@ -55,7 +55,12 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         # resolve e.g. @rpath/libarrow.dylib at launch and the app crashes
         # before Python starts. Exclude the python/stdlib xcframeworks copied
         # in above -- they are already correct.
-        reconcile_framework_install_names "$dist/site-xcframeworks" "$dist/python-xcframeworks"
+        # A reconcile failure (e.g. a Mach-O with no header space to grow a load
+        # command, or a signing error) would otherwise ship an app that crashes
+        # at launch -- abort the build instead. sync_site_packages.sh has no
+        # set -e; prepare_spm.sh runs it under set -euo pipefail, so a non-zero
+        # exit here fails `flet build` loudly.
+        reconcile_framework_install_names "$dist/site-xcframeworks" "$dist/python-xcframeworks" || exit 1
 
         rm -rf $dist/site-packages
         mkdir -p $dist/site-packages

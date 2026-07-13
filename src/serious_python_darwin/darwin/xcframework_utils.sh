@@ -132,34 +132,51 @@ reconcile_framework_install_names() {
     local -a map_old=()
     local -a map_new=()
 
-    # Pass 1: fix each framework's own install-id; record old->new for deps.
-    local xcf fw newid bin oldid raw
+    # Pass 1: set each framework's own install-id to @rpath/<fw>.framework/<fw>,
+    # and record old-id -> new-id for the dep rewrite below. Read the old id from
+    # EVERY slice, not just the first: a lib whose slices carry divergent install
+    # names (e.g. an upstream build that baked an arch-specific absolute path
+    # instead of an @rpath id) would otherwise leave the other slices' deps
+    # unrewritten. Distinct old ids all map to the same new id.
+    local xcf fw newid bin oldid raw err j found
     for xcf in "$xcframeworks_dir"/*.xcframework; do
         [ -d "$xcf" ] || continue
         fw=$(basename "$xcf" .xcframework)
         [ -n "$exclude_dir" ] && [ -e "$exclude_dir/$fw.xcframework" ] && continue
         newid="@rpath/$fw.framework/$fw"
-        oldid=""
         for bin in "$xcf"/*/"$fw.framework/$fw"; do
             [ -f "$bin" ] || continue
-            if [ -z "$oldid" ]; then
-                # Buffer otool output before filtering: piping otool straight
-                # into `head -1` lets head close the pipe early, and the SIGPIPE
-                # race intermittently drops the first read (empty oldid), which
-                # cascades into a shifted/short map.
-                raw=$(otool -D "$bin" 2>/dev/null)
-                oldid=$(printf '%s\n' "$raw" | grep -v ':$' | grep -vi 'Architectures in' | head -1 | sed 's/^[[:space:]]*//')
+            # Buffer otool output before filtering: piping otool straight into
+            # `head -1` lets head close the pipe early, and the SIGPIPE race
+            # intermittently drops the first read (empty oldid).
+            raw=$(otool -D "$bin" 2>/dev/null)
+            oldid=$(printf '%s\n' "$raw" | grep -v ':$' | grep -vi 'Architectures in' | head -1 | sed 's/^[[:space:]]*//')
+            # -id must succeed; a failure means the binary is unwritable/corrupt
+            # and the app would crash at launch, so surface it instead of hiding
+            # it behind `|| true` (stderr is captured and only printed on error,
+            # to keep the expected "will invalidate the code signature" warning
+            # off the build log).
+            if ! err=$(install_name_tool -id "$newid" "$bin" 2>&1); then
+                echo "reconcile_framework_install_names: install_name_tool -id failed for $bin: $err" >&2
+                return 1
             fi
-            install_name_tool -id "$newid" "$bin" 2>/dev/null || true
+            if [ -n "$oldid" ] && [ "$oldid" != "$newid" ]; then
+                found=0
+                for j in ${map_old[@]+"${map_old[@]}"}; do
+                    [ "$j" = "$oldid" ] && { found=1; break; }
+                done
+                [ "$found" -eq 0 ] && { map_old+=("$oldid"); map_new+=("$newid"); }
+            fi
         done
-        if [ -n "$oldid" ] && [ "$oldid" != "$newid" ]; then
-            map_old+=("$oldid")
-            map_new+=("$newid")
-        fi
     done
 
-    # Pass 2: rewrite interdependent refs to framework paths, then re-sign
-    # (install_name_tool invalidates the ad-hoc signature).
+    # Pass 2: rewrite each binary's deps that point at a sibling's old id to that
+    # sibling's framework path, then re-sign (install_name_tool invalidates the
+    # ad-hoc signature). `install_name_tool -change` is a no-op returning 0 when
+    # the dep is absent, so a NON-zero rc means a dep that IS present could not be
+    # rewritten -- usually no Mach-O header space to grow the load command. That
+    # is fatal: it would leave a bare @rpath ref and reproduce the exact launch
+    # crash this pass exists to prevent, so fail the build rather than ship it.
     local i n=${#map_old[@]}
     for xcf in "$xcframeworks_dir"/*.xcframework; do
         [ -d "$xcf" ] || continue
@@ -169,11 +186,16 @@ reconcile_framework_install_names() {
             [ -f "$bin" ] || continue
             i=0
             while [ $i -lt $n ]; do
-                # no-op if this binary does not reference map_old[i]
-                install_name_tool -change "${map_old[$i]}" "${map_new[$i]}" "$bin" 2>/dev/null || true
+                if ! err=$(install_name_tool -change "${map_old[$i]}" "${map_new[$i]}" "$bin" 2>&1); then
+                    echo "reconcile_framework_install_names: install_name_tool -change '${map_old[$i]}' -> '${map_new[$i]}' failed for $bin (no Mach-O header space?): $err" >&2
+                    return 1
+                fi
                 i=$((i+1))
             done
-            codesign --force --sign - "$bin" >/dev/null 2>&1 || true
+            if ! err=$(codesign --force --sign - "$bin" 2>&1); then
+                echo "reconcile_framework_install_names: codesign failed for $bin: $err" >&2
+                return 1
+            fi
         done
     done
 }
