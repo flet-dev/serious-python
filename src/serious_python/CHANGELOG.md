@@ -2,9 +2,10 @@
 
 * **iOS:** interdependent bundled dylibs (e.g. pyarrow, llama-cpp-python) no longer crash the app at launch with `dyld: Library not loaded: @rpath/lib<X>.dylib` — the framework install-ids and sibling `@rpath` references are reconciled to the relocated framework paths ([#223](https://github.com/flet-dev/serious-python/issues/223)). See `serious_python_darwin` 4.3.2.
 * **Android:** fix `import <pkg>` yielding an empty module for a package whose `__init__` is itself the native extension (e.g. apsw) — the extension is now resolved from its `<pkg>/__init__.soref` marker. See `serious_python_android` 4.3.2.
-* Bump the bundled python-build snapshot to `20260712`, fixing two on-device startup crashes affecting Python **3.13/3.14** apps (3.12 is unaffected). Bundled Python versions (**3.12.13 / 3.13.14 / 3.14.6**) and `dart_bridge` (**1.5.0**) are unchanged from 4.3.1.
+* Bump the bundled python-build snapshot to `20260714`, fixing three on-device crashes. Bundled Python versions (**3.12.13 / 3.13.14 / 3.14.6**) and `dart_bridge` (**1.5.0**) are unchanged from 4.3.1.
 * **Android:** fix 3.13/3.14 apps crashing with `SIGSYS` before any app code runs on x86_64 (and other ABIs with a 32-bit-style `SYS_open`) — mimalloc's raw `open(2)` syscall is forbidden by Android's seccomp policy. See `serious_python_android` 4.3.2.
 * **iOS/Android:** `_pyrepl` is no longer pruned from the mobile stdlib — Python 3.14's `pdb` imports it at module load, so anything importing `pdb` (e.g. pytest's debugging plugin) failed with `ModuleNotFoundError: No module named '_pyrepl'`. See `serious_python_darwin` / `serious_python_android` 4.3.2.
+* **iOS:** `import multiprocessing` (e.g. via scikit-learn/joblib) no longer fails with `ModuleNotFoundError: No module named '_posixshmem'` — the `_posixshmem` extension is now built into the iOS runtimes alongside `_multiprocessing`. See `serious_python_darwin` 4.3.2.
 
 ## 4.3.1
 
