@@ -3,7 +3,7 @@
 #include <flutter_linux/flutter_linux.h>
 #include <gtk/gtk.h>
 
-// Plugin-registration shell only — all method calls return NotImplemented.
+// Plugin-registration shell only - all method calls return NotImplemented.
 // Python lifecycle lives in libdart_bridge.so, invoked from Dart via FFI.
 
 #define SERIOUS_PYTHON_LINUX_PLUGIN(obj)                                     \

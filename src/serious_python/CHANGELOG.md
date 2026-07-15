@@ -1,3 +1,8 @@
+## 4.3.3
+
+* **Windows:** fix `flet build windows` failing on non-UTF-8 system locales (e.g. Simplified-Chinese Windows, code page **936/GBK**) with `error C2220` (escalated from `warning C4819`) while compiling the Windows plugin — a non-ASCII character in a source comment couldn't be decoded under GBK and the Flutter template's `/WX` made it fatal. The character is removed and the plugin now builds with `/utf-8`. See `serious_python_windows` 4.3.3 and flet-dev/flet#6686.
+* No runtime changes: bundled Python versions (**3.12.13 / 3.13.14 / 3.14.6**) and `dart_bridge` (**1.5.0**) are unchanged from 4.3.2.
+
 ## 4.3.2
 
 * **iOS:** interdependent bundled dylibs (e.g. pyarrow, llama-cpp-python) no longer crash the app at launch with `dyld: Library not loaded: @rpath/lib<X>.dylib` — the framework install-ids and sibling `@rpath` references are reconciled to the relocated framework paths ([#223](https://github.com/flet-dev/serious-python/issues/223)). See `serious_python_darwin` 4.3.2.

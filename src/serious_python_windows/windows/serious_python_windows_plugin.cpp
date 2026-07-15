@@ -36,7 +36,7 @@ namespace serious_python_windows
 
   SeriousPythonWindowsPlugin::~SeriousPythonWindowsPlugin() {}
 
-  // Plugin-registration shell only — all method calls return NotImplemented.
+  // Plugin-registration shell only - all method calls return NotImplemented.
   // Python lifecycle lives in dart_bridge[_d].dll, invoked from Dart via FFI.
   void SeriousPythonWindowsPlugin::HandleMethodCall(
       const flutter::MethodCall<flutter::EncodableValue> &method_call,
