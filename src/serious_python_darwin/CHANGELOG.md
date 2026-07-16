@@ -1,3 +1,7 @@
+## 4.3.3
+
+* Version bump aligning with the `serious_python_*` 4.3.3 release (a Windows build fix). No iOS/macOS-affecting changes.
+
 ## 4.3.2
 
 * **iOS: reconcile framework install-names for interdependent bundled dylibs** ([#223](https://github.com/flet-dev/serious-python/issues/223)). Site-package `.so`/`.dylib`s are wrapped into frameworks named by their dotted relative path (`opt/lib/libarrow.dylib` → `opt.lib.libarrow.framework/opt.lib.libarrow`), but the Mach-O install-id and every interdependent `@rpath` reference were left at their original bare name (`@rpath/libarrow.dylib`). Because each framework is a `Package.swift` binaryTarget linked at launch, dyld could not resolve `@rpath/libarrow.dylib` (it looks for `Frameworks/libarrow.dylib`, which does not exist) and the app crashed **before Python started** — hitting any package that bundles a chain of interdependent libs (pyarrow's `libarrow`/`libarrow_compute`/`libarrow_python`, llama-cpp-python's `libggml*`/`libllama`). A new reconcile pass, run after `sync_site_packages` frameworks the libs, sets each framework's own install-id to `@rpath/<fw>.framework/<fw>` and rewrites every dependency pointing at a sibling's old id to that framework path, then re-signs. The Python/stdlib xcframeworks are left untouched. (This supersedes the 4.2.1 approach of preserving `.dylib` install-names, which only worked when every sibling happened to be loaded first.)

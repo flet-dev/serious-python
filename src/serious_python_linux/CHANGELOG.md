@@ -1,3 +1,7 @@
+## 4.3.3
+
+* Remove a stray non-ASCII character (an em dash) from a source comment in `serious_python_linux_plugin.cc` — GCC reads UTF-8 sources by default so there was no build impact, but it mirrors the Windows fix (flet-dev/flet#6686). Version bump aligning with the `serious_python_*` 4.3.3 release; no Linux-affecting runtime changes.
+
 ## 4.3.2
 
 * Bump the bundled python-build snapshot to `20260714`; aligns with the `serious_python_*` 4.3.2 release. The release contains only Android/iOS runtime fixes — no Linux-affecting changes.

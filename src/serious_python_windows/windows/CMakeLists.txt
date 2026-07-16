@@ -172,6 +172,14 @@ add_library(${PLUGIN_NAME} SHARED
 apply_standard_settings(${PLUGIN_NAME})
 target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_20)
 
+# Force MSVC to read source files as UTF-8 regardless of the build machine's
+# system code page. Without this, a non-ASCII byte anywhere in a source file
+# triggers warning C4819 on non-UTF-8 locales (e.g. code page 936/GBK on
+# Simplified-Chinese Windows), which the Flutter template's /WX
+# (warnings-as-errors) escalates to a fatal C2220 build error
+# (flet-dev/flet#6686).
+target_compile_options(${PLUGIN_NAME} PRIVATE "/utf-8")
+
 # Symbols are hidden by default to reduce the chance of accidental conflicts
 # between plugins. This should not be removed; any symbols that should be
 # exported should be explicitly exported with the FLUTTER_PLUGIN_EXPORT macro.

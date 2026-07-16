@@ -1,3 +1,7 @@
+## 4.3.3
+
+* Version bump aligning with the `serious_python_*` 4.3.3 release (a Windows build fix). No Android-affecting changes.
+
 ## 4.3.2
 
 * **Resolve a package whose `__init__` is itself the native extension.** `_SorefFinder` only probed `<dotted>.soref`, so a package that ships its extension as `<pkg>/__init__.<abi>.so` — e.g. apsw (import name `apsw`), whose relocation marker lands at `apsw/__init__.soref` — was never resolved: `find_spec` returned `None`, the synthesized empty `apsw/__init__.py` won, and `import apsw` yielded an empty module (`AttributeError: module 'apsw' has no attribute 'Connection'`). `find_spec` now falls back to `<dotted>/__init__.soref`, loads the extension under the correct top-level name via `ExtensionFileLoader`, and marks the result a package (with `submodule_search_locations`) so pure-Python submodules (`apsw.ext`, …) still resolve.

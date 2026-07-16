@@ -1,3 +1,7 @@
+## 4.3.3
+
+* **Fix `flet build windows` failing on non-UTF-8 system locales** with `warning C4819` escalated to `error C2220` while compiling `serious_python_windows_plugin.cpp` (flet-dev/flet#6686). A source comment contained a non-ASCII character (an em dash); on a system whose code page isn't UTF-8 — e.g. code page **936/GBK** on Simplified-Chinese Windows — MSVC decodes the UTF-8 source as GBK, can't represent the byte sequence (C4819), and the Flutter template's `/WX` (warnings-as-errors) turns it into a fatal C2220. The character is removed, and the plugin now compiles with `/utf-8` so any future non-ASCII source byte is read correctly regardless of the build machine's code page. Bundled Python and `dart_bridge` versions are unchanged from 4.3.2.
+
 ## 4.3.2
 
 * Bump the bundled python-build snapshot to `20260714`; aligns with the `serious_python_*` 4.3.2 release. The release contains only Android/iOS runtime fixes — no Windows-affecting changes.

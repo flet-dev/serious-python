@@ -1,3 +1,7 @@
+## 4.3.3
+
+* Version bump aligning with the `serious_python_*` 4.3.3 release.
+
 ## 4.3.2
 
 * Version bump aligning with the `serious_python_*` 4.3.2 release.
