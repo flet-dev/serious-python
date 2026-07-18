@@ -1,3 +1,7 @@
+## 4.3.4
+
+* Version bump aligning with the `serious_python_*` 4.3.4 release (an Android `flet debug` cache fix). No iOS/macOS-affecting changes.
+
 ## 4.3.3
 
 * Version bump aligning with the `serious_python_*` 4.3.3 release (a Windows build fix). No iOS/macOS-affecting changes.

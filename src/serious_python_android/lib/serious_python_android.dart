@@ -45,6 +45,11 @@ class SeriousPythonAndroid extends SeriousPythonPlatform {
     final siteZip = p.join(base, 'sitepackages.zip');
     final extractDir = p.join(base, 'extract');
 
+    // `getAppVersion` returns `versionName+versionCode+lastUpdateTime`, so the
+    // key changes on every (re)install — including `flet debug`'s repeated
+    // same-version `flutter run` reinstalls — while staying stable across plain
+    // relaunches. Keeping only versionName+versionCode here would make the
+    // debug workflow keep running previously-unpacked, stale app code.
     final appVersion = await _appVersion();
     final key = appVersion != null ? 'app:$appVersion' : 'app:dev';
     final marker = File(p.join(base, '.key'));

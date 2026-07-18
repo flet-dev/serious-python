@@ -1,3 +1,7 @@
+## 4.3.4
+
+* **Android:** fix code edits not taking effect under `flet debug android` — the app kept running the previously-unpacked, stale code after a re-run ([flet-dev/flet#6682](https://github.com/flet-dev/flet/issues/6682)). `prepareApp` copies the app payload out of the APK only when its cache key changes, and the key was `versionName+versionCode`. Since `flet debug` reinstalls the same-version APK on each iteration (`flutter run` does an update install that preserves app data, including the cache marker), the key never changed and re-extraction was skipped. The key now also includes `PackageManager.lastUpdateTime`, which is bumped on every (re)install but stays stable across plain relaunches — so a debug reinstall re-extracts the new code while ordinary relaunches still hit the cache. `flet build apk` was unaffected (fresh/version-bumped install).
+
 ## 4.3.3
 
 * Version bump aligning with the `serious_python_*` 4.3.3 release (a Windows build fix). No Android-affecting changes.

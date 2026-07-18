@@ -132,7 +132,16 @@ public class AndroidPlugin implements FlutterPlugin, MethodCallHandler, Activity
         long versionCode = (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P)
             ? info.getLongVersionCode()
             : (long) info.versionCode;
-        result.success(versionName + "+" + versionCode);
+        // Append lastUpdateTime so the value changes on every (re)install, not
+        // just on a version bump. `flet debug android` reinstalls the same
+        // versionName+versionCode APK on each iteration (`flutter run` does an
+        // update install that preserves app data), so without this the
+        // extraction cache key in prepareApp never changes and the app keeps
+        // running the previously-unpacked, stale code. PackageManager bumps
+        // lastUpdateTime on each install while leaving it stable across plain
+        // relaunches, so the cache is still hit when nothing was reinstalled.
+        long lastUpdateTime = info.lastUpdateTime;
+        result.success(versionName + "+" + versionCode + "+" + lastUpdateTime);
       } catch (Exception e) {
         result.error("Error", e.getMessage(), null);
       }
