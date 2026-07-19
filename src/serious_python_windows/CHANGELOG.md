@@ -1,6 +1,6 @@
 ## 4.3.4
 
-* Version bump aligning with the `serious_python_*` 4.3.4 release (an Android `flet debug` cache fix). No Windows-affecting changes.
+* **Fix `ModuleNotFoundError: No module named '_pyrepl'` on Python 3.14.** `_pyrepl` was pruned from the bundled Windows stdlib as a dev-only / interactive-REPL module, but CPython 3.14's `pydoc` (and `pdb`) import it at module load — so any app importing `pydoc`/`pdb`/`pytest`, or a dependency that does (e.g. NLTK → `pydoc`), crashed at startup. `_pyrepl` is no longer pruned. Re-pins the bundled python-build snapshot to **20260719** (previously 20260714). ([flet-dev/serious-python#236](https://github.com/flet-dev/serious-python/issues/236))
 
 ## 4.3.3
 

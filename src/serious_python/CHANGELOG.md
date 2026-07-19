@@ -1,7 +1,8 @@
 ## 4.3.4
 
+* **Windows/Linux:** desktop apps on Python **3.14** no longer crash at startup with `ModuleNotFoundError: No module named '_pyrepl'` when the app (or a dependency, e.g. NLTK) imports `pydoc` or `pdb`. `_pyrepl` was pruned from the desktop stdlib as a dev-only module, but 3.14's `pydoc`/`pdb` import it at module load. See `serious_python_windows` / `serious_python_linux` 4.3.4 and flet-dev/serious-python#236.
+* Bundled python-build snapshot re-pinned to **20260719**; the only change vs 20260714 is the desktop `_pyrepl` un-prune above. All runtime versions (Python **3.12.13 / 3.13.14 / 3.14.6**, `dart_bridge` **1.5.0**) are unchanged from 4.3.3.
 * **Android:** fix code edits not taking effect under `flet debug android` — the app kept running stale code after a re-run because the on-device extraction cache wasn't invalidated by a same-version reinstall. See `serious_python_android` 4.3.4 and flet-dev/flet#6682.
-* No runtime changes: bundled Python versions (**3.12.13 / 3.13.14 / 3.14.6**) and `dart_bridge` (**1.5.0**) are unchanged from 4.3.3.
 
 ## 4.3.3
 
