@@ -179,6 +179,12 @@ def _patch_subinterpreters():
     `InterpreterPoolExecutor(initializer=...)` because the initializer is
     delivered over the same broken pickle path — so it must run here, at
     creation time.
+
+    NOTE: this relies on callers resolving `interpreters.create` as a module
+    attribute at call time (as `InterpreterPoolExecutor` does on 3.14) rather
+    than binding it via `from concurrent.interpreters import create`. If a
+    future CPython changes that, the patch silently stops applying to the pool
+    and subinterpreter imports regress — verified working on 3.14.6.
     """
     try:
         from concurrent import interpreters
@@ -192,8 +198,12 @@ def _patch_subinterpreters():
         interp = _orig_create(*args, **kwargs)
         try:
             interp.exec("import _sp_bootstrap\n_sp_bootstrap.install()\n")
-        except Exception:
-            pass
+        except Exception as e:
+            # Finder not installed in the child: it will hit the original
+            # ModuleNotFoundError on its first relocated import. Leave a
+            # breadcrumb (cf. the SP_BOOTSTRAP audit in `install`) instead of
+            # failing `create` outright.
+            sys.stderr.write("SP_BOOTSTRAP subinterpreter finder install failed: %r\n" % (e,))
         return interp
 
     create._sp_patched = True
