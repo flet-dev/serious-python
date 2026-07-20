@@ -1,6 +1,6 @@
-## 4.3.5
+## 4.3.6
 
-* Re-pins the bundled python-build snapshot to **20260720** (`dart_bridge` **1.5.0 → 1.5.1**). 1.5.1 is a Windows-only UTF-8 startup fix (see `serious_python_windows` 4.3.5); the Linux runtime is functionally unchanged from 20260719.
+* Re-pins the bundled python-build snapshot to **20260720** (`dart_bridge` **1.5.0 → 1.5.1**). 1.5.1 is a Windows-only UTF-8 startup fix (see `serious_python_windows` 4.3.6); the Linux runtime is functionally unchanged from 20260719.
 
 ## 4.3.4
 
