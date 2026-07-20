@@ -1,5 +1,6 @@
 ## 4.3.6
 
+* **Android:** PEP 734 subinterpreters (Python 3.14's `concurrent.interpreters` / `InterpreterPoolExecutor`) now work in built apps. Previously the main interpreter could import them, but every *subinterpreter* failed to import any relocated C extension (`ModuleNotFoundError: _struct` / `_interpqueues` / ...) — which broke the whole feature (its cross-interpreter transport pickles → `_struct`, and its queues need `_interpqueues`). The native-module finder lives on `sys.meta_path`, which is per-interpreter, and was installed only in the main interpreter. See `serious_python_android` 4.3.6.
 * **Windows:** fix startup with non-ASCII app paths or environment values — Dart FFI strings (UTF-8) are now converted to UTF-16 before being passed to the Windows CRT, so paths/env values are no longer corrupted through the process ANSI code page, and Python UTF-8 mode is enabled before `Py_Initialize()`. See `serious_python_windows` 4.3.6 and flet-dev/flet#6641.
 * Bundled python-build snapshot re-pinned to **20260720** (`dart_bridge` **1.5.0 → 1.5.1**, which carries the Windows fix above). Python versions (**3.12.13 / 3.13.14 / 3.14.6**) are unchanged.
 
