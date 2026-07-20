@@ -1,3 +1,7 @@
+## 4.3.5
+
+* Re-pins the bundled python-build snapshot to **20260720** (`dart_bridge` **1.5.0 → 1.5.1**). 1.5.1 is a Windows-only UTF-8 startup fix (see `serious_python_windows` 4.3.5); the iOS/macOS runtimes are functionally unchanged from 20260719.
+
 ## 4.3.4
 
 * Re-pins the bundled python-build snapshot to **20260719** (previously 20260714). The snapshot un-prunes `_pyrepl` on Windows/Linux desktop (fixing a 3.14 `pydoc`/`pdb` crash — see `serious_python_windows` / `serious_python_linux` 4.3.4); iOS/macOS already shipped `_pyrepl` (un-pruned in 4.3.2), so these runtimes are byte-identical to 20260714. No iOS/macOS-affecting changes.

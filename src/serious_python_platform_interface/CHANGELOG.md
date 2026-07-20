@@ -1,3 +1,7 @@
+## 4.3.5
+
+* Version bump aligning with the `serious_python_*` 4.3.5 release (Windows UTF-8 startup fix via `dart_bridge` 1.5.1). No interface changes.
+
 ## 4.3.4
 
 * Version bump aligning with the `serious_python_*` 4.3.4 release (desktop `_pyrepl` fix + Android `flet debug` cache fix). No interface changes.
