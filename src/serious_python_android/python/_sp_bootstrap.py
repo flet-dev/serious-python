@@ -136,7 +136,7 @@ class _SorefFinder:
         return spec
 
 
-def install():
+def _install_finder():
     """Insert the finder at the front of `sys.meta_path` (idempotent)."""
     global _installed
     if _installed:
@@ -158,3 +158,54 @@ def install():
             return
     sys.meta_path.insert(0, _SorefFinder())
     _installed = True
+
+
+def _patch_subinterpreters():
+    """Make PEP 734 subinterpreters (Python 3.14+) able to import relocated
+    native modules.
+
+    `sys.meta_path` is *per-interpreter*: a subinterpreter created by
+    `concurrent.interpreters` / `InterpreterPoolExecutor` starts with a fresh
+    meta_path that does NOT contain the `_SorefFinder` installed by `_install_finder`,
+    so it can import no relocated C extension (`_struct`, `_interpqueues`, ...). Since
+    that machinery ships work between interpreters via pickle (`_struct`) and
+    cross-interpreter queues (`_interpqueues`), the whole feature is unusable.
+
+    Wrap `concurrent.interpreters.create()` so every new interpreter installs
+    the finder before it is used. The install runs via `Interpreter.exec()` — a
+    source string, which is pickle-free (unlike `Interpreter.call()`), so it
+    works *before* `_struct` is importable in the child. Idempotent; a no-op
+    before 3.14 (module absent) and cannot fix
+    `InterpreterPoolExecutor(initializer=...)` because the initializer is
+    delivered over the same broken pickle path — so it must run here, at
+    creation time.
+    """
+    try:
+        from concurrent import interpreters
+    except Exception:
+        return  # < 3.14, or subinterpreters unavailable
+    if getattr(interpreters.create, "_sp_patched", False):
+        return
+    _orig_create = interpreters.create
+
+    def create(*args, **kwargs):
+        interp = _orig_create(*args, **kwargs)
+        try:
+            interp.exec("import _sp_bootstrap\n_sp_bootstrap.install()\n")
+        except Exception:
+            pass
+        return interp
+
+    create._sp_patched = True
+    interpreters.create = create
+
+
+def install():
+    """Entry point called from the dart-bridge Android bootstrap.
+
+    Installs the native-module finder in the current interpreter and — on
+    3.14+ — teaches every future subinterpreter to install it too.
+    Safe to call in any interpreter; idempotent.
+    """
+    _install_finder()
+    _patch_subinterpreters()
