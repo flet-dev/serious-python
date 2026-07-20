@@ -1,3 +1,8 @@
+## 4.3.6
+
+* **Windows:** fix startup with non-ASCII app paths or environment values — Dart FFI strings (UTF-8) are now converted to UTF-16 before being passed to the Windows CRT, so paths/env values are no longer corrupted through the process ANSI code page, and Python UTF-8 mode is enabled before `Py_Initialize()`. See `serious_python_windows` 4.3.6 and flet-dev/flet#6641.
+* Bundled python-build snapshot re-pinned to **20260720** (`dart_bridge` **1.5.0 → 1.5.1**, which carries the Windows fix above). Python versions (**3.12.13 / 3.13.14 / 3.14.6**) are unchanged.
+
 ## 4.3.4
 
 * **Windows/Linux:** desktop apps on Python **3.14** no longer crash at startup with `ModuleNotFoundError: No module named '_pyrepl'` when the app (or a dependency, e.g. NLTK) imports `pydoc` or `pdb`. `_pyrepl` was pruned from the desktop stdlib as a dev-only module, but 3.14's `pydoc`/`pdb` import it at module load. See `serious_python_windows` / `serious_python_linux` 4.3.4 and flet-dev/serious-python#236.
