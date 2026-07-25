@@ -44,36 +44,20 @@ func staged(_ rel: String) -> Bool {
 var binaryTargets: [Target] = []
 var deps: [Target.Dependency] = [.product(name: "FlutterFramework", package: "FlutterFramework")]
 
-// dart_bridge: static archive, link-only. Its FFI exports are resolved at runtime
-// via dlsym (Dart's `DynamicLibrary.process()` and Python's `import dart_bridge`),
-// so the whole archive must be retained against the linker's -dead_strip. We
-// force-load JUST this archive rather than using a global -all_load: SwiftPM
-// applies a target's linkerSettings to the FINAL app executable link, so a global
-// -all_load there would force-load EVERY static archive on the link line —
-// including plugins that statically bundle the same third-party code (e.g.
-// flet-video/media_kit and flet-rive both embed miniaudio), which then collide
-// with thousands of duplicate symbols. -force_load on dart_bridge alone mirrors
-// what the CocoaPods podspec did via `pod_target_xcconfig` (scoped to this pod's
-// own inputs — only dart_bridge among them is a static archive). On macOS the
-// xcframework has a single universal slice with a stable path, so we resolve it
-// here. On iOS, plugin pods link as dynamic frameworks (no static-archive
-// collision) and device/simulator use different slice paths, so the
-// slice-agnostic -all_load is kept there (see linkerSettings below).
-var macosDartBridgeForceLoad: [String] = []
+// dart_bridge: DYNAMIC framework -> embedded + auto-signed in the app. Its FFI
+// entry points (serious_python_run, DartBridge_*, PyInit_dart_bridge) are
+// EXPORTED from the loaded framework, so the dlsym lookups that Dart
+// (`DynamicLibrary.process()`) and Python (`import dart_bridge`) perform resolve
+// at runtime. A static library would instead be linked into the app executable,
+// which does not export its symbols (and the release build strips them), so
+// dlsym would fail with "Failed to lookup symbol 'serious_python_run'". Shipping
+// it dynamic mirrors the Android `.so` (CMake SHARED) that already works — see
+// flet-dev/dart-bridge apple/build_xcframework.sh. No -all_load/-force_load or
+// keep-alive is needed anymore: the framework is a loaded image, not archive
+// members that must be pulled in and kept against -dead_strip.
 if staged("dart_bridge.xcframework") {
     binaryTargets.append(.binaryTarget(name: "dart_bridge", path: "dart_bridge.xcframework"))
     deps.append("dart_bridge")
-    let xc = pkgDir.appendingPathComponent("dart_bridge.xcframework")
-    if let slices = try? FileManager.default.contentsOfDirectory(
-        at: xc, includingPropertiesForKeys: nil) {
-        for slice in slices.sorted(by: { $0.lastPathComponent < $1.lastPathComponent })
-            where slice.lastPathComponent.hasPrefix("macos") {
-            let lib = slice.appendingPathComponent("libdart_bridge.a")
-            if FileManager.default.fileExists(atPath: lib.path) {
-                macosDartBridgeForceLoad = ["-force_load", lib.path]
-            }
-        }
-    }
 }
 // Python.framework: dynamic -> embedded + auto-signed. iOS and macOS ship separate
 // xcframeworks, so each is platform-conditional.
@@ -119,15 +103,9 @@ let package = Package(
                 .copy("Resources/app"),
             ],
             linkerSettings: [
+                // dart_bridge is now a dynamic framework (embedded, symbols
+                // exported), so no -all_load / -force_load is needed to retain it.
                 .unsafeFlags(["-ObjC"]),
-                // iOS: slice-agnostic -all_load. Plugin pods link as dynamic
-                // frameworks, so dart_bridge is the only static archive in scope —
-                // nothing else to double-load. (device/simulator slice paths differ,
-                // so a single -force_load path isn't possible here.)
-                .unsafeFlags(["-all_load"], .when(platforms: [.iOS])),
-                // macOS: force-load ONLY dart_bridge (resolved above), never a global
-                // -all_load — see the note where macosDartBridgeForceLoad is built.
-                .unsafeFlags(macosDartBridgeForceLoad, .when(platforms: [.macOS])),
                 .linkedLibrary("c++"),
             ]
         ),

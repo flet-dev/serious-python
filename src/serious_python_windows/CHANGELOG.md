@@ -1,3 +1,7 @@
+## 4.4.0
+
+* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.0**). 1.6.0 is an Apple-only packaging change (see `serious_python_darwin` 4.4.0); the Windows runtime is byte-identical to 20260720.
+
 ## 4.3.6
 
 * **Fix Windows startup when app paths or environment values contain non-ASCII characters.** Dart FFI strings arrive as UTF-8, but the Windows boundary passed them straight to the ANSI CRT (`_putenv_s`, `fopen`), corrupting paths/env values through the process code page. The runtime now converts UTF-8 → UTF-16 and uses the wide CRT APIs (`_wputenv_s`, `_wfopen_s`), enables Python UTF-8 mode before `Py_Initialize()`, sets `PYTHONUTF8=1` for multiprocessing helpers, and treats embedded env-setup failures as fatal. Delivered via `dart_bridge` **1.5.1** (bundled python-build snapshot re-pinned to **20260720**). ([flet-dev/flet#6641](https://github.com/flet-dev/flet/issues/6641))

@@ -1,3 +1,7 @@
+## 4.4.0
+
+* Version bump aligning with the `serious_python_*` 4.4.0 release.
+
 ## 4.3.6
 
 * Version bump aligning with the `serious_python_*` 4.3.6 release (Windows UTF-8 startup fix via `dart_bridge` 1.5.1). No interface changes.

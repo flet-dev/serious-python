@@ -1,3 +1,8 @@
+## 4.4.0
+
+* **iOS/macOS:** fix built iOS apps crashing at startup with `Failed to lookup symbol 'serious_python_run'`. `dart_bridge` now ships as a dynamic framework, so the FFI entry points Dart and Python resolve via `dlsym` stay exported; previously it was static-linked into the app executable, which exports nothing. Release/device builds only. See `serious_python_darwin` 4.4.0.
+* Bundled python-build snapshot re-pinned to **20260725** (`dart_bridge` **1.5.1 → 1.6.0**, which carries the dynamic-framework change above; Pyodide 3.14 **314.0.2 → 314.0.3**). Python versions (**3.12.13 / 3.13.14 / 3.14.6**) are unchanged.
+
 ## 4.3.6
 
 * **Android:** PEP 734 subinterpreters (Python 3.14's `concurrent.interpreters` / `InterpreterPoolExecutor`) now work in built apps. Previously the main interpreter could import them, but every *subinterpreter* failed to import any relocated C extension (`ModuleNotFoundError: _struct` / `_interpqueues` / ...) — which broke the whole feature (its cross-interpreter transport pickles → `_struct`, and its queues need `_interpqueues`). The native-module finder lives on `sys.meta_path`, which is per-interpreter, and was installed only in the main interpreter. See `serious_python_android` 4.3.6.
