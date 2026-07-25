@@ -1,6 +1,6 @@
 ## 4.4.0
 
-* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.0**). 1.6.0 changes only how `dart_bridge` is packaged for Apple platforms (static library → dynamic framework, see `serious_python_darwin` 4.4.0); the Android runtime is byte-identical to 20260720.
+* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.1**). 1.6.1 changes only how `dart_bridge` is packaged for Apple platforms (static library → dynamic framework, see `serious_python_darwin` 4.4.0); the Android runtime is byte-identical to 20260720.
 
 ## 4.3.6
 

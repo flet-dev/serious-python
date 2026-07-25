@@ -1,6 +1,6 @@
 ## 4.4.0
 
-* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.0**). 1.6.0 is an Apple-only packaging change (see `serious_python_darwin` 4.4.0); the Linux runtime is byte-identical to 20260720.
+* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.1**). 1.6.1 is an Apple-only packaging change (see `serious_python_darwin` 4.4.0); the Linux runtime is byte-identical to 20260720.
 
 ## 4.3.6
 
