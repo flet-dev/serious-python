@@ -5,27 +5,13 @@ import UIKit
 import FlutterMacOS
 #endif
 
-// Keep-alive references to dart_bridge.xcframework's C entry points. Dart
-// resolves them via `DynamicLibrary.process()` at runtime; without these
-// static references the host app's linker `-dead_strip` pass could drop
-// them even though `-all_load` pulled the archive members in.
-@_silgen_name("serious_python_run")
-private func _sp_run_keepalive(_ cfg: OpaquePointer?) -> Int32
-@_silgen_name("DartBridge_InitDartApiDL")
-private func _sp_init_keepalive(_ data: UnsafeMutableRawPointer?) -> Int
-@_silgen_name("DartBridge_EnqueueMessage")
-private func _sp_enqueue_keepalive(_ data: UnsafePointer<CChar>?, _ len: Int)
-
-// multiprocessing child-interception entry points,
-// dlsym'd by the host app's main.swift before NSApplicationMain.
-@_silgen_name("serious_python_is_mp_invocation")
-private func _sp_is_mp_keepalive(
-  _ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32
-@_silgen_name("serious_python_main")
-private func _sp_main_keepalive(
-  _ argc: Int32, _ argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>?
-) -> Int32
+// dart_bridge's C entry points (serious_python_run, DartBridge_*,
+// serious_python_{is_mp_invocation,main}) used to need keep-alive references
+// here: it shipped as a static archive linked into the host app executable,
+// which exports nothing, so the dlsym lookups Dart (`DynamicLibrary.process()`)
+// and the macOS host's main.swift perform could fail. dart_bridge now ships as a
+// dynamic framework (embedded + signed) whose symbols are exported from its own
+// loaded image, so no keep-alive is required — see dart-bridge 1.6.0.
 
 /// Thin Flutter plugin: surfaces the python.bundle resource path to Dart.
 /// All Python lifecycle now lives in `serious_python_run`
@@ -42,17 +28,6 @@ public class SeriousPythonPlugin: NSObject, FlutterPlugin {
         let channel = FlutterMethodChannel(name: "serious_python", binaryMessenger: messenger)
         let instance = SeriousPythonPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
-
-        // Static reference to dart_bridge symbols — see top-of-file note.
-        // The branch is unreachable at runtime (the registrar argument is
-        // always non-nil), but the linker only sees a live call site.
-        if unsafeBitCast(registrar, to: Int.self) == 0 {
-            _ = _sp_run_keepalive(nil)
-            _ = _sp_init_keepalive(nil)
-            _sp_enqueue_keepalive(nil, 0)
-            _ = _sp_is_mp_keepalive(0, nil)
-            _ = _sp_main_keepalive(0, nil)
-        }
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '4.3.6'
+  s.version          = '4.4.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -13,11 +13,10 @@ Pod::Spec.new do |s|
   s.license          = { :file => '../LICENSE' }
   s.author           = { 'Appveyor Systems Inc.' => 'hello@flet.dev' }
   s.source           = { :path => '.' }
-  # dart_bridge.xcframework (vendored below) contains static .a archives.
-  # CocoaPods 1.16+ refuses to install vendored xcframeworks with static
-  # libraries unless the consuming pod is itself declared as a static
-  # framework. Python.xcframework is also static, so this was always
-  # implicitly the case — just being explicit now.
+  # This pod's own Swift code links as a static framework. The vendored
+  # xcframeworks below (Python, dart_bridge) are dynamic frameworks — they are
+  # embedded and signed into the host app, and their symbols stay exported so
+  # the dlsym lookups Dart and Python perform at runtime resolve.
   s.static_framework = true
   s.source_files = ['serious_python_darwin/Sources/serious_python_darwin/**/*.swift']
   s.ios.dependency 'Flutter'
@@ -26,9 +25,12 @@ Pod::Spec.new do |s|
   s.osx.deployment_target = '11.0'
 
   # Flutter.framework does not contain a i386 slice.
+  # `-all_load` is no longer needed: it existed to retain the static
+  # libdart_bridge.a against -dead_strip, and dart_bridge now ships as a dynamic
+  # framework whose symbols are exported from its own loaded image.
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',
-    'OTHER_LDFLAGS' => '-ObjC -all_load -lc++'
+    'OTHER_LDFLAGS' => '-ObjC -lc++'
   }
   s.swift_version = '5.0'
 

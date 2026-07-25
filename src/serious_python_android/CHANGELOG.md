@@ -1,3 +1,7 @@
+## 4.4.0
+
+* Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.1**). 1.6.1 changes only how `dart_bridge` is packaged for Apple platforms (static library → dynamic framework, see `serious_python_darwin` 4.4.0); the Android runtime is byte-identical to 20260720.
+
 ## 4.3.6
 
 * **PEP 734 subinterpreters now work** (Python 3.14 `concurrent.interpreters` / `InterpreterPoolExecutor`) — enabling true multi-core CPU parallelism inside a single process, which `multiprocessing` cannot provide on Android. Previously the main interpreter imported the machinery fine, but every subinterpreter raised `ModuleNotFoundError` for `_struct` / `_interpqueues` / any other C extension, so `InterpreterPoolExecutor` and the low-level API were unusable. Cause: Android relocates C extensions (native-mmap packaging) and resolves them through `_SorefFinder` on `sys.meta_path`; `sys.meta_path` is per-interpreter, and `install()` only ran in the main interpreter, so a freshly created subinterpreter had a `meta_path` without the finder. Fix: `_sp_bootstrap.install()` now also wraps `concurrent.interpreters.create()` so every new interpreter installs the finder before use. The install runs via `Interpreter.exec()` — a source string, which is pickle-free (unlike `Interpreter.call()`), so it works *before* `_struct` is importable in the child. Because `InterpreterPoolExecutor` builds its workers via `concurrent.interpreters.create()`, the pool is fixed transparently with no user-code change. A no-op before 3.14; iOS/desktop were unaffected.
