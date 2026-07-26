@@ -1,3 +1,8 @@
+## 4.4.1
+
+* **iOS:** the bundled `_ssl` and `_hashlib` frameworks now ship OpenSSL's official privacy manifest instead of an incomplete stub, correcting what they declare under Apple's third-party SDK requirements. This is a correctness fix and is *not* expected to resolve the `ITMS-91065: Missing signature` App Store rejection reported in flet-dev/flet#6724, which remains under investigation. See `serious_python_darwin` 4.4.1.
+* Bundled python-build snapshot re-pinned to **20260726**. No versions moved — Python (**3.12.13 / 3.13.14 / 3.14.6**), Pyodide, and `dart_bridge` **1.6.1** are unchanged from 20260725.
+
 ## 4.4.0
 
 * **iOS/macOS:** fix built iOS apps crashing at startup with `Failed to lookup symbol 'serious_python_run'`. `dart_bridge` now ships as a dynamic framework, so the FFI entry points Dart and Python resolve via `dlsym` stay exported; previously it was static-linked into the app executable, which exports nothing. Release/device builds only. See `serious_python_darwin` 4.4.0.

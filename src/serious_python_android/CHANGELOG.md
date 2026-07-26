@@ -1,3 +1,7 @@
+## 4.4.1
+
+* Re-pins the bundled python-build snapshot to **20260726**. Its only functional change is an iOS privacy-manifest fix (see `serious_python_darwin` 4.4.1); no versions moved and the Android runtime is unchanged from 20260725.
+
 ## 4.4.0
 
 * Re-pins the bundled python-build snapshot to **20260725** (`dart_bridge` **1.5.1 → 1.6.1**). 1.6.1 changes only how `dart_bridge` is packaged for Apple platforms (static library → dynamic framework, see `serious_python_darwin` 4.4.0); the Android runtime is byte-identical to 20260720.
