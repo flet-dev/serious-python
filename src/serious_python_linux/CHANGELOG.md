@@ -1,3 +1,7 @@
+## 4.4.2
+
+* Re-pins the bundled python-build snapshot to **20260727**. Its only functional change is to the iOS frameworks' `Info.plist` (see `serious_python_darwin` 4.4.2); no versions moved and the Linux runtime is unchanged from 20260726.
+
 ## 4.4.1
 
 * Re-pins the bundled python-build snapshot to **20260726**. Its only functional change is an iOS privacy-manifest fix (see `serious_python_darwin` 4.4.1); no versions moved and the Linux runtime is unchanged from 20260725.
