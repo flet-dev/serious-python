@@ -171,7 +171,7 @@ packages:
     source: sdk
     version: "0.0.0"
   jni:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: jni
       sha256: c2230682d5bc2362c1c9e8d3c7f406d9cbba23ab3f2e203a025dd47e0fb2e68f
@@ -384,42 +384,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   serious_python_darwin:
     dependency: transitive
     description:
       path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   serious_python_linux:
     dependency: transitive
     description:
       path: "../../../serious_python_linux"
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   serious_python_windows:
     dependency: transitive
     description:
       path: "../../../serious_python_windows"
       relative: true
     source: path
-    version: "4.0.0"
+    version: "4.4.1"
   shelf:
     dependency: transitive
     description:
