@@ -128,9 +128,15 @@ create_xcframework_from_dylibs() {
 # Must run BEFORE reconcile_framework_install_names, whose ad-hoc re-sign reseals
 # the modified Info.plists. The stdlib xcframeworks copied in from python-build are
 # unsigned at this point, so editing their plists invalidates nothing.
+#
+# $3 is an optional space-separated list of framework names to leave alone --
+# used for artifacts that already carry a vendor-owned reverse-DNS identifier
+# (dart_bridge is `dev.flet.dartbridge`), which is the shape we are aiming for
+# rather than the problem we are fixing.
 rewrite_framework_bundle_ids() {
     local xcframeworks_dir=$1
     local bundle_id=${2%.}
+    local skip=" ${3:-} "
 
     # CFBundleIdentifier allows only [A-Za-z0-9.-], and every dot-separated
     # component must be non-empty. The bundle id comes from the app's pyproject /
@@ -146,6 +152,7 @@ rewrite_framework_bundle_ids() {
     for xcf in "$xcframeworks_dir"/*.xcframework; do
         [ -d "$xcf" ] || continue
         fw=$(basename "$xcf" .xcframework)
+        case "$skip" in *" $fw "*) continue ;; esac
         # Module names come from whatever wheels the app depends on, so anything
         # outside the allowed set becomes a hyphen.
         component=$(printf '%s' "$fw" | tr '_' '-' | sed 's/[^A-Za-z0-9.-]/-/g')
