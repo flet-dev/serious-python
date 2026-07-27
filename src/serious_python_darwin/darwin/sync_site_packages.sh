@@ -49,6 +49,24 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         done
         done
 
+        # Namespace the frameworks' CFBundleIdentifiers under the host app's
+        # bundle id (see xcframework_utils.sh). Runs before the reconcile pass
+        # below, whose ad-hoc re-sign reseals the modified Info.plists. Skipped
+        # when the caller doesn't supply a bundle id, leaving the org.python.*
+        # defaults in place.
+        if [[ -n "${SERIOUS_PYTHON_BUNDLE_ID:-}" ]]; then
+            echo "Namespacing framework bundle identifiers under $SERIOUS_PYTHON_BUNDLE_ID"
+            rewrite_framework_bundle_ids "$dist/site-xcframeworks" "$SERIOUS_PYTHON_BUNDLE_ID" || exit 1
+            # Python.xcframework is staged straight out of dist/xcframeworks by
+            # stage_spm.sh (and referenced there by the podspec), so it never
+            # passes through site-xcframeworks above and kept a shared
+            # `org.python.python`. Nothing resolves it by identifier -- the string
+            # appears in no binary and there are no CFBundleGetBundleWithIdentifier
+            # lookups -- so renaming it is inert at runtime. dart_bridge is left
+            # alone: `dev.flet.dartbridge` is already a vendor-owned identifier.
+            rewrite_framework_bundle_ids "$dist/xcframeworks" "$SERIOUS_PYTHON_BUNDLE_ID" "dart_bridge" || exit 1
+        fi
+
         # After every .so/.dylib is framework-ized, reconcile the Mach-O
         # install names so the interdependent @rpath refs point at the new
         # framework paths (serious-python #223). Without this, dyld cannot

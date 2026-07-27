@@ -1,3 +1,10 @@
+## 4.4.2
+
+* **iOS:** new `SERIOUS_PYTHON_BUNDLE_ID` env var namespaces the generated frameworks' bundle identifiers under your app (`com.example.myapp.-ssl`) instead of a shared `org.python.*` default identical in every app built with serious_python. `flet build` sets it for you; set it yourself for a manual two-step build, in both places you set `SERIOUS_PYTHON_SITE_PACKAGES`.
+* **iOS:** the bundled Python frameworks (`_ssl`, `_hashlib` and every other native extension) now carry the build-provenance keys Xcode stamps into a real framework's `Info.plist`, instead of a minimal hand-written one.
+* Both are hypotheses under test for the `ITMS-91065: Missing signature` App Store rejection in flet-dev/flet#6724 — neither is a confirmed fix. Only new App Store submissions are affected by that rejection; existing published apps are not. See `serious_python_darwin` 4.4.2.
+* Bundled python-build snapshot re-pinned to **20260727**. No versions moved — Python (**3.12.13 / 3.13.14 / 3.14.6**), Pyodide, and `dart_bridge` **1.6.1** are unchanged from 20260726.
+
 ## 4.4.1
 
 * **iOS:** the bundled `_ssl` and `_hashlib` frameworks now ship OpenSSL's official privacy manifest instead of an incomplete stub, correcting what they declare under Apple's third-party SDK requirements. This is a correctness fix and is *not* expected to resolve the `ITMS-91065: Missing signature` App Store rejection reported in flet-dev/flet#6724, which remains under investigation. See `serious_python_darwin` 4.4.1.

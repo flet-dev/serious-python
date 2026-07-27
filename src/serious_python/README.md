@@ -192,6 +192,23 @@ dart run serious_python:main package app/src -p iOS -r -r -r app/src/requirement
 
 For the **web** (`Emscripten`) target there is no `SERIOUS_PYTHON_APP`; the app and its `__pypackages__` are zipped into the `app/app.zip` asset instead — make sure it's added to `pubspec.yaml`.
 
+On **iOS**, also set `SERIOUS_PYTHON_BUNDLE_ID` to your app's bundle identifier:
+
+```
+export SERIOUS_PYTHON_BUNDLE_ID=com.example.myapp
+```
+
+Each Python C-extension ships as its own embedded framework, and this namespaces
+their `CFBundleIdentifier`s under your app (`com.example.myapp.-ssl`) instead of a
+shared `org.python.*` default that would be identical in every app built with
+serious_python — matching what CPython's own iOS support does. A framework's bundle
+identifier also becomes its code signing identifier, which Apple's App Store scan
+appears to key on for the third-party SDK requirements. Set it in **both** places
+`SERIOUS_PYTHON_SITE_PACKAGES` is set (the `package` command and the later `flutter
+build`), since the CocoaPods `prepare_command` re-runs the darwin sync. If unset —
+or if the value isn't a valid bundle identifier — the `org.python.*` defaults are
+kept and a warning is printed. `flet build` sets this for you.
+
 ## Python app structure
 
 By default, embedded Python program is run in a separate thread, to avoid UI blocking. Your Flutter app is not supposed to directly call Python functions or modules, but instead it should communicate via some API provided by a Python app, such as: REST API, sockets, SQLite database, files, etc.
