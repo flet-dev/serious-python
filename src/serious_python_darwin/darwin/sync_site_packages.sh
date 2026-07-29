@@ -1,5 +1,9 @@
 script_dir=$(cd "$(dirname "$0")" && pwd -P)
 
+# Provider-signature + provider-integrity checks (see xcframework_verify.sh).
+# Sourced unconditionally so both the iOS and macOS branches can use it.
+source $script_dir/xcframework_verify.sh
+
 # App sources are arch- and platform-independent; stage them as a bare `app/`
 # resource bundle into BOTH dist trees, regardless of whether site-packages
 # exist (an app may have no pip dependencies). The per-target resource bundle
@@ -21,14 +25,15 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         echo "Sync iOS xcframeworks and site-packages"
         dist=$script_dir/dist_ios
 
-        # app xcframeworks
-        rm -rf $dist/site-xcframeworks
-        mkdir -p $dist/site-xcframeworks
-        cp -R $dist/python-xcframeworks/* $dist/site-xcframeworks
-
         source $script_dir/xcframework_utils.sh
 
         tmp_dir=$(mktemp -d)
+        # Locally generated frameworks are built and mutated HERE, in their own
+        # directory, never alongside the provider-built ones. Every app-specific
+        # rewrite below (bundle ids, install names, ad-hoc re-sign) is confined
+        # to this tree; the provider artifacts are merged in afterwards,
+        # byte-for-byte, and are never opened for writing.
+        local_xcframeworks=$(mktemp -d)
 
         cp -R $SERIOUS_PYTHON_SITE_PACKAGES/* $tmp_dir
 
@@ -45,47 +50,75 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
                 $dylib_relative_path \
                 "$_sp_ext" \
                 "Frameworks/serious_python_darwin.framework/python.bundle/site-packages" \
-                $dist/site-xcframeworks
+                $local_xcframeworks
         done
         done
 
-        # Namespace the frameworks' CFBundleIdentifiers under the host app's
-        # bundle id (see xcframework_utils.sh). Runs before the reconcile pass
-        # below, whose ad-hoc re-sign reseals the modified Info.plists. Skipped
-        # when the caller doesn't supply a bundle id, leaving the org.python.*
-        # defaults in place.
+        # Namespace the LOCALLY BUILT frameworks' CFBundleIdentifiers under the
+        # host app's bundle id (see xcframework_utils.sh). These are created
+        # moments ago from this app's own wheels; nobody has signed them, so
+        # editing their plists invalidates nothing.
+        #
+        # This deliberately no longer touches Python.xcframework or the stdlib
+        # extension frameworks. Those arrive already signed by their provider,
+        # and a plist rewrite destroys that signature -- which is what made the
+        # IPA's Signatures/ receipts report `signed = false` and produced
+        # ITMS-91065. They now carry stable `dev.flet.python.*` identifiers
+        # assigned upstream in python-build, so there is nothing left to fix
+        # here anyway.
         if [[ -n "${SERIOUS_PYTHON_BUNDLE_ID:-}" ]]; then
             echo "Namespacing framework bundle identifiers under $SERIOUS_PYTHON_BUNDLE_ID"
-            rewrite_framework_bundle_ids "$dist/site-xcframeworks" "$SERIOUS_PYTHON_BUNDLE_ID" || exit 1
-            # Python.xcframework is staged straight out of dist/xcframeworks by
-            # stage_spm.sh (and referenced there by the podspec), so it never
-            # passes through site-xcframeworks above and kept a shared
-            # `org.python.python`. Nothing resolves it by identifier -- the string
-            # appears in no binary and there are no CFBundleGetBundleWithIdentifier
-            # lookups -- so renaming it is inert at runtime. dart_bridge is left
-            # alone: `dev.flet.dartbridge` is already a vendor-owned identifier.
-            rewrite_framework_bundle_ids "$dist/xcframeworks" "$SERIOUS_PYTHON_BUNDLE_ID" "dart_bridge" || exit 1
+            rewrite_framework_bundle_ids "$local_xcframeworks" "$SERIOUS_PYTHON_BUNDLE_ID" || exit 1
         fi
 
         # After every .so/.dylib is framework-ized, reconcile the Mach-O
         # install names so the interdependent @rpath refs point at the new
         # framework paths (serious-python #223). Without this, dyld cannot
         # resolve e.g. @rpath/libarrow.dylib at launch and the app crashes
-        # before Python starts. Exclude the python/stdlib xcframeworks copied
-        # in above -- they are already correct.
+        # before Python starts.
         # A reconcile failure (e.g. a Mach-O with no header space to grow a load
         # command, or a signing error) would otherwise ship an app that crashes
         # at launch -- abort the build instead. sync_site_packages.sh has no
         # set -e; prepare_spm.sh runs it under set -euo pipefail, so a non-zero
         # exit here fails `flet build` loudly.
-        reconcile_framework_install_names "$dist/site-xcframeworks" "$dist/python-xcframeworks" || exit 1
+        #
+        # The exclude argument still names the provider stdlib directory. It is
+        # now belt and braces -- $local_xcframeworks holds only locally built
+        # frameworks -- but it keeps the guarantee explicit: this pass rewrites
+        # Mach-O headers and re-signs ad-hoc, and must never reach a provider
+        # binary.
+        reconcile_framework_install_names "$local_xcframeworks" "$dist/python-xcframeworks" || exit 1
+
+        # Assemble the staging directory: provider frameworks first, copied
+        # verbatim, then the locally built ones merged over the top (a name
+        # collision resolves to the local build, as it always has). The rm -rf
+        # in the loop is what makes that an overwrite rather than a `cp -R`
+        # merge, which would leave the provider's files behind inside it.
+        rm -rf $dist/site-xcframeworks
+        mkdir -p $dist/site-xcframeworks
+        cp -R $dist/python-xcframeworks/* $dist/site-xcframeworks
+        for _local_xcf in "$local_xcframeworks"/*.xcframework; do
+            [ -d "$_local_xcf" ] || continue
+            rm -rf "$dist/site-xcframeworks/$(basename "$_local_xcf")"
+            cp -R "$_local_xcf" "$dist/site-xcframeworks/"
+        done
 
         rm -rf $dist/site-packages
         mkdir -p $dist/site-packages
         cp -R $tmp_dir/${archs[0]}/* $dist/site-packages
 
         # cleanup
-        rm -rf "${tmp_dir}" >/dev/null
+        rm -rf "${tmp_dir}" "${local_xcframeworks}" >/dev/null
+
+        # The provider artifacts must be bit-identical to what was extracted in
+        # prepare_ios.sh, both where they live and in the copies just staged.
+        spv_manifest_check "$dist/.provider-manifests/xcframeworks.sha256" \
+            "$dist/xcframeworks" "dist_ios/xcframeworks" || exit 1
+        spv_manifest_check "$dist/.provider-manifests/python-xcframeworks.sha256" \
+            "$dist/python-xcframeworks" "dist_ios/python-xcframeworks" || exit 1
+        spv_manifest_check "$dist/.provider-manifests/python-xcframeworks.sha256" \
+            "$dist/site-xcframeworks" "dist_ios/site-xcframeworks (provider subset)" || exit 1
+        spv_verify_provider "$dist/xcframeworks" "$dist/python-xcframeworks" || exit 1
 
     else
 
@@ -103,5 +136,12 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         # file. .pod is only needed by package_command.dart at packaging
         # time to invoke this sync script; it does not belong in the bundle.
         rsync -av --delete --exclude '.pod' "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
+
+        # macOS has no framework-ization step -- its .so's load flat from the
+        # resource tree -- so nothing here should ever touch the provider
+        # xcframeworks. Assert it rather than assume it.
+        spv_manifest_check "$dist/.provider-manifests/xcframeworks.sha256" \
+            "$dist/xcframeworks" "dist_macos/xcframeworks" || exit 1
+        spv_verify_provider "$dist/xcframeworks" || exit 1
     fi
 fi

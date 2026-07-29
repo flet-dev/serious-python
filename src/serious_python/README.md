@@ -198,16 +198,21 @@ On **iOS**, also set `SERIOUS_PYTHON_BUNDLE_ID` to your app's bundle identifier:
 export SERIOUS_PYTHON_BUNDLE_ID=com.example.myapp
 ```
 
-Each Python C-extension ships as its own embedded framework, and this namespaces
-their `CFBundleIdentifier`s under your app (`com.example.myapp.-ssl`) instead of a
-shared `org.python.*` default that would be identical in every app built with
-serious_python — matching what CPython's own iOS support does. A framework's bundle
-identifier also becomes its code signing identifier, which Apple's App Store scan
-appears to key on for the third-party SDK requirements. Set it in **both** places
+Each native extension in your app's own dependencies ships as its own embedded
+framework, and this namespaces their `CFBundleIdentifier`s under your app
+(`com.example.myapp.-numpy-core-multiarray`) instead of a shared `org.python.*`
+default — matching what CPython's own iOS support does. Set it in **both** places
 `SERIOUS_PYTHON_SITE_PACKAGES` is set (the `package` command and the later `flutter
 build`), since the CocoaPods `prepare_command` re-runs the darwin sync. If unset —
 or if the value isn't a valid bundle identifier — the `org.python.*` defaults are
 kept and a warning is printed. `flet build` sets this for you.
+
+This applies **only** to frameworks built here from your wheels. `Python.xcframework`,
+`dart_bridge.xcframework`, and the stdlib extension frameworks arrive pre-built and
+**signed by their publisher**, with stable `dev.flet.python.*` / `dev.flet.dartbridge`
+identifiers assigned upstream. serious_python stages those byte-for-byte and never
+rewrites anything inside them — see [SDK-origin signatures](#sdk-origin-signatures)
+below.
 
 ## Python app structure
 
@@ -265,6 +270,50 @@ The on-disk layout differs per platform, mostly because each OS has different ru
 ### iOS / macOS specifics
 
 The CPython runtime, stdlib, and (on iOS) native extensions are bundled into `serious_python_darwin.framework` as resources. On **iOS**, the App Store forbids loose `.dylib`s, so every native extension `.so` is repackaged into a signed `.framework` inside an `.xcframework`, with a `.fwork` text marker left at the module's import path; CPython's `AppleFrameworkLoader` reads the marker and loads the framework binary. On **macOS**, native extensions stay as plain `.so`, merged into universal (`arm64`+`x86_64`) binaries at package time. `PYTHONHOME` is the framework's resource path; `sys.path` includes `<resources>/site-packages`, `<resources>/stdlib`, and `<resources>/stdlib/lib-dynload`.
+
+#### SDK-origin signatures
+
+Xcode records, for every `.xcframework` your app links against, whether **the
+publisher** signed it and whether that signature carried a secure timestamp. The
+result is written into the IPA as `Signatures/<name>.xcframework-ios.signature`,
+and Apple's App Store scan reports a missing one as `ITMS-91065: Missing signature`.
+
+This is **separate from your app's own signature.** Xcode re-signs every embedded
+framework with your Apple Distribution identity at embed time and again at
+`exportArchive`; that has no effect on the SDK-origin receipt. Equally, editing a
+single file inside an `.xcframework` — even one `Info.plist` key — invalidates the
+publisher's signature and turns the receipt back into `signed = false`.
+
+So serious_python treats `Python.xcframework`, `dart_bridge.xcframework`, and the
+stdlib extension frameworks as **immutable** once downloaded. They are copied
+verbatim at every staging step, and each step re-checks a digest manifest recorded
+at extraction time, so a reintroduced mutation fails the build instead of surfacing
+as an App Store rejection weeks later.
+
+`SERIOUS_PYTHON_VERIFY_PROVIDER_SIGNATURES` controls what happens when a publisher
+signature is missing or invalid:
+
+| value | behaviour |
+| :--- | :--- |
+| `warn` (default) | report and continue — lets you pin an older, pre-signing `python-build` / `dart-bridge` release |
+| `require` | fail the build; use this for App Store submissions |
+| `off` | skip the signature checks |
+
+Set `SERIOUS_PYTHON_EXPECTED_TEAM_ID` to additionally require a specific Apple
+Team ID on those signatures. The digest-manifest checks always run and are always
+fatal — they cover this package's own behaviour, not the artifacts you pinned.
+
+#### iOS packaging path: use SwiftPM
+
+The **Swift Package Manager** path declares the publisher's `.xcframework`s as
+`binaryTarget`s, which is what makes Xcode emit the `Signatures/` receipts above.
+
+The CocoaPods path copies the *inner* `.framework` bundles out of the stdlib
+xcframeworks in a `Pods-Runner-frameworks.sh` script phase, which discards the
+outer-XCFramework provenance even when the source is correctly signed. It still
+produces a working app, but it cannot produce complete SDK-origin receipts. **Use
+the SwiftPM path for App Store submissions** until that path is replaced with real
+vendored XCFramework declarations.
 
 ### Linux / Windows specifics
 

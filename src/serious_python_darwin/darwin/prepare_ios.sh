@@ -63,3 +63,15 @@ if [ ! -d "$dist/xcframeworks/dart_bridge.xcframework" ] || [ "$(cat "$db_marker
     unzip -q "$dart_bridge_path" -d "$dist/xcframeworks/"
     echo "$dart_bridge_version" > "$db_marker"
 fi
+
+# ---- provider provenance ---------------------------------------------------
+# Both provider archives are now extracted. Verify their signatures at the point
+# of arrival (so a bad download is caught here, not in an App Store rejection),
+# and record a digest manifest of everything they contain. Every later staging
+# step re-checks that manifest: the provider bundles must reach the app exactly
+# as their publisher signed them, because editing any file inside one destroys
+# the SDK-origin signature that the IPA's Signatures/ receipts report on.
+. "$script_dir/xcframework_verify.sh"
+spv_verify_provider "$dist/xcframeworks" "$dist/python-xcframeworks" || exit 1
+spv_manifest_record "$dist/.provider-manifests/xcframeworks.sha256" "$dist/xcframeworks"
+spv_manifest_record "$dist/.provider-manifests/python-xcframeworks.sha256" "$dist/python-xcframeworks"

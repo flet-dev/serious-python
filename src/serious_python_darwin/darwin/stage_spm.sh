@@ -18,6 +18,9 @@ res="$pkg/Sources/serious_python_darwin/Resources"
 
 [ -d "$dist" ] || { echo "stage_spm: $dist not found" >&2; exit 1; }
 
+# shellcheck source=src/serious_python_darwin/darwin/xcframework_verify.sh
+. "$script_dir/xcframework_verify.sh"
+
 # 1. Python runtime (dynamic framework -> embedded). Platform-specific path so a
 #    single shared manifest can carry both via platform-conditional binaryTargets.
 rm -rf "$pkg/Python-$platform.xcframework"
@@ -43,6 +46,41 @@ for tree in stdlib site-packages app; do
     find "$dest" -mindepth 1 -not -name '.keep' -delete 2>/dev/null || true
     [ -d "$dist/$tree" ] && rsync -a --exclude '.pod' "$dist/$tree/" "$dest/"
 done
+
+# 4b. Provenance gate. This is the last place serious_python touches the provider
+#     XCFrameworks before Xcode consumes them as binaryTargets and writes the
+#     IPA's Signatures/ receipts, so it is the last chance to catch a mutation.
+#     The staged copies are compared against the digest manifest recorded at
+#     extraction time; `cp -R` preserves content, symlinks, and _CodeSignature,
+#     so an identical manifest here means the SDK-origin signature survived.
+#
+#     Python-<platform>.xcframework is a renamed copy, so it is checked against
+#     the manifest entries for its source name rather than by path.
+#
+#     Everything in this block is redirected to stderr: this script's stdout is
+#     the SP_NATIVE_SET key, which prepare_spm.sh captures verbatim.
+{
+    python_manifest="$dist/.provider-manifests/Python.xcframework.sha256"
+    spv_manifest_record "$python_manifest" "$dist/xcframeworks/Python.xcframework"
+    spv_manifest_check "$python_manifest" "$pkg/Python-$platform.xcframework" \
+        "staged Python-$platform.xcframework"
+
+    dart_bridge_manifest="$dist/.provider-manifests/dart_bridge.xcframework.sha256"
+    spv_manifest_record "$dart_bridge_manifest" "$dist/xcframeworks/dart_bridge.xcframework"
+    spv_manifest_check "$dart_bridge_manifest" "$pkg/dart_bridge.xcframework" \
+        "staged dart_bridge.xcframework"
+
+    if [ "$platform" = "ios" ] && [ -d "$pkg/extra-xcframeworks" ]; then
+        # extra-xcframeworks mixes provider stdlib frameworks with frameworks
+        # built locally from the app's own wheels. spv_manifest_check ignores
+        # files the manifest doesn't name, so this validates exactly the
+        # provider subset.
+        spv_manifest_check "$dist/.provider-manifests/python-xcframeworks.sha256" \
+            "$pkg/extra-xcframeworks" "staged extra-xcframeworks (provider subset)"
+    fi
+
+    spv_verify_provider "$pkg/Python-$platform.xcframework" "$pkg/dart_bridge.xcframework"
+} >&2
 
 # 5. Cache-bust key: platform + Python version + the staged native/resource set
 #    (path+size). Changes whenever requirements, app, or Python version change.
