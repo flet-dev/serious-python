@@ -1,3 +1,11 @@
+## 4.5.0
+
+* **iOS/macOS:** the pre-built `Python`, `dart_bridge` and stdlib extension XCFrameworks are now staged byte-for-byte and never modified. `SERIOUS_PYTHON_BUNDLE_ID` now namespaces only the frameworks built from *your* app's wheels; the pre-built ones keep the stable `dev.flet.*` identifiers their publisher assigned.
+* **This corrects 4.4.2.** Rewriting those identifiers was a hypothesis for the `ITMS-91065: Missing signature` App Store rejection (flet-dev/flet#6724) and it was wrong — the rejection reports on the publisher's signature of each XCFramework, which Xcode records in the IPA separately from your app's own signature, and the identifier rewrite destroyed it. See `serious_python_darwin` for the full explanation.
+* **iOS:** use the **Swift Package Manager** packaging path for App Store submissions. The CocoaPods path copies inner `.framework` bundles and cannot produce the SDK-origin signature receipts Apple's scan looks for; it now warns during the build.
+* New `SERIOUS_PYTHON_VERIFY_PROVIDER_SIGNATURES` (`warn` default / `require` / `off`) and `SERIOUS_PYTHON_EXPECTED_TEAM_ID` env vars verify those publisher signatures during packaging. Set `require` for release builds.
+* Bundled python-build snapshot re-pinned to **20260729** (`dart_bridge` **1.6.1 → 1.7.0**). No Python version moved — **3.12.13 / 3.13.14 / 3.14.6** and Pyodide are unchanged from 20260727 — but every Apple XCFramework in that release is now signed by the Flet publishing team with a secure timestamp. See `serious_python_darwin` 4.5.0.
+
 ## 4.4.2
 
 * **iOS:** new `SERIOUS_PYTHON_BUNDLE_ID` env var namespaces the generated frameworks' bundle identifiers under your app (`com.example.myapp.-ssl`) instead of a shared `org.python.*` default identical in every app built with serious_python. `flet build` sets it for you; set it yourself for a manual two-step build, in both places you set `SERIOUS_PYTHON_SITE_PACKAGES`.

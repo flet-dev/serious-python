@@ -1,3 +1,7 @@
+## 4.5.0
+
+* Re-pins the bundled python-build snapshot to **20260729** and `dart_bridge` to **1.7.0**. Both exist to provider-sign the Apple XCFrameworks (see `serious_python_darwin` 4.5.0). Nothing about Android changed: no Python version moved from 20260727 (**3.12.13 / 3.13.14 / 3.14.6**), and `dart_bridge`'s Android `.so`s are byte-identical to 1.6.1 — verified, not assumed.
+
 ## 4.4.2
 
 * Re-pins the bundled python-build snapshot to **20260727**. Its only functional change is to the iOS frameworks' `Info.plist` (see `serious_python_darwin` 4.4.2); no versions moved and the Android runtime is unchanged from 20260726.

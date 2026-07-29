@@ -106,33 +106,41 @@ create_xcframework_from_dylibs() {
     rm -rf "${dylib_tmp_dir}" >/dev/null
 }
 
-# Namespace every generated framework's CFBundleIdentifier under the host app's
+# Namespace LOCALLY BUILT frameworks' CFBundleIdentifiers under the host app's
 # bundle id, mirroring what CPython's own iOS support does when it converts a
 # .so into a framework (Platforms/Apple/testbed/Python.xcframework/build/utils.sh):
 #
 #   FRAMEWORK_BUNDLE_ID=$(echo $PRODUCT_BUNDLE_IDENTIFIER.$FULL_MODULE_NAME | tr "_" "-")
 #
-# The frameworks are built long before the app's bundle id is known -- python-build
-# has no idea what app its stdlib will end up in -- so they carry a placeholder
-# `org.python.<module>` until this pass. That placeholder is byte-identical in every
-# app that ships serious_python, and it also becomes the framework's CODE SIGNING
-# identifier, which is the one field that survives Xcode's `codesign -f` at embed
-# and again at exportArchive. A globally-shared identifier on a framework Apple
-# fingerprints as a listed third-party SDK is the leading explanation for the
-# ITMS-91065 rejection in flet-dev/flet#6724.
+# SCOPE -- read this before adding a call site.
+# This may only be pointed at frameworks create_xcframework_from_dylibs built
+# moments earlier from the app's own site-packages. It must NEVER be pointed at a
+# provider-built artifact (Python.xcframework, dart_bridge.xcframework, or the
+# stdlib extension frameworks from python-build).
+#
+# It used to be. The reasoning was that a globally-shared `org.python.<module>`
+# identifier on a framework Apple fingerprints as a third-party SDK explained the
+# ITMS-91065 rejection in flet-dev/flet#6724. That hypothesis was wrong, and the
+# fix was actively harmful: rewriting an Info.plist inside a provider XCFramework
+# invalidates the provider's signature, and it is precisely that SDK-origin
+# signature which ITMS-91065 is reporting missing. Xcode records it in the IPA's
+# top-level Signatures/ receipts, separately from -- and unaffected by -- the app's
+# own signature applied at embed and exportArchive.
+#
+# Provider frameworks now arrive with stable, provider-owned `dev.flet.python.*`
+# identifiers assigned upstream in python-build (dart_bridge has always used
+# `dev.flet.dartbridge`), so there is nothing here left to fix.
 #
 # The leading hyphen this produces for underscore-prefixed modules (`_ssl` ->
 # `<app>.-ssl`) is deliberate: it is what keeps `_ssl` distinct from `ssl`, and it
 # is the exact form CPython and BeeWare ship.
 #
 # Must run BEFORE reconcile_framework_install_names, whose ad-hoc re-sign reseals
-# the modified Info.plists. The stdlib xcframeworks copied in from python-build are
-# unsigned at this point, so editing their plists invalidates nothing.
+# the modified Info.plists.
 #
-# $3 is an optional space-separated list of framework names to leave alone --
-# used for artifacts that already carry a vendor-owned reverse-DNS identifier
-# (dart_bridge is `dev.flet.dartbridge`), which is the shape we are aiming for
-# rather than the problem we are fixing.
+# $3 is an optional space-separated list of framework names to leave alone. No
+# current caller passes it; it is kept because the guarantee it encodes -- some
+# names are off limits -- is cheaper to keep than to re-derive.
 rewrite_framework_bundle_ids() {
     local xcframeworks_dir=$1
     local bundle_id=${2%.}
