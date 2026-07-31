@@ -82,7 +82,74 @@ spv_each() {
     return 0
 }
 
-# Verify the provider signature on every xcframework under the given roots.
+# Emit the per-slice .framework bundles inside an xcframework.
+#
+# Globbed rather than derived from the xcframework's name: stage_spm.sh stages
+# Python.xcframework as Python-<platform>.xcframework, and a name-keyed lookup
+# would quietly find nothing there — turning "this slice is unsigned" into "there
+# was nothing to check".
+spv_slice_frameworks() {
+    for _spv_slice in "$1"/*/; do
+        [ -d "$_spv_slice" ] || continue
+        for _spv_fw in "$_spv_slice"*.framework; do
+            if [ -d "$_spv_fw" ]; then printf '%s\n' "$_spv_fw"; fi
+        done
+    done
+    return 0
+}
+
+# Assert one signed bundle carries a usable provider signature: verifiable, not
+# ad-hoc, securely timestamped, and (when configured) the expected team.
+spv_assert_signature() {
+    _spv_t=$1
+
+    # `codesign -dv` rather than probing for a _CodeSignature directory: a
+    # versioned macOS bundle keeps it at Versions/<name>/_CodeSignature and the
+    # version directory is not always "A" (CPython uses e.g. Versions/3.14).
+    if ! codesign -dv "$_spv_t" >/dev/null 2>&1; then
+        spv_bad "$_spv_t: not signed at all;" \
+                "its IPA receipt will report signed = false" || return 1
+        return 0
+    fi
+
+    if ! _spv_out=$(codesign --verify --strict --verbose=4 "$_spv_t" 2>&1); then
+        spv_bad "$_spv_t: provider signature does not verify: $_spv_out" || return 1
+        return 0
+    fi
+
+    _spv_info=$(codesign -dvvv "$_spv_t" 2>&1) || _spv_info=""
+
+    if printf '%s\n' "$_spv_info" | grep -q '^Signature=adhoc'; then
+        spv_bad "$_spv_t: ad-hoc signature, not a provider signature" || return 1
+        return 0
+    fi
+
+    if ! printf '%s\n' "$_spv_info" | grep -q '^Timestamp='; then
+        spv_bad "$_spv_t: no secure timestamp;" \
+                "its IPA receipt will report isSecureTimestamp = false" || return 1
+        return 0
+    fi
+
+    if [ -n "${SERIOUS_PYTHON_EXPECTED_TEAM_ID:-}" ]; then
+        _spv_team=$(printf '%s\n' "$_spv_info" | sed -n 's/^TeamIdentifier=//p' | head -1)
+        if [ "$_spv_team" != "$SERIOUS_PYTHON_EXPECTED_TEAM_ID" ]; then
+            spv_bad "$_spv_t: TeamIdentifier '$_spv_team' !=" \
+                    "expected '$SERIOUS_PYTHON_EXPECTED_TEAM_ID'" || return 1
+            return 0
+        fi
+    fi
+    return 0
+}
+
+# Verify the provider signature on every xcframework under the given roots —
+# BOTH the outer bundle and each slice's inner .framework.
+#
+# Both layers matter. An XCFramework whose outer bundle is signed but whose inner
+# frameworks are not produces an IPA receipt reading `signed = true` but
+# `isSecureTimestamp = false`; every slice of an XCFramework Apple's App Store
+# scan accepts is signed in its own right. Checking only the outer seal would let
+# that regression reach a submission unnoticed, which is exactly how it reached
+# one before.
 #
 # Roots must name PROVIDER artifacts only. Frameworks this plugin generates from
 # the app's own site-packages are built locally, carry an ad-hoc signature, and
@@ -95,44 +162,27 @@ spv_verify_provider() {
 
     _spv_status=0
     _spv_count=0
+    _spv_slices=0
     _spv_problems=0
     for _spv_root in "$@"; do
         [ -e "$_spv_root" ] || continue
         for _spv_xcf in $(spv_each "$_spv_root"); do
             _spv_count=$((_spv_count + 1))
 
+            # Outer bundle. Checked by file rather than via codesign so an
+            # entirely unsigned XCFramework reports the useful message.
             if [ ! -f "$_spv_xcf/_CodeSignature/CodeResources" ]; then
                 spv_bad "$_spv_xcf: no provider signature (unsigned XCFramework);" \
                         "its IPA receipt will report signed = false" || _spv_status=1
                 continue
             fi
+            spv_assert_signature "$_spv_xcf" || _spv_status=1
 
-            if ! _spv_out=$(codesign --verify --strict --verbose=4 "$_spv_xcf" 2>&1); then
-                spv_bad "$_spv_xcf: provider signature does not verify: $_spv_out" || _spv_status=1
-                continue
-            fi
-
-            _spv_info=$(codesign -dvvv "$_spv_xcf" 2>&1) || _spv_info=""
-
-            if printf '%s\n' "$_spv_info" | grep -q '^Signature=adhoc'; then
-                spv_bad "$_spv_xcf: ad-hoc signature, not a provider signature" || _spv_status=1
-                continue
-            fi
-
-            if ! printf '%s\n' "$_spv_info" | grep -q '^Timestamp='; then
-                spv_bad "$_spv_xcf: no secure timestamp;" \
-                        "its IPA receipt will report isSecureTimestamp = false" || _spv_status=1
-                continue
-            fi
-
-            if [ -n "${SERIOUS_PYTHON_EXPECTED_TEAM_ID:-}" ]; then
-                _spv_team=$(printf '%s\n' "$_spv_info" | sed -n 's/^TeamIdentifier=//p' | head -1)
-                if [ "$_spv_team" != "$SERIOUS_PYTHON_EXPECTED_TEAM_ID" ]; then
-                    spv_bad "$_spv_xcf: TeamIdentifier '$_spv_team' !=" \
-                            "expected '$SERIOUS_PYTHON_EXPECTED_TEAM_ID'" || _spv_status=1
-                    continue
-                fi
-            fi
+            # Each slice's inner framework, in its own right.
+            for _spv_inner in $(spv_slice_frameworks "$_spv_xcf"); do
+                _spv_slices=$((_spv_slices + 1))
+                spv_assert_signature "$_spv_inner" || _spv_status=1
+            done
         done
     done
 
@@ -140,10 +190,12 @@ spv_verify_provider() {
         # An empty tree must never read as "everything passed".
         spv_bad "no *.xcframework found under: $*" || _spv_status=1
     elif [ "$_spv_problems" -gt 0 ]; then
-        spv_note "$_spv_problems of $_spv_count provider xcframework(s) lack a usable" \
-                 "SDK-origin signature; the resulting IPA will report them as unsigned"
+        spv_note "$_spv_problems signature problem(s) across $_spv_count provider" \
+                 "xcframework(s) and $_spv_slices slice framework(s); the resulting IPA" \
+                 "will report them as unsigned or without a secure timestamp"
     else
-        spv_note "provider signatures verified on $_spv_count xcframework(s)"
+        spv_note "provider signatures verified on $_spv_count xcframework(s)" \
+                 "and $_spv_slices slice framework(s)"
     fi
     return $_spv_status
 }

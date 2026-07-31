@@ -284,6 +284,10 @@ framework with your Apple Distribution identity at embed time and again at
 single file inside an `.xcframework` — even one `Info.plist` key — invalidates the
 publisher's signature and turns the receipt back into `signed = false`.
 
+Both layers are signed: each slice's inner `.framework` as well as the outer
+`.xcframework`, in that order. Signing only the outer bundle yields a receipt
+reading `signed = true` but `isSecureTimestamp = false`.
+
 So serious_python treats `Python.xcframework`, `dart_bridge.xcframework`, and the
 stdlib extension frameworks as **immutable** once downloaded. They are copied
 verbatim at every staging step, and each step re-checks a digest manifest recorded

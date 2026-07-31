@@ -1,3 +1,7 @@
+## 4.5.1
+
+* Re-pins the bundled python-build snapshot to **20260730** and `dart_bridge` to **1.7.1**. Both exist to sign the Apple XCFrameworks on both layers (see `serious_python_darwin` 4.5.1); no Python version moved from 20260729 (**3.12.13 / 3.13.14 / 3.14.6**), and nothing about Linux changed.
+
 ## 4.5.0
 
 * Re-pins the bundled python-build snapshot to **20260729** and `dart_bridge` to **1.7.0**. Both exist to provider-sign the Apple XCFrameworks (see `serious_python_darwin` 4.5.0). Nothing about Linux changed: no Python version moved from 20260727 (**3.12.13 / 3.13.14 / 3.14.6**), and `libdart_bridge-linux-*.so` is byte-identical to 1.6.1 — verified, not assumed.

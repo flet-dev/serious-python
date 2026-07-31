@@ -1,3 +1,9 @@
+## 4.5.1
+
+* **iOS/macOS:** the bundled `Python`, `dart_bridge` and stdlib extension XCFrameworks are now signed on both layers — each slice's inner `.framework` as well as the outer `.xcframework`. 4.5.0 signed only the outer bundle. Note this did **not** change `isSecureTimestamp`, which still reports false — that field appears not to be reachable by signing; `signed`, which `ITMS-91065` names, is true. See `serious_python_darwin` 4.5.1.
+* Packaging now verifies both layers, so an unsigned slice fails the build instead of surfacing in an App Store submission. Set `SERIOUS_PYTHON_VERIFY_PROVIDER_SIGNATURES=require` for release builds.
+* Bundled python-build snapshot re-pinned to **20260730** (`dart_bridge` **1.7.0 → 1.7.1**). No Python version moved — **3.12.13 / 3.13.14 / 3.14.6** and Pyodide are unchanged from 20260729.
+
 ## 4.5.0
 
 * **iOS/macOS:** the pre-built `Python`, `dart_bridge` and stdlib extension XCFrameworks are now staged byte-for-byte and never modified. `SERIOUS_PYTHON_BUNDLE_ID` now namespaces only the frameworks built from *your* app's wheels; the pre-built ones keep the stable `dev.flet.*` identifiers their publisher assigned.
