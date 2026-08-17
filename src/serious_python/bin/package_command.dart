@@ -441,7 +441,16 @@ class PackageCommand extends Command {
             stdout.writeln(
                 "Installing $requirements with pip command to $sitePackagesDir");
 
-            List<String> pipArgs = ["--disable-pip-version-check"];
+            List<String> pipArgs = [
+              "--disable-pip-version-check",
+              // Without it, a 401 from an index makes pip prompt, and hang.
+              "--no-input",
+              // Bound each attempt instead of inheriting ambient pip config.
+              "--timeout",
+              "30",
+              "--retries",
+              "3",
+            ];
 
             if (isMobile || isWeb) {
               pipArgs.addAll(["--only-binary", ":all:"]);
