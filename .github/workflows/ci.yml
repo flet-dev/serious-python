@@ -57,7 +57,12 @@ jobs:
         run: |
           set -euo pipefail
           flutter pub get >/dev/null
-          dart run serious_python:gen_version_tables
+          # TEMP (python-315 rollout): the 3.15 row lives on python-build's
+          # python-315 branch, not in any released manifest yet — regenerate
+          # from the branch manifest. Revert to the no-arg form once a
+          # python-build release carries 3.15.
+          curl -fsSL -o /tmp/pb-manifest.json https://raw.githubusercontent.com/flet-dev/python-build/python-315/manifest.json
+          dart run serious_python:gen_version_tables --manifest /tmp/pb-manifest.json --release-date 20260730
           if ! git diff --quiet; then
             echo "::error::Generated Python version tables are out of date."
             echo "The committed lib/src/python_versions.dart and the four"
@@ -78,7 +83,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
@@ -104,6 +109,26 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased 3.15 runtime from python-build run artifacts
+        if: matrix.python_version == '3.15'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # TEMP (python-315 rollout): 3.15.0rc1 exists only as CI artifacts on
+          # python-build's python-315 branch — no release yet. Pre-place the
+          # runtime in the download cache and use the "seeded" date sentinel so
+          # the existence-guarded fetch skips the (404ing) release URL. Remove
+          # once a python-build release carries 3.15.
+          FULL=3.15.0rc1
+          stage=$(mktemp -d)
+          gh run download 32997272927 --repo flet-dev/python-build -n darwin-unsigned-$FULL --dir "$stage"
+          d="$HOME/.flet/cache/python-build/v$FULL-seeded"
+          mkdir -p "$d"
+          cp "$stage/python-macos-dart-$FULL.tar.gz" "$d/"
+          echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
 
       - name: Configure ${{ matrix.build_system }}
         run: |
@@ -146,7 +171,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
@@ -172,6 +197,26 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased 3.15 runtime from python-build run artifacts
+        if: matrix.python_version == '3.15'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # TEMP (python-315 rollout): 3.15.0rc1 exists only as CI artifacts on
+          # python-build's python-315 branch — no release yet. Pre-place the
+          # runtime in the download cache and use the "seeded" date sentinel so
+          # the existence-guarded fetch skips the (404ing) release URL. Remove
+          # once a python-build release carries 3.15.
+          FULL=3.15.0rc1
+          stage=$(mktemp -d)
+          gh run download 32997272927 --repo flet-dev/python-build -n darwin-unsigned-$FULL --dir "$stage"
+          d="$HOME/.flet/cache/python-build/v$FULL-seeded"
+          mkdir -p "$d"
+          cp "$stage/python-ios-dart-$FULL.tar.gz" "$d/"
+          echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
 
       - name: Setup iOS Simulator
         id: simulator
@@ -231,7 +276,7 @@ jobs:
       matrix:
         # x86_64 matches the emulator architecture; only build/install for
         # that ABI to keep CI fast.
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -256,6 +301,37 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased 3.15 runtime from python-build run artifacts
+        if: matrix.python_version == '3.15'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # TEMP (python-315 rollout): 3.15.0rc1 exists only as CI artifacts on
+          # python-build's python-315 branch — no release yet. Pre-place the
+          # runtime in the download cache and use the "seeded" date sentinel so
+          # the existence-guarded fetch skips the (404ing) release URL. Remove
+          # once a python-build release carries 3.15.
+          FULL=3.15.0rc1
+          stage=$(mktemp -d)
+          gh run download 32997272927 --repo flet-dev/python-build -n python-android-$FULL --dir "$stage"
+          # Gradle's python cache is version-keyed (no date suffix); the
+          # "seeded" sentinel instead gates its download task's network skip.
+          d="$HOME/.flet/cache/python-build/v$FULL"
+          mkdir -p "$d"
+          cp "$stage"/python-android-dart-$FULL-*.tar.gz "$d/"
+          # Per-minor dart-bridge .so's for py3.15 are unreleased too — take
+          # them from dart-bridge's python-315 CI run via the documented
+          # SERIOUS_PYTHON_DART_BRIDGE_DIST escape hatch.
+          bridge="$HOME/.flet/dart-bridge-py315"
+          mkdir -p "$bridge"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            gh run download 33001127664 --repo flet-dev/dart-bridge -n "libdart_bridge-android-$abi-py3.15" --dir "$bridge"
+          done
+          echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
+          echo "SERIOUS_PYTHON_DART_BRIDGE_DIST=$bridge" >> "$GITHUB_ENV"
 
       - name: Enable KVM
         run: |
@@ -339,7 +415,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -364,6 +440,26 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased 3.15 runtime from python-build run artifacts
+        if: matrix.python_version == '3.15'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # TEMP (python-315 rollout): 3.15.0rc1 exists only as CI artifacts on
+          # python-build's python-315 branch — no release yet. Pre-place the
+          # runtime in the download cache and use the "seeded" date sentinel so
+          # the existence-guarded fetch skips the (404ing) release URL. Remove
+          # once a python-build release carries 3.15.
+          FULL=3.15.0rc1
+          stage=$(mktemp -d)
+          gh run download 32997272927 --repo flet-dev/python-build -n python-windows-$FULL --dir "$stage"
+          d="$HOME/.flet/cache/python-build/v$FULL-seeded"
+          mkdir -p "$d"
+          cp "$stage/python-windows-for-dart-$FULL.zip" "$d/"
+          echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
 
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
@@ -407,7 +503,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -447,6 +543,26 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Read-only on tag/release builds to avoid cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased 3.15 runtime from python-build run artifacts
+        if: matrix.python_version == '3.15'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # TEMP (python-315 rollout): 3.15.0rc1 exists only as CI artifacts on
+          # python-build's python-315 branch — no release yet. Pre-place the
+          # runtime in the download cache and use the "seeded" date sentinel so
+          # the existence-guarded fetch skips the (404ing) release URL. Remove
+          # once a python-build release carries 3.15.
+          FULL=3.15.0rc1
+          stage=$(mktemp -d)
+          gh run download 32997272927 --repo flet-dev/python-build -n python-linux-$FULL --dir "$stage"
+          d="$HOME/.flet/cache/python-build/v$FULL-seeded"
+          mkdir -p "$d"
+          cp "$stage/python-linux-dart-$FULL-x86_64.tar.gz" "$d/"
+          echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
 
       - name: Install Linux desktop build deps
         run: |

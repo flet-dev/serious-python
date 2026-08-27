@@ -61,4 +61,12 @@ const pythonReleases = <String, PythonRelease>{
     androidAbis: ["arm64-v8a", "x86_64", "armeabi-v7a"],
     prerelease: false,
   ),
+  "3.15": PythonRelease(
+    standaloneVersion: "3.15.0rc1",
+    standaloneReleaseDate: "20260825",
+    pyodideVersion: "315.0.0a2",
+    pyodidePlatformTag: "pyemscripten-2026.5-wasm32",
+    androidAbis: ["arm64-v8a", "x86_64", "armeabi-v7a"],
+    prerelease: true,
+  ),
 };

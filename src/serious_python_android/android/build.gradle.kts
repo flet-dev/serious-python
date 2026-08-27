@@ -245,6 +245,13 @@ for (abi in abis) {
         useETag("all")
         tempAndMove(true)
         doFirst { distFile.parentFile.mkdirs() }
+        // Cache-seeding escape hatch: SERIOUS_PYTHON_BUILD_DATE=seeded plus a
+        // pre-placed cache file skips the network entirely (the release URL
+        // for an unreleased/prerelease runtime would 404 even under
+        // onlyIfModified). Matches the darwin/linux/windows convention where
+        // the "seeded" sentinel keys an existence-guarded cache dir; used by
+        // CI to validate python-build run artifacts without a release.
+        onlyIf { !(pythonBuildDate == "seeded" && distFile.exists()) }
     }
     tasks.register<Copy>("untarFile_$abi") {
         from(tarTree(distFile))

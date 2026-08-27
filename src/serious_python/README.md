@@ -26,7 +26,8 @@ is specified.
 | ----- | --------------- | ------------- | -------------------------------- |
 | 3.12  | 3.12.13         | 0.27.7        | `pyodide-2024.0-wasm32`           |
 | 3.13  | 3.13.14         | 0.29.4        | `pyemscripten-2025.0-wasm32`      |
-| 3.14  | 3.14.6          | 314.0.0       | `pyemscripten-2026.0-wasm32`      |
+| 3.14  | 3.14.6          | 314.0.3       | `pyemscripten-2026.0-wasm32`      |
+| 3.15 (prerelease)  | 3.15.0rc1       | 315.0.0a2     | `pyemscripten-2026.5-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
