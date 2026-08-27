@@ -561,7 +561,9 @@ jobs:
           gh run download 32997272927 --repo flet-dev/python-build -n python-linux-$FULL --dir "$stage"
           d="$HOME/.flet/cache/python-build/v$FULL-seeded"
           mkdir -p "$d"
-          cp "$stage/python-linux-dart-$FULL-x86_64.tar.gz" "$d/"
+          # The artifact carries both arch tarballs; seed both so the amd64
+          # and arm64 matrix legs share this step.
+          cp "$stage"/python-linux-dart-$FULL-*.tar.gz "$d/"
           echo "SERIOUS_PYTHON_BUILD_DATE=seeded" >> "$GITHUB_ENV"
 
       - name: Install Linux desktop build deps
