@@ -184,7 +184,9 @@ def _patch_subinterpreters():
     attribute at call time (as `InterpreterPoolExecutor` does on 3.14) rather
     than binding it via `from concurrent.interpreters import create`. If a
     future CPython changes that, the patch silently stops applying to the pool
-    and subinterpreter imports regress — verified working on 3.14.6.
+    and subinterpreter imports regress — verified working on 3.14.6 and
+    3.15.0rc1 (concurrent/futures/interpreter.py is byte-identical between
+    the two; create is still resolved as a module attribute at call time).
     """
     try:
         from concurrent import interpreters
