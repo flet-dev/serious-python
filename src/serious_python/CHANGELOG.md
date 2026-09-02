@@ -1,5 +1,9 @@
-## 4.5.2
+## 4.6.0
 
+* **The bundled CPython runtimes move to 3.12.14 / 3.13.15 / 3.14.7** (from 3.12.13 / 3.13.14 / 3.14.6) — the first Python version move since 4.3.x; every prior 4.4/4.5 release re-pinned python-build without changing a Python version. All three are security releases: they fix a quadratic-complexity DoS in incremental `html.parser.HTMLParser` parsing ([gh-153030](https://github.com/python/cpython/issues/153030)) and quadratic behaviour in `xml.etree.ElementTree` XPath index predicates ([gh-152674](https://github.com/python/cpython/issues/152674)), among others.
+* **3.12 additionally gets the libexpat CVE fix; 3.13 and 3.14 do not yet.** 3.12.14 (released 2026-08-12) bundles **libexpat 2.8.3** for [CVE-2026-72522](https://github.com/python/cpython/issues/155558); 3.13.15 and 3.14.7 (both 2026-08-05) predate it and still bundle **2.8.2** — verified in the runtimes' own `Modules/expat/expat.h`, not inferred from release notes. Relevant only if your app parses untrusted XML through `pyexpat` / `xml.etree` / `xml.sax`; upstream will pick it up in the next 3.13/3.14 micro.
+* **Pyodide (web) for 3.14: 314.0.3 → 314.0.6.** 3.13 (**0.29.4**) and 3.12 (**0.27.7**) are unchanged — each is already the newest release on its line.
+* Bundled python-build snapshot re-pinned to **20260902** (`dart_bridge` **1.7.1 → 1.8.0**).
 * **Packaging:** `pip install` no longer hangs when an index answers `401` — an authenticating mirror or proxy. pip prompted for credentials on a stdin nothing could answer, and wrote the prompt without a newline so callers never displayed it; the install blocked with `Looking in indexes: ...` as its last output, which `flet build` showed as a frozen `Packaging Python app...`. pip now runs with `--no-input` and bounded `--timeout`/`--retries`. See flet-dev/flet#5989, flet-dev/flet#5013 and flet-dev/flet#5507.
 
 ## 4.5.1

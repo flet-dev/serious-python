@@ -1,3 +1,8 @@
+## 4.6.0
+
+* **The bundled Linux runtimes move to CPython 3.12.14 / 3.13.15 / 3.14.7** (from 3.12.13 / 3.13.14 / 3.14.6). All three are security releases: they fix a quadratic-complexity DoS in incremental `html.parser.HTMLParser` parsing ([gh-153030](https://github.com/python/cpython/issues/153030)) and quadratic behaviour in `xml.etree.ElementTree` XPath index predicates ([gh-152674](https://github.com/python/cpython/issues/152674)), among others. 3.13.15 and 3.14.7 still bundle libexpat **2.8.2**; only 3.12.14 carries **2.8.3** with the [CVE-2026-72522](https://github.com/python/cpython/issues/155558) fix — see the `serious_python` 4.6.0 notes.
+* Re-pins the bundled python-build snapshot to **20260902** and `dart_bridge` to **1.8.0**.
+
 ## 4.5.1
 
 * Re-pins the bundled python-build snapshot to **20260730** and `dart_bridge` to **1.7.1**. Both exist to sign the Apple XCFrameworks on both layers (see `serious_python_darwin` 4.5.1); no Python version moved from 20260729 (**3.12.13 / 3.13.14 / 3.14.6**), and nothing about Linux changed.
