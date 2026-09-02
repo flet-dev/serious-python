@@ -8,8 +8,8 @@ import 'package:glob/glob.dart';
 import 'package:glob/list_local_fs.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as path;
-import 'package:shelf/shelf.dart';
 import 'package:serious_python/src/python_versions.dart';
+import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import 'macos_utils.dart' as macos_utils;
@@ -344,10 +344,8 @@ class PackageCommand extends Command {
       // site-packages root
       String sitePackagesRoot =
           path.join(currentPath, "build", "site-packages");
-      if (Platform.environment
-          .containsKey(sitePackagesEnvironmentVariable)) {
-        final envValue =
-            Platform.environment[sitePackagesEnvironmentVariable];
+      if (Platform.environment.containsKey(sitePackagesEnvironmentVariable)) {
+        final envValue = Platform.environment[sitePackagesEnvironmentVariable];
         if (envValue != null && envValue.isNotEmpty) {
           sitePackagesRoot = envValue;
         }
@@ -382,7 +380,8 @@ class PackageCommand extends Command {
           // minor (per python-build's manifest `android_abis`); installing
           // for an unpublished ABI would be wasted work.
           if (platform == "Android" &&
-              !pythonReleases[_pythonShortVersion]!.androidAbis
+              !pythonReleases[_pythonShortVersion]!
+                  .androidAbis
                   .contains(arch.key)) {
             continue;
           }
@@ -441,7 +440,15 @@ class PackageCommand extends Command {
             stdout.writeln(
                 "Installing $requirements with pip command to $sitePackagesDir");
 
-            List<String> pipArgs = ["--disable-pip-version-check"];
+            List<String> pipArgs = [
+              "--disable-pip-version-check",
+              "--timeout",
+              "30",
+              "--retries",
+              "3",
+              // Prevent pip from prompting and hanging for input.
+              "--no-input",
+            ];
 
             if (isMobile || isWeb) {
               pipArgs.addAll(["--only-binary", ":all:"]);
@@ -676,7 +683,8 @@ class PackageCommand extends Command {
   Future<void> _stageDarwinSpm(String platform, String projectPath) async {
     final darwinDir = await _resolveDarwinDir(projectPath);
     if (darwinDir == null) {
-      stdout.writeln("SPM staging skipped: could not resolve serious_python_darwin "
+      stdout.writeln(
+          "SPM staging skipped: could not resolve serious_python_darwin "
           "(set $darwinDirEnvironmentVariable or ensure "
           ".dart_tool/package_config.json is present).");
       return;

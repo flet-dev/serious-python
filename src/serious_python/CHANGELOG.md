@@ -1,3 +1,7 @@
+## 4.5.2
+
+* **Packaging:** `pip install` no longer hangs when an index answers `401` — an authenticating mirror or proxy. pip prompted for credentials on a stdin nothing could answer, and wrote the prompt without a newline so callers never displayed it; the install blocked with `Looking in indexes: ...` as its last output, which `flet build` showed as a frozen `Packaging Python app...`. pip now runs with `--no-input` and bounded `--timeout`/`--retries`. See flet-dev/flet#5989, flet-dev/flet#5013 and flet-dev/flet#5507.
+
 ## 4.5.1
 
 * **iOS/macOS:** the bundled `Python`, `dart_bridge` and stdlib extension XCFrameworks are now signed on both layers — each slice's inner `.framework` as well as the outer `.xcframework`. 4.5.0 signed only the outer bundle. Note this did **not** change `isSecureTimestamp`, which still reports false — that field appears not to be reachable by signing; `signed`, which `ITMS-91065` names, is true. See `serious_python_darwin` 4.5.1.
