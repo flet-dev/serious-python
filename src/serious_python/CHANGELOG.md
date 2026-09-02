@@ -1,3 +1,10 @@
+## 4.6.0
+
+* **The bundled CPython runtimes move to 3.12.14 / 3.13.15 / 3.14.7** (from 3.12.13 / 3.13.14 / 3.14.6) — the first Python version move since 4.3.x; every prior 4.4/4.5 release re-pinned python-build without changing a Python version. All three are security releases: they fix a quadratic-complexity DoS in incremental `html.parser.HTMLParser` parsing ([gh-153030](https://github.com/python/cpython/issues/153030)) and quadratic behaviour in `xml.etree.ElementTree` XPath index predicates ([gh-152674](https://github.com/python/cpython/issues/152674)), among others.
+* **3.12 additionally gets the libexpat CVE fix; 3.13 and 3.14 do not yet.** 3.12.14 (released 2026-08-12) bundles **libexpat 2.8.3** for [CVE-2026-72522](https://github.com/python/cpython/issues/155558); 3.13.15 and 3.14.7 (both 2026-08-05) predate it and still bundle **2.8.2** — verified in the runtimes' own `Modules/expat/expat.h`, not inferred from release notes. Relevant only if your app parses untrusted XML through `pyexpat` / `xml.etree` / `xml.sax`; upstream will pick it up in the next 3.13/3.14 micro.
+* **Pyodide (web) for 3.14: 314.0.3 → 314.0.6.** 3.13 (**0.29.4**) and 3.12 (**0.27.7**) are unchanged — each is already the newest release on its line.
+* Bundled python-build snapshot re-pinned to **20260902** (`dart_bridge` **1.7.1 → 1.8.0**).
+
 ## 4.5.1
 
 * **iOS/macOS:** the bundled `Python`, `dart_bridge` and stdlib extension XCFrameworks are now signed on both layers — each slice's inner `.framework` as well as the outer `.xcframework`. 4.5.0 signed only the outer bundle. Note this did **not** change `isSecureTimestamp`, which still reports false — that field appears not to be reachable by signing; `signed`, which `ITMS-91065` names, is true. See `serious_python_darwin` 4.5.1.
