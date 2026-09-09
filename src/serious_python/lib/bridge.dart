@@ -3,7 +3,8 @@
 /// See [PythonBridge] for the per-channel API. The lower-level [DartBridge]
 /// singleton (from the platform-interface package) is re-exported here for
 /// embedders that need the process-reuse / session-restart hooks added in
-/// libdart_bridge 1.3.0 — `isPythonInitialized` and `signalDartSession`.
+/// libdart_bridge 1.3.0 (`isPythonInitialized` and `signalDartSession`), or
+/// the teardown-skipping `hardExit` added in 1.9.0.
 library;
 
 export 'package:serious_python_platform_interface/src/dart_bridge_ffi.dart'
