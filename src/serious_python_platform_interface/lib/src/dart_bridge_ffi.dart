@@ -70,6 +70,9 @@ typedef _DartBridgeSignalDartSessionNative = Void Function(
 typedef _DartBridgeSignalDartSessionDart = void Function(
     int, Pointer<Pointer<Utf8>>, Pointer<Int64>);
 
+typedef _SeriousPythonHardExitNative = Void Function(Int32);
+typedef _SeriousPythonHardExitDart = void Function(int);
+
 // ---------------------------------------------------------------------------
 // Library binding
 // ---------------------------------------------------------------------------
@@ -104,6 +107,12 @@ class DartBridge {
       'dart_bridge_signal_dart_session',
       (f) => f.asFunction<_DartBridgeSignalDartSessionDart>(),
     );
+    // dart_bridge >= 1.9.0 export; same soft-lookup rationale as above.
+    _hardExit = _lookupOrNull<_SeriousPythonHardExitNative,
+        _SeriousPythonHardExitDart>(
+      'serious_python_hard_exit',
+      (f) => f.asFunction<_SeriousPythonHardExitDart>(),
+    );
   }
 
   // Generic helper for soft symbol lookup — returns null if the binary
@@ -125,6 +134,7 @@ class DartBridge {
   late final _DartBridgeEnqueueMessageDart _enqueueMessage;
   late final _DartBridgeIsPythonInitializedDart? _isPythonInitialized;
   late final _DartBridgeSignalDartSessionDart? _signalDartSession;
+  late final _SeriousPythonHardExitDart? _hardExit;
 
   static DartBridge? _instance;
 
@@ -220,6 +230,21 @@ class DartBridge {
       f(portMap.length, labels, ports);
     });
   }
+
+  /// True when the loaded libdart_bridge exports [hardExit] (>= 1.9.0).
+  /// Callers should branch on this rather than assuming the call terminates.
+  bool get canHardExit => _hardExit != null;
+
+  /// Terminate the process immediately with [exitCode], skipping `atexit`
+  /// handlers and C++ static destructors. Does not return, *unless* running
+  /// against a pre-1.9.0 libdart_bridge, where it is a no-op and the caller
+  /// must fall back to `dart:io`'s `exit()`.
+  ///
+  /// `dart:io`'s `exit()` runs the normal C teardown, which destroys the C++
+  /// statics inside every loaded CPython extension module. The interpreter
+  /// lives on a detached thread that may still be running, so that teardown
+  /// can fault it. Use this instead wherever the process is going away anyway.
+  void hardExit(int exitCode) => _hardExit?.call(exitCode);
 }
 
 // ---------------------------------------------------------------------------

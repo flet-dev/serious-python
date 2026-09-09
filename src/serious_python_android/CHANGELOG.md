@@ -1,3 +1,7 @@
+## 4.7.0
+
+* Re-pins the bundled python-build snapshot to **20260908** and `dart_bridge` to **1.9.0**, whose `libdart_bridge.so` adds the `serious_python_hard_exit` export behind `DartBridge.hardExit`. No CPython versions change from 4.6.0 - **3.12.14 / 3.13.15 / 3.14.7** are unchanged.
+
 ## 4.6.0
 
 * **The bundled Android runtimes move to CPython 3.12.14 / 3.13.15 / 3.14.7** (from 3.12.13 / 3.13.14 / 3.14.6). All three are security releases: they fix a quadratic-complexity DoS in incremental `html.parser.HTMLParser` parsing ([gh-153030](https://github.com/python/cpython/issues/153030)) and quadratic behaviour in `xml.etree.ElementTree` XPath index predicates ([gh-152674](https://github.com/python/cpython/issues/152674)), among others. 3.13.15 and 3.14.7 still bundle libexpat **2.8.2**; only 3.12.14 carries **2.8.3** with the [CVE-2026-72522](https://github.com/python/cpython/issues/155558) fix — see the `serious_python` 4.6.0 notes.

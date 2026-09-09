@@ -1,3 +1,8 @@
+## 4.7.0
+
+* **`DartBridge.hardExit(exitCode)`: terminate without running process teardown.** `dart:io`'s `exit()` runs the normal C teardown, which destroys the C++ statics inside every loaded CPython extension module. The interpreter lives on a detached thread that may still be running, so that teardown can fault it, giving a `SIGSEGV` on exit from an app that had already finished its work. `hardExit` skips it. Guard with `DartBridge.canHardExit`, which is `false` against a pre-1.9.0 `libdart_bridge` (the symbol is resolved softly, like `isPythonInitialized` and `signalDartSession`); `hardExit` is then a no-op and the caller should fall back to `exit()`.
+* Bundled python-build snapshot re-pinned to [20260908](https://github.com/flet-dev/python-build/releases/tag/20260908) (`dart_bridge` **1.8.0 -> 1.9.0**), which is what carries the new `serious_python_hard_exit` export. No CPython or Pyodide versions change; the release exists to publish the updated manifest.
+
 ## 4.6.0
 
 * **The bundled CPython runtimes move to 3.12.14 / 3.13.15 / 3.14.7** (from 3.12.13 / 3.13.14 / 3.14.6) — the first Python version move since 4.3.x; every prior 4.4/4.5 release re-pinned python-build without changing a Python version. All three are security releases: they fix a quadratic-complexity DoS in incremental `html.parser.HTMLParser` parsing ([gh-153030](https://github.com/python/cpython/issues/153030)) and quadratic behaviour in `xml.etree.ElementTree` XPath index predicates ([gh-152674](https://github.com/python/cpython/issues/152674)), among others.

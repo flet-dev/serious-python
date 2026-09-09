@@ -1,3 +1,8 @@
+## 4.7.0
+
+* **`DartBridge.hardExit(exitCode)` / `DartBridge.canHardExit`**, binding `serious_python_hard_exit` from `dart_bridge` 1.9.0. `dart:io`'s `exit()` runs the normal C teardown, which destroys the C++ statics inside every loaded CPython extension module while the interpreter thread may still be running inside one of them; `hardExit` skips it. The symbol is resolved through the existing soft lookup, so an app built against an older `libdart_bridge` still loads, `canHardExit` is `false`, and the caller falls back to `exit()`. See the `serious_python` 4.7.0 notes.
+* Re-pins the bundled python-build snapshot to **20260908** and `dart_bridge` to **1.9.0**.
+
 ## 4.6.0
 
 * Version bump aligning with the `serious_python_*` 4.6.0 release.
