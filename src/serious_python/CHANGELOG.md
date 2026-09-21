@@ -1,3 +1,9 @@
+## 4.7.1
+
+* Fix macOS crashes during native scientific imports and NumPy operations by giving the asynchronous Python worker at least **8 MiB** of stack space, via `dart_bridge` 1.10.0. ([dart-bridge#21](https://github.com/flet-dev/dart-bridge/pull/21), [#85](https://github.com/flet-dev/serious-python/issues/85))
+* Update Pyodide to **0.27.8 / 0.29.5 / 314.0.7** for Python **3.12 / 3.13 / 3.14**, respectively. Wheel platform tags are unchanged. ([python-build#42](https://github.com/flet-dev/python-build/pull/42))
+* Update the python-build snapshot to **20260921** and `dart_bridge` to **1.10.0**. CPython versions remain **3.12.14 / 3.13.15 / 3.14.7**. ([python-build#42](https://github.com/flet-dev/python-build/pull/42))
+
 ## 4.7.0
 
 * **`DartBridge.hardExit(exitCode)`: terminate without running process teardown.** `dart:io`'s `exit()` runs the normal C teardown, which destroys the C++ statics inside every loaded CPython extension module. The interpreter lives on a detached thread that may still be running, so that teardown can fault it, giving a `SIGSEGV` on exit from an app that had already finished its work. `hardExit` skips it. Guard with `DartBridge.canHardExit`, which is `false` against a pre-1.9.0 `libdart_bridge` (the symbol is resolved softly, like `isPythonInitialized` and `signalDartSession`); `hardExit` is then a no-op and the caller should fall back to `exit()`.

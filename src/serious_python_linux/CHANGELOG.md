@@ -1,3 +1,7 @@
+## 4.7.1
+
+* Update the python-build snapshot to **20260921** and `dart_bridge` to **1.10.0**. CPython versions remain **3.12.14 / 3.13.15 / 3.14.7**. ([python-build#42](https://github.com/flet-dev/python-build/pull/42))
+
 ## 4.7.0
 
 * Re-pins the bundled python-build snapshot to **20260908** and `dart_bridge` to **1.9.0**, whose `libdart_bridge.so` adds the `serious_python_hard_exit` export behind `DartBridge.hardExit`. No CPython versions change from 4.6.0 - **3.12.14 / 3.13.15 / 3.14.7** are unchanged.
