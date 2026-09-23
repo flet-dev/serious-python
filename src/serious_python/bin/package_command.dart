@@ -597,7 +597,9 @@ class PackageCommand extends Command {
         }
       }
     } catch (e) {
-      stdout.writeln("Error: $e");
+      stderr.writeln("Error: $e");
+      // exitCode rather than exit(), so the finally block still cleans up.
+      exitCode = 1;
     } finally {
       if (tempDir != null && await tempDir.exists()) {
         stdout.writeln("Deleting temp directory");
