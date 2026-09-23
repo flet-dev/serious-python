@@ -1,3 +1,7 @@
+## 4.7.2
+
+* **macOS:** fix App Store Connect rejecting Xcode-distributed builds with `90238: Invalid signature … does not satisfy its designated Requirement` on bundled `.so` files ([#250](https://github.com/flet-dev/serious-python/issues/250)). Linker-signed native modules are re-signed ad-hoc while they are staged, so Xcode's distribution signing gives them valid signatures. See `serious_python_darwin` 4.7.2.
+
 ## 4.7.1
 
 * Fix macOS crashes during native scientific imports and NumPy operations by giving the asynchronous Python worker at least **8 MiB** of stack space, via `dart_bridge` 1.10.0. ([dart-bridge#21](https://github.com/flet-dev/dart-bridge/pull/21), [#85](https://github.com/flet-dev/serious-python/issues/85))

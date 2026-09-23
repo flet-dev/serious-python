@@ -319,6 +319,20 @@ produces a working app, but it cannot produce complete SDK-origin receipts. **Us
 the SwiftPM path for App Store submissions** until that path is replaced with real
 vendored XCFramework declarations.
 
+#### macOS native module signatures
+
+On macOS, the native modules under `stdlib/`, `site-packages/` and `app/` ship as
+plain `.so`/`.dylib` files, which Xcode's distribution signing (the Organizer or
+`xcodebuild -exportArchive`) re-signs with your certificate along with the rest of
+the app. A module carrying the signature the linker gave it comes out of that
+step with a designated requirement naming a different identifier than its new
+signature: codesign does not carry a linker signature's identifier over, but Xcode
+can build the requirement from it. App Store Connect rejects such an upload with
+error 90238 ("does not satisfy its designated Requirement"). The macOS build
+therefore replaces linker signatures with regular ad-hoc ones while staging these
+trees. The `SERIOUS_PYTHON_SITE_PACKAGES` and `SERIOUS_PYTHON_APP` directories
+themselves are left unchanged.
+
 ### Linux / Windows specifics
 
 The CPython runtime (`libpython3.so` + `libpython<X.Y>.so` on Linux; `python3.dll` + `python<XY>.dll` on Windows), `libdart_bridge`, the stdlib, and native modules are copied next to your app's executable at build time. `PYTHONHOME` is the executable's directory. On Windows, extension modules (`.pyd`) and their dependent DLLs live in `<exe-dir>/DLLs/`, which is added to `sys.path`.

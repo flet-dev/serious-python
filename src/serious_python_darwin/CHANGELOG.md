@@ -1,3 +1,7 @@
+## 4.7.2
+
+* **macOS: bundled native modules pass App Store Connect's signature check after Xcode distribution signing** ([#250](https://github.com/flet-dev/serious-python/issues/250)). The stdlib `lib-dynload` modules and many wheel extensions (e.g. Pillow's `_imagingmorph`) arrive with the linker's ad-hoc signature, whose identifier is the file name including `.so`. When Xcode re-signs them for distribution (Organizer, `xcodebuild -exportArchive`), `codesign` cannot carry that identifier over and derives one without the extension, while Xcode can write the designated requirement from the old one, so App Store Connect rejected the upload with `90238: Invalid signature … does not satisfy its designated Requirement`. The macOS staging now re-signs every still-linker-signed `.so`/`.dylib` ad-hoc: `prepare_macos.sh` for the stdlib, `sync_site_packages.sh` for site-packages and the app. A regular ad-hoc signature's identifier survives re-signing, so the requirement and the signature agree. `SERIOUS_PYTHON_SITE_PACKAGES`, `SERIOUS_PYTHON_APP` and the provider XCFrameworks are not modified. CI now fails the macOS example build if a linker-signed library reaches the app bundle.
+
 ## 4.7.1
 
 * Fix macOS crashes during native scientific imports and NumPy operations by giving the asynchronous Python worker at least **8 MiB** of stack space, via `dart_bridge` 1.10.0. ([dart-bridge#21](https://github.com/flet-dev/dart-bridge/pull/21), [#85](https://github.com/flet-dev/serious-python/issues/85))
