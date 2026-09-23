@@ -1,3 +1,7 @@
+## 4.7.2
+
+* **Packaging:** `dart run serious_python:main package` exits with status `1` when packaging fails. Errors raised during packaging, such as `SERIOUS_PYTHON_APP` not being set for a native platform or the Swift Package Manager staging script (`prepare_spm.sh`) failing, were printed as `Error: ...` on stdout while the command still exited `0`, so callers carried on: CI failed only later in the integration tests, and `flet build` continued past the failed step, cached it as done, and did not show the message outside verbose mode. The error now goes to stderr and the temporary directory is still cleaned up; the other exit paths keep their status codes.
+
 ## 4.7.1
 
 * Fix macOS crashes during native scientific imports and NumPy operations by giving the asynchronous Python worker at least **8 MiB** of stack space, via `dart_bridge` 1.10.0. ([dart-bridge#21](https://github.com/flet-dev/dart-bridge/pull/21), [#85](https://github.com/flet-dev/serious-python/issues/85))
