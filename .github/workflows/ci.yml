@@ -138,6 +138,34 @@ jobs:
           flutter test integration_test/throughput_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
           flutter test integration_test/memory_test.dart -d macos --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }}
 
+      - name: Check bundled native libraries are not linker-signed
+        working-directory: "src/serious_python/example/bridge_example"
+        run: |
+          # Xcode distribution signing mis-signs linker-signed libraries (see
+          # src/serious_python_darwin/darwin/linker_signatures.sh), so none may
+          # reach the app bundle.
+          app=$(find build/macos/Build/Products -maxdepth 2 -type d -name '*.app' | head -n 1)
+          if [ -z "$app" ]; then
+            echo "::error::No built app under build/macos/Build/Products"
+            exit 1
+          fi
+          total=0
+          linker_signed=0
+          while IFS= read -r bin; do
+            total=$((total + 1))
+            for arch in $(lipo -archs "$bin" 2>/dev/null); do
+              case $(codesign -d --verbose=1 --architecture "$arch" "$bin" 2>&1) in
+                *"CodeDirectory "*linker-signed*)
+                  echo "::error::Linker-signed ($arch slice): ${bin#"$app"/}"
+                  linker_signed=$((linker_signed + 1))
+                  break
+                  ;;
+              esac
+            done
+          done < <(find "$app/Contents/Resources" -type f \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' \))
+          echo "Checked $total bundled native libraries, $linker_signed linker-signed."
+          [ "$total" -gt 0 ] && [ "$linker_signed" -eq 0 ]
+
   bridge_example_ios:
     name: Test Bridge example on iOS (${{ matrix.build_system }}, Python ${{ matrix.python_version }})
     if: ${{ !startsWith(github.ref, 'refs/tags/') }}

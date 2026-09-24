@@ -55,6 +55,7 @@ Pod::Spec.new do |s|
   dist_macos = "dist_macos"
 
   prepare_command = <<-CMD
+    set -e
     ./symlink_pod.sh
     ./prepare_ios.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
     ./prepare_macos.sh #{python_version} #{python_full_version} #{python_build_date} #{dart_bridge_version}
@@ -62,6 +63,7 @@ Pod::Spec.new do |s|
 CMD
 
 puts `#{prepare_command}`
+raise "serious_python_darwin: preparing the Python runtime failed (exit status #{$?.exitstatus}); see the errors above" unless $?.success?
 
   # iOS frameworks
   s.ios.script_phase = {

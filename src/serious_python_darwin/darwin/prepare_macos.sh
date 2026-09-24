@@ -57,6 +57,12 @@ if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$pb_id" ]; then
     echo "$pb_id" > "$marker"
 fi
 
+# ---- stdlib native module signatures ----------------------------------------
+# Outside the extraction guard, so an already-extracted dist is covered as well.
+# The provider xcframeworks are not touched.
+. "$script_dir/linker_signatures.sh"
+replace_linker_signatures "$dist/stdlib" || exit 1
+
 # ---- flet-dev/dart-bridge (xcframework, same archive for macOS + iOS) -----
 # Separate cache guard so a stale $dist from before this change still picks
 # up the new artifact on first re-prepare.

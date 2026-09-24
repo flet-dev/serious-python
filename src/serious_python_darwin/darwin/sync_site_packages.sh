@@ -3,6 +3,8 @@ script_dir=$(cd "$(dirname "$0")" && pwd -P)
 # Provider-signature + provider-integrity checks (see xcframework_verify.sh).
 # Sourced unconditionally so both the iOS and macOS branches can use it.
 source $script_dir/xcframework_verify.sh
+# Linker-signature replacement for the macOS resource trees.
+source "$script_dir/linker_signatures.sh"
 
 # App sources are arch- and platform-independent; stage them as a bare `app/`
 # resource bundle into BOTH dist trees, regardless of whether site-packages
@@ -16,6 +18,7 @@ if [[ -n "$SERIOUS_PYTHON_APP" && -d "$SERIOUS_PYTHON_APP" ]]; then
         mkdir -p "$app_dist/app"
         rsync -a --exclude '.pod' "$SERIOUS_PYTHON_APP/" "$app_dist/app/"
     done
+    replace_linker_signatures "$script_dir/dist_macos/app" || exit 1
 fi
 
 if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]]; then
@@ -136,6 +139,9 @@ if [[ -n "$SERIOUS_PYTHON_SITE_PACKAGES" && -d "$SERIOUS_PYTHON_SITE_PACKAGES" ]
         # file. .pod is only needed by package_command.dart at packaging
         # time to invoke this sync script; it does not belong in the bundle.
         rsync -av --delete --exclude '.pod' "$SERIOUS_PYTHON_SITE_PACKAGES/" "$dist/site-packages/"
+        # The staged copy is re-signed, never the source; each sync restores the
+        # linker-signed files and re-signing them reproduces the same bytes.
+        replace_linker_signatures "$dist/site-packages" || exit 1
 
         # macOS has no framework-ization step -- its .so's load flat from the
         # resource tree -- so nothing here should ever touch the provider
