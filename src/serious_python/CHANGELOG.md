@@ -1,3 +1,8 @@
+## 4.7.2
+
+* **macOS:** fix App Store Connect error `90238` ("does not satisfy its designated Requirement") for bundled native modules after Xcode distribution signing ([#250](https://github.com/flet-dev/serious-python/issues/250)). See `serious_python_darwin` 4.7.2.
+* **iOS/macOS (CocoaPods):** fail `pod install` when a Python runtime preparation script fails, preventing builds from continuing with an incomplete runtime. See `serious_python_darwin` 4.7.2.
+
 ## 4.7.1
 
 * Fix macOS crashes during native scientific imports and NumPy operations by giving the asynchronous Python worker at least **8 MiB** of stack space, via `dart_bridge` 1.10.0. ([dart-bridge#21](https://github.com/flet-dev/dart-bridge/pull/21), [#85](https://github.com/flet-dev/serious-python/issues/85))
