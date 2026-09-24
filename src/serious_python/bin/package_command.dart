@@ -597,7 +597,8 @@ class PackageCommand extends Command {
         }
       }
     } catch (e) {
-      stdout.writeln("Error: $e");
+      stderr.writeln("Error: $e");
+      exitCode = 1;
     } finally {
       if (tempDir != null && await tempDir.exists()) {
         stdout.writeln("Deleting temp directory");
