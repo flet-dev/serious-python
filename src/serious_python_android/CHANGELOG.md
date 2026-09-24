@@ -1,3 +1,7 @@
+## 4.7.2
+
+* Align with the serious_python **4.7.2** release ([#252](https://github.com/flet-dev/serious-python/pull/252)).
+
 ## 4.7.1
 
 * Update the python-build snapshot to **20260921** and `dart_bridge` to **1.10.0**. CPython versions remain **3.12.14 / 3.13.15 / 3.14.7**. ([python-build#42](https://github.com/flet-dev/python-build/pull/42))

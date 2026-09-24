@@ -1,8 +1,8 @@
 ## 4.7.2
 
-* **Packaging:** `dart run serious_python:main package` exits with status `1` when packaging fails. Errors raised during packaging, such as `SERIOUS_PYTHON_APP` not being set for a native platform or the Swift Package Manager staging script (`prepare_spm.sh`) failing, were printed as `Error: ...` on stdout while the command still exited `0`, so callers carried on: CI failed only later in the integration tests, and `flet build` continued past the failed step, cached it as done, and did not show the message outside verbose mode. The error now goes to stderr and the temporary directory is still cleaned up; the other exit paths keep their status codes.
-* **macOS:** fix App Store Connect error `90238` ("does not satisfy its designated Requirement") for bundled native modules after Xcode distribution signing ([#250](https://github.com/flet-dev/serious-python/issues/250)). See `serious_python_darwin` 4.7.2.
-* **iOS/macOS (CocoaPods):** fail `pod install` when a Python runtime preparation script fails, preventing builds from continuing with an incomplete runtime. See `serious_python_darwin` 4.7.2.
+* **Packaging:** report packaging exceptions on stderr and exit with status `1`, so CI and `flet build` stop on failure while temporary files are still cleaned up ([#252](https://github.com/flet-dev/serious-python/pull/252)).
+* **macOS:** fix App Store Connect error `90238` ("does not satisfy its designated Requirement") for bundled native modules after Xcode distribution signing ([#250](https://github.com/flet-dev/serious-python/issues/250), [#251](https://github.com/flet-dev/serious-python/pull/251)). See `serious_python_darwin` 4.7.2.
+* **iOS/macOS (CocoaPods):** fail `pod install` when a Python runtime preparation script fails, preventing builds from continuing with an incomplete runtime. See `serious_python_darwin` 4.7.2. ([#251](https://github.com/flet-dev/serious-python/pull/251))
 
 ## 4.7.1
 

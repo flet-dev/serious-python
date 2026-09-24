@@ -1,3 +1,7 @@
+## 4.7.2
+
+* Align with the serious_python **4.7.2** release ([#252](https://github.com/flet-dev/serious-python/pull/252)).
+
 ## 4.7.1
 
 * Align with the serious_python **4.7.1** release.
