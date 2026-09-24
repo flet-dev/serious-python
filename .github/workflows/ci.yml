@@ -153,12 +153,15 @@ jobs:
           linker_signed=0
           while IFS= read -r bin; do
             total=$((total + 1))
-            case $(codesign -d --verbose=1 "$bin" 2>&1) in
-              *"CodeDirectory "*linker-signed*)
-                echo "::error::Linker-signed: ${bin#"$app"/}"
-                linker_signed=$((linker_signed + 1))
-                ;;
-            esac
+            for arch in $(lipo -archs "$bin" 2>/dev/null); do
+              case $(codesign -d --verbose=1 --architecture "$arch" "$bin" 2>&1) in
+                *"CodeDirectory "*linker-signed*)
+                  echo "::error::Linker-signed ($arch slice): ${bin#"$app"/}"
+                  linker_signed=$((linker_signed + 1))
+                  break
+                  ;;
+              esac
+            done
           done < <(find "$app/Contents/Resources" -type f \( -name '*.so' -o -name '*.so.*' -o -name '*.dylib' \))
           echo "Checked $total bundled native libraries, $linker_signed linker-signed."
           [ "$total" -gt 0 ] && [ "$linker_signed" -eq 0 ]
