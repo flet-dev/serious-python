@@ -1,6 +1,7 @@
 ## 4.7.2
 
-* **macOS:** fix App Store Connect rejecting Xcode-distributed builds with `90238: Invalid signature … does not satisfy its designated Requirement` on bundled `.so` files ([#250](https://github.com/flet-dev/serious-python/issues/250)). Linker-signed native modules are re-signed ad-hoc while they are staged, so Xcode's distribution signing gives them valid signatures. See `serious_python_darwin` 4.7.2.
+* **macOS:** fix App Store Connect error `90238` ("does not satisfy its designated Requirement") for bundled native modules after Xcode distribution signing ([#250](https://github.com/flet-dev/serious-python/issues/250)). See `serious_python_darwin` 4.7.2.
+* **iOS/macOS (CocoaPods):** fail `pod install` when a Python runtime preparation script fails, preventing builds from continuing with an incomplete runtime. See `serious_python_darwin` 4.7.2.
 
 ## 4.7.1
 
