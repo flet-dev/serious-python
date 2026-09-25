@@ -1,3 +1,7 @@
+## 5.0.0
+
+* Align with the serious_python **5.0.0** release ([#253](https://github.com/flet-dev/serious-python/pull/253)).
+
 ## 4.7.2
 
 * **macOS:** fix App Store Connect error `90238` ("does not satisfy its designated Requirement") caused by linker-signed native modules ([#250](https://github.com/flet-dev/serious-python/issues/250), [#251](https://github.com/flet-dev/serious-python/pull/251)). Staging now replaces linker signatures on `.so` and `.dylib` files in the stdlib, site-packages and app with regular ad-hoc signatures. This preserves their signing identifiers when Xcode re-signs them for distribution, avoiding a mismatch with their designated requirements.
