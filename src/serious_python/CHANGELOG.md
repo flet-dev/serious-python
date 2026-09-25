@@ -1,3 +1,7 @@
+## 5.0.0
+
+* **Breaking (`package` command):** `--exclude`, `--cleanup-app-files` and `--cleanup-package-files` no longer split their values on commas, so paths containing `,` and brace globs such as `**/{tests,docs}` can be passed. Previously a hidden file named `.a,main.py` passed to `--exclude` became two exclusions, dropping `main.py`, and `**/{tests,docs}` was split into two broken globs. Pass each value as its own option: `--exclude build --exclude tests` instead of `--exclude build,tests`. A comma-separated value is now matched as a single path, so an unmigrated command packages the files it used to exclude without failing. The Dart API and runtime are unchanged. `flet build` pins serious_python exactly, so existing Flet releases are unaffected ([flet#6839](https://github.com/flet-dev/flet/issues/6839)).
+
 ## 4.7.2
 
 * **Packaging:** report packaging exceptions on stderr and exit with status `1`, so CI and `flet build` stop on failure while temporary files are still cleaned up ([#252](https://github.com/flet-dev/serious-python/pull/252)).
