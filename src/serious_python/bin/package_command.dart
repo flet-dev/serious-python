@@ -164,7 +164,8 @@ class PackageCommand extends Command {
             "Output asset path, relative to pubspec.yaml, to package Python program into.");
     argParser.addMultiOption('exclude',
         help:
-            "List of relative paths to exclude from app package, e.g. \"assets,build\".");
+            "Relative path to exclude from app package, e.g. \"build\"; can be used multiple times.",
+        splitCommas: false);
     argParser.addFlag("skip-site-packages",
         help: "Skip installation of site packages.", negatable: false);
     argParser.addFlag("compile-app",
@@ -180,12 +181,16 @@ class PackageCommand extends Command {
         help: "Cleanup app from unneccessary files and directories.",
         negatable: false);
     argParser.addMultiOption('cleanup-app-files',
-        help: "List of globs to delete extra app files and directories.");
+        help:
+            "Glob to delete extra app files and directories; can be used multiple times.",
+        splitCommas: false);
     argParser.addFlag("cleanup-packages",
         help: "Cleanup packages from unneccessary files and directories.",
         negatable: false);
     argParser.addMultiOption('cleanup-package-files',
-        help: "List of globs to delete extra packages files and directories.");
+        help:
+            "Glob to delete extra packages files and directories; can be used multiple times.",
+        splitCommas: false);
     argParser.addFlag("verbose", help: "Verbose output.", negatable: false);
   }
 

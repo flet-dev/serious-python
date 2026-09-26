@@ -214,6 +214,24 @@ identifiers assigned upstream. serious_python stages those byte-for-byte and nev
 rewrites anything inside them — see [SDK-origin signatures](#sdk-origin-signatures)
 below.
 
+#### Excluding and cleaning up files
+
+Exclude files and directories from the app package with `--exclude`. Each value is a path relative to the app directory, matched exactly (no globs); a matching directory is excluded with everything in it. Pass the option once per path:
+
+```
+dart run serious_python:main package app/src -p Darwin \
+    --exclude build --exclude tests --exclude src/.venv
+```
+
+`--cleanup-app` and `--cleanup-packages` (or `--cleanup` for both) delete known junk files (C sources and headers, type stubs, `__pycache__`, and so on) from the app and from the installed packages. Add your own globs with `--cleanup-app-files` and `--cleanup-package-files`, once per glob; they are only applied together with the matching cleanup flag:
+
+```
+dart run serious_python:main package app/src -p Android --cleanup-packages \
+    --cleanup-package-files '**/{tests,docs}' --cleanup-package-files '**.md'
+```
+
+> `--exclude`, `--cleanup-app-files` and `--cleanup-package-files` stopped splitting their values on commas in **5.0.0**, so paths containing `,` and brace globs such as `**/{tests,docs}` can be expressed. The comma-separated form (`--exclude build,tests`) now matches a single path named `build,tests`; pass each value as its own option instead.
+
 ## Python app structure
 
 By default, embedded Python program is run in a separate thread, to avoid UI blocking. Your Flutter app is not supposed to directly call Python functions or modules, but instead it should communicate via some API provided by a Python app, such as: REST API, sockets, SQLite database, files, etc.
@@ -256,7 +274,7 @@ The on-disk layout differs per platform, mostly because each OS has different ru
 
 ### Your app program (all platforms)
 
-`package` copies your Python sources into a temp dir (honoring `--exclude` globs, optionally compiling to `.pyc` with `--compile-app`). For **native** platforms it stages them to `SERIOUS_PYTHON_APP`, and the platform build drops them **unpacked into the bundle** next to the stdlib/site-packages — `<resourcePath>/app` (iOS/macOS), `<exe-dir>/app` (Windows/Linux). There's no first-launch extraction; `SeriousPython.prepareApp()` just returns that path. On **Android** the sources are zipped into a *stored* `app.zip` asset and unpacked once (version-keyed by your app version) to `<application-support>/flet/app` on the first launch after an install/update. On the **web** they're zipped into `app/app.zip` and loaded by Pyodide. Your app dir is placed first on `sys.path`; a sibling `__pypackages__/` is also added (so you can vendor pure-Python deps next to your code). At run time the current directory is set to a writable `<application-support>/data` (the app dir itself is read-only).
+`package` copies your Python sources into a temp dir (skipping `--exclude` paths, optionally compiling to `.pyc` with `--compile-app`). For **native** platforms it stages them to `SERIOUS_PYTHON_APP`, and the platform build drops them **unpacked into the bundle** next to the stdlib/site-packages — `<resourcePath>/app` (iOS/macOS), `<exe-dir>/app` (Windows/Linux). There's no first-launch extraction; `SeriousPython.prepareApp()` just returns that path. On **Android** the sources are zipped into a *stored* `app.zip` asset and unpacked once (version-keyed by your app version) to `<application-support>/flet/app` on the first launch after an install/update. On the **web** they're zipped into `app/app.zip` and loaded by Pyodide. Your app dir is placed first on `sys.path`; a sibling `__pypackages__/` is also added (so you can vendor pure-Python deps next to your code). At run time the current directory is set to a writable `<application-support>/data` (the app dir itself is read-only).
 
 `pip install` output goes to `build/site-packages` by default (override with the `SERIOUS_PYTHON_SITE_PACKAGES` env var). For mobile, packages are installed **per architecture** (a `sitecustomize.py` shim spoofs the wheel platform tag so the correct mobile wheels resolve), then merged or split per platform as shown above.
 
