@@ -83,7 +83,7 @@ if let items = try? FileManager.default.contentsOfDirectory(
 
 let package = Package(
     name: "serious_python_darwin",
-    platforms: [.iOS("13.0"), .macOS("11.0")],
+    platforms: [.iOS("15.0"), .macOS("12.0")],
     products: [
         .library(name: "serious-python-darwin", targets: ["serious_python_darwin"]),
     ],

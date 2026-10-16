@@ -1,3 +1,9 @@
+## 6.0.0
+
+* **Breaking (iOS/macOS):** the minimum supported OS is now **iOS 15.0** and **macOS 12.0** (was iOS 13.0 / macOS 11.0), the lowest deployment targets Xcode 27 accepts. Apps must set `platform :ios, '15.0'` / `platform :osx, '12.0'` in their Podfiles and the matching `IPHONEOS_DEPLOYMENT_TARGET` / `MACOSX_DEPLOYMENT_TARGET`. See `serious_python_darwin` 6.0.0 ([#254](https://github.com/flet-dev/serious-python/issues/254)).
+* **Packaging (iOS):** the `package` command targets the `ios-15.0-*` wheel platform tags. Wheels tagged for older iOS versions, such as `ios_13_0`, are still accepted ([#254](https://github.com/flet-dev/serious-python/issues/254)).
+* Update the bundled CPython to **3.12.15 / 3.13.16 / 3.14.8** ([python-build#46](https://github.com/flet-dev/python-build/pull/46)).
+
 ## 5.0.0
 
 * **Breaking (`package` command):** `--exclude`, `--cleanup-app-files` and `--cleanup-package-files` no longer split their values on commas, so paths containing `,` and brace globs such as `**/{tests,docs}` can be passed. Previously a hidden file named `.a,main.py` passed to `--exclude` became two exclusions, dropping `main.py`, and `**/{tests,docs}` was split into two broken globs. Pass each value as its own option: `--exclude build --exclude tests` instead of `--exclude build,tests`. A comma-separated value is now matched as a single path, so an unmigrated command packages the files it used to exclude without failing. The Dart API and runtime are unchanged. `flet build` pins serious_python exactly, so existing Flet releases are unaffected ([#253](https://github.com/flet-dev/serious-python/pull/253), [flet#6839](https://github.com/flet-dev/flet/issues/6839)).

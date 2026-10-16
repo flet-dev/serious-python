@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'serious_python_darwin'
-  s.version          = '5.0.0'
+  s.version          = '6.0.0'
   s.summary          = 'A cross-platform plugin for adding embedded Python runtime to your Flutter apps.'
   s.description      = <<-DESC
   A cross-platform plugin for adding embedded Python runtime to your Flutter apps.
@@ -21,8 +21,8 @@ Pod::Spec.new do |s|
   s.source_files = ['serious_python_darwin/Sources/serious_python_darwin/**/*.swift']
   s.ios.dependency 'Flutter'
   s.osx.dependency 'FlutterMacOS'
-  s.ios.deployment_target = '13.0'
-  s.osx.deployment_target = '11.0'
+  s.ios.deployment_target = '15.0'
+  s.osx.deployment_target = '12.0'
 
   # Flutter.framework does not contain a i386 slice.
   # `-all_load` is no longer needed: it existed to retain the static

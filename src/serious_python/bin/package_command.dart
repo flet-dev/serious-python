@@ -51,13 +51,13 @@ const spmKeyFileEnvironmentVariable = "SERIOUS_PYTHON_SPM_KEY_FILE";
 
 const platforms = {
   "iOS": {
-    "iphoneos.arm64": {"tag": "ios-13.0-arm64-iphoneos", "mac_ver": ""},
+    "iphoneos.arm64": {"tag": "ios-15.0-arm64-iphoneos", "mac_ver": ""},
     "iphonesimulator.arm64": {
-      "tag": "ios-13.0-arm64-iphonesimulator",
+      "tag": "ios-15.0-arm64-iphonesimulator",
       "mac_ver": ""
     },
     "iphonesimulator.x86_64": {
-      "tag": "ios-13.0-x86_64-iphonesimulator",
+      "tag": "ios-15.0-x86_64-iphonesimulator",
       "mac_ver": ""
     }
   },
