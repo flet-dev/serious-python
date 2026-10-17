@@ -1,3 +1,7 @@
+## 6.0.0
+
+* Update the python-build snapshot to **20261016**: CPython **3.12.15 / 3.13.16 / 3.14.8** and `dart_bridge` **1.11.0** ([python-build#46](https://github.com/flet-dev/python-build/pull/46)).
+
 ## 5.0.0
 
 * Align with the serious_python **5.0.0** release ([#253](https://github.com/flet-dev/serious-python/pull/253)).

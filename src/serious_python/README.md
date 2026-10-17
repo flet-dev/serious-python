@@ -24,9 +24,9 @@ is specified.
 
 | Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag       |
 | ----- | --------------- | ------------- | -------------------------------- |
-| 3.12  | 3.12.14         | 0.27.7        | `pyodide-2024.0-wasm32`           |
-| 3.13  | 3.13.15         | 0.29.4        | `pyemscripten-2025.0-wasm32`      |
-| 3.14  | 3.14.7          | 314.0.6       | `pyemscripten-2026.0-wasm32`      |
+| 3.12  | 3.12.15         | 0.27.8        | `pyodide-2024.0-wasm32`           |
+| 3.13  | 3.13.16         | 0.29.5        | `pyemscripten-2025.0-wasm32`      |
+| 3.14  | 3.14.8          | 314.0.7       | `pyemscripten-2026.0-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
@@ -57,11 +57,11 @@ Import Serious Python package into your app:
 
 `import 'package:serious_python/serious_python.dart';`
 
-The plugin is built against iOS 13.0, so you might need to update iOS version in `ios/Podfile`:
+The plugin is built against iOS 15.0, so you might need to update iOS version in `ios/Podfile`:
 
 ```bash
 # Uncomment this line to define a global platform for your project
-platform :ios, '13.0'
+platform :ios, '15.0'
 ```
 
 Package your Python app with the CLI (see [Packaging Python app](#packaging-python-app) below). Its sources are placed **unpacked inside the app bundle**, next to the Python stdlib and site-packages — on Android they ship as a *stored* `app.zip` asset inside the APK and are unpacked once on first launch. Then run it:
@@ -370,19 +370,19 @@ The following matrix shows which platform you should build on to target specific
 
 ### macOS
 
-macOS 11.0 (Big Sur) is the minimal supported version of macOS (the bundled
-`Python.framework` requires 11.0).
+macOS 12.0 (Monterey) is the minimal supported version of macOS (the bundled
+`Python.framework` requires 12.0).
 
 You have to update your Flutter app's `macos/Podfile` to have this line at the very top:
 
 ```ruby
-platform :osx, '11.0'
+platform :osx, '12.0'
 ```
 
 Also, make sure `macos/Runner.xcodeproj/project.pbxproj` contains:
 
 ```objc
-MACOSX_DEPLOYMENT_TARGET = 11.0;
+MACOSX_DEPLOYMENT_TARGET = 12.0;
 ```
 
 ### Android
