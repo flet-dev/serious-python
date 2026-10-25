@@ -330,14 +330,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.3.0"
-  petitparser:
-    dependency: transitive
-    description:
-      name: petitparser
-      sha256: "07c8f0b1913bcde1ff0d26e57ace2f3012ccbf2b204e070290dad3bb22797646"
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.0"
   platform:
     dependency: transitive
     description:
@@ -392,42 +384,42 @@ packages:
       path: "../.."
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   serious_python_android:
     dependency: transitive
     description:
       path: "../../../serious_python_android"
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   serious_python_darwin:
     dependency: transitive
     description:
       path: "../../../serious_python_darwin"
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   serious_python_linux:
     dependency: transitive
     description:
       path: "../../../serious_python_linux"
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   serious_python_platform_interface:
     dependency: transitive
     description:
       path: "../../../serious_python_platform_interface"
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   serious_python_windows:
     dependency: transitive
     description:
       path: "../../../serious_python_windows"
       relative: true
     source: path
-    version: "6.0.0"
+    version: "6.0.1"
   shelf:
     dependency: transitive
     description:
@@ -497,14 +489,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
-  toml:
-    dependency: transitive
-    description:
-      name: toml
-      sha256: "9968de24e45b632bf1a654fe1ac7b6fe5261c349243df83fd262397799c45a2d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.15.0"
   typed_data:
     dependency: transitive
     description:

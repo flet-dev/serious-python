@@ -1,3 +1,7 @@
+## 6.0.1
+
+* Align with the serious_python **6.0.1** release.
+
 ## 6.0.0
 
 * Align with the serious_python **6.0.0** release.

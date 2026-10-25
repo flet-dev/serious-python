@@ -1,3 +1,7 @@
+## 6.0.1
+
+* Align with the serious_python **6.0.1** release.
+
 ## 6.0.0
 
 * **Breaking:** raise the minimum deployment target to **iOS 15.0** and **macOS 12.0** (was iOS 13.0 / macOS 11.0) in the podspec and `Package.swift`. The bundled `Python.framework`, the per-module Python frameworks and `dart_bridge` are now also built for iOS 15.0 / macOS 12.0, and the framework `MinimumOSVersion` generated for native modules in site-packages is 15.0 ([#254](https://github.com/flet-dev/serious-python/issues/254), [python-build#46](https://github.com/flet-dev/python-build/pull/46), [dart-bridge#23](https://github.com/flet-dev/dart-bridge/pull/23)).
