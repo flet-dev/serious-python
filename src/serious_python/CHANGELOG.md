@@ -1,6 +1,6 @@
 ## 6.0.1
 
-* Remove the unused `toml` dependency. It pinned `petitparser` ^6, so apps that also depend on packages needing `petitparser` ^7, such as `file_picker` 13 (via `file_picker_linux` → `dbus` → `xml`), failed version solving.
+* Remove the unused `toml` dependency. It pinned `petitparser` ^6, so apps that also depend on packages needing `petitparser` ^7, such as `file_picker` 13 (via `file_picker_linux` → `dbus` → `xml`), failed version solving ([#257](https://github.com/flet-dev/serious-python/pull/257)).
 
 ## 6.0.0
 
