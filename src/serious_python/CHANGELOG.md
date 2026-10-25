@@ -1,3 +1,7 @@
+## 6.0.1
+
+* Remove the unused `toml` dependency. It pinned `petitparser` ^6, so apps that also depend on packages needing `petitparser` ^7, such as `file_picker` 13 (via `file_picker_linux` → `dbus` → `xml`), failed version solving ([#257](https://github.com/flet-dev/serious-python/pull/257)).
+
 ## 6.0.0
 
 * **Breaking (iOS/macOS):** the minimum supported OS is now **iOS 15.0** and **macOS 12.0** (was iOS 13.0 / macOS 11.0), the lowest deployment targets Xcode 27 accepts. Apps must set `platform :ios, '15.0'` / `platform :osx, '12.0'` in their Podfiles and the matching `IPHONEOS_DEPLOYMENT_TARGET` / `MACOSX_DEPLOYMENT_TARGET`. See `serious_python_darwin` 6.0.0 ([#254](https://github.com/flet-dev/serious-python/issues/254)).
