@@ -238,11 +238,19 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory   "${SP_RUNNER_OUT}"
   COMMAND ${CMAKE_COMMAND} -E copy_directory   "${PYTHON_PACKAGE}/Lib"  "${SP_RUNNER_OUT}/Lib"
   COMMAND ${CMAKE_COMMAND} -E copy_directory   "${PYTHON_PACKAGE}/DLLs" "${SP_RUNNER_OUT}/DLLs"
-  # Strip Debug-only PYDs from Release builds (best effort — missing files OK).
+  # Drop what an embedded app never loads: Tk, icons, catalogs (best effort —
+  # missing files OK).
   COMMAND ${CMAKE_COMMAND} -E rm -f --
     "${SP_RUNNER_OUT}/DLLs/tcl86t.dll"
     "${SP_RUNNER_OUT}/DLLs/tk86t.dll"
   COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*.ico\;*.cat
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
+  # Debug-only modules (*_d.pyd, *_d.dll, *_d.pdb) ship in Debug builds only:
+  # Release and Profile builds load the release ones. (The 3.0.0 move from
+  # cmd.exe DEL to rm_globs.cmake dropped this, so Release apps carried
+  # every module twice.) "__none__" matches nothing in Debug builds.
+  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs
+    -DGLOBS=$<IF:$<CONFIG:Debug>,__none__,*_d.*>
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
 )
 

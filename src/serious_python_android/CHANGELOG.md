@@ -1,3 +1,7 @@
+## 6.1.1
+
+* Align with the serious_python **6.1.1** release ([#260](https://github.com/flet-dev/serious-python/pull/260)).
+
 ## 6.1.0
 
 * Update the python-build snapshot to **20261027**: CPython **3.12.16 / 3.13.18 / 3.14.10** ([python-build#48](https://github.com/flet-dev/python-build/pull/48)).
