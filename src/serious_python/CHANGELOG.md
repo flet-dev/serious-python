@@ -1,3 +1,7 @@
+## 6.1.2
+
+* Windows Debug builds (`flutter test`, `flutter run`) use the release CPython, so compiled packages such as `pydantic-core` or `numpy` import there ([flet-dev/flet#7020](https://github.com/flet-dev/flet/discussions/7020)).
+
 ## 6.1.1
 
 * Release Windows apps no longer ship Python's debug modules (`*_d.pyd`), about 10 MB each ([#260](https://github.com/flet-dev/serious-python/pull/260)).

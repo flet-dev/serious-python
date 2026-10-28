@@ -1,3 +1,7 @@
+## 6.1.2
+
+* **Compiled Python packages import in Debug Windows builds.** Debug builds, such as `flutter test`, `flutter run` and Flet's `flet test`, bundled a debug build of CPython (`python3XY_d.dll` with `dart_bridge_d.dll`), which only imports extension modules named `*_d.pyd`. Wheels from PyPI don't ship those, so packages like `pydantic-core` or `numpy` failed with `ModuleNotFoundError` (e.g. `No module named 'pydantic_core._pydantic_core'`). Every build configuration now bundles the release CPython and `dart_bridge.dll`, and no build ships CPython's `*_d` modules ([flet-dev/flet#7020](https://github.com/flet-dev/flet/discussions/7020)).
+
 ## 6.1.1
 
 * **Release Windows apps no longer ship Python's debug modules.** The 3.0.0 rewrite of the `DLLs` copy step lost the removal of `*_d.*` from Release builds, so every app carried each extension module twice (`_ctypes.pyd` and `_ctypes_d.pyd`, …): about 10 MB and two dozen files more than needed, and as many extra signatures when the app is code-signed. Release and Profile builds now drop them again; Debug builds keep them ([#260](https://github.com/flet-dev/serious-python/pull/260)).
