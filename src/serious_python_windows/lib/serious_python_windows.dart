@@ -6,10 +6,9 @@ import 'package:serious_python_platform_interface/serious_python_platform_interf
 /// Windows implementation of [SeriousPythonPlatform].
 ///
 /// Python lifecycle (env, sys.path, Py_Initialize, run, finalize, sync/async)
-/// lives in `serious_python_run`, packaged as `dart_bridge.dll` (Release CRT)
-/// or `dart_bridge_d.dll` (Debug CRT) and bundled next to the .exe by this
-/// plugin's CMakeLists.txt. The correct DLL is picked at runtime based on
-/// [kDebugMode].
+/// lives in `serious_python_run`, packaged as `dart_bridge.dll` and bundled
+/// next to the .exe by this plugin's CMakeLists.txt, with the release CPython
+/// in every build configuration.
 ///
 /// This class derives PYTHONHOME from `Platform.resolvedExecutable` (the
 /// runner .exe directory, where the bundled CPython lives) and dispatches a

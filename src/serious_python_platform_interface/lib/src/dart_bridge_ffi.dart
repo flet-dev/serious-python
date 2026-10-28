@@ -2,7 +2,6 @@ import 'dart:ffi';
 import 'dart:io' show Platform;
 
 import 'package:ffi/ffi.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 
 /// FFI bindings for the `dart_bridge` C library published by
 /// [flet-dev/dart-bridge](https://github.com/flet-dev/dart-bridge).
@@ -15,8 +14,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 ///   `dart_bridge.xcframework` — looked up through [DynamicLibrary.process].
 /// - Android: bundled as `libdart_bridge.so` in jniLibs — opened by name.
 /// - Linux: bundled next to the executable — opened by name.
-/// - Windows: bundled next to the .exe, with a separate Debug-CRT variant
-///   `dart_bridge_d.dll` for `fvm flutter run`.
+/// - Windows: bundled next to the .exe as `dart_bridge.dll`, in Debug builds too.
 ///
 /// Mirrors the C surface declared in
 /// [dart-bridge/src/dart_bridge.c](https://github.com/flet-dev/dart-bridge/blob/main/src/dart_bridge.c)
@@ -159,8 +157,7 @@ class DartBridge {
       return DynamicLibrary.open('libdart_bridge.so');
     }
     if (Platform.isWindows) {
-      return DynamicLibrary.open(
-          kDebugMode ? 'dart_bridge_d.dll' : 'dart_bridge.dll');
+      return DynamicLibrary.open('dart_bridge.dll');
     }
     throw UnsupportedError(
         'serious_python: dart_bridge has no binary for this platform');
