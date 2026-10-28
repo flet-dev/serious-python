@@ -1,3 +1,7 @@
+## 6.1.0
+
+* **The bundled CPython runtimes move to 3.12.16 / 3.13.18 / 3.14.10** (from 3.12.15 / 3.13.16 / 3.14.8), from python-build **20261027**. These are expedited security releases: they stop trusting the compromised eMudhra intermediate CA keys ([CVE-2026-115557](https://github.com/python/cpython/issues/160040)) and reject links that replace the extraction destination in `tarfile`'s `tar_filter` ([CVE-2026-114583](https://github.com/python/cpython/issues/160097)), among other fixes. Pyodide and `dart_bridge` versions are unchanged ([python-build#48](https://github.com/flet-dev/python-build/pull/48)).
+
 ## 6.0.1
 
 * Remove the unused `toml` dependency. It pinned `petitparser` ^6, so apps that also depend on packages needing `petitparser` ^7, such as `file_picker` 13 (via `file_picker_linux` → `dbus` → `xml`), failed version solving ([#257](https://github.com/flet-dev/serious-python/pull/257)).
