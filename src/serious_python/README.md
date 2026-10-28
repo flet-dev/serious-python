@@ -24,9 +24,9 @@ is specified.
 
 | Short | CPython runtime | Pyodide (web) | Pyodide wheel platform tag       |
 | ----- | --------------- | ------------- | -------------------------------- |
-| 3.12  | 3.12.15         | 0.27.8        | `pyodide-2024.0-wasm32`           |
-| 3.13  | 3.13.16         | 0.29.5        | `pyemscripten-2025.0-wasm32`      |
-| 3.14  | 3.14.8          | 314.0.7       | `pyemscripten-2026.0-wasm32`      |
+| 3.12  | 3.12.16         | 0.27.8        | `pyodide-2024.0-wasm32`           |
+| 3.13  | 3.13.18         | 0.29.5        | `pyemscripten-2025.0-wasm32`      |
+| 3.14  | 3.14.10         | 314.0.7       | `pyemscripten-2026.0-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
