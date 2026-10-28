@@ -1,3 +1,7 @@
+## 6.1.1
+
+* **Release Windows apps no longer ship Python's debug modules.** The 3.0.0 rewrite of the `DLLs` copy step lost the removal of `*_d.*` from Release builds, so every app carried each extension module twice (`_ctypes.pyd` and `_ctypes_d.pyd`, …): about 10 MB and two dozen files more than needed, and as many extra signatures when the app is code-signed. Release and Profile builds now drop them again; Debug builds keep them ([#260](https://github.com/flet-dev/serious-python/pull/260)).
+
 ## 6.1.0
 
 * Update the python-build snapshot to **20261027**: CPython **3.12.16 / 3.13.18 / 3.14.10** ([python-build#48](https://github.com/flet-dev/python-build/pull/48)).
