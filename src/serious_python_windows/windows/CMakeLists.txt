@@ -242,12 +242,9 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
     "${SP_RUNNER_OUT}/DLLs/tk86t.dll"
   COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*.ico\;*.cat
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
-  # Debug-only modules (*_d.pyd, *_d.dll, *_d.pdb) ship in Debug builds only:
-  # Release and Profile builds load the release ones. (The 3.0.0 move from
-  # cmd.exe DEL to rm_globs.cmake dropped this, so Release apps carried
-  # every module twice.) "__none__" matches nothing in Debug builds.
-  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs
-    -DGLOBS=$<IF:$<CONFIG:Debug>,__none__,*_d.*>
+  # Debug CPython's modules (*_d.pyd, *_d.dll, *_d.pdb): every build loads
+  # the release CPython, so nothing imports them.
+  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*_d.*
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
 )
 
