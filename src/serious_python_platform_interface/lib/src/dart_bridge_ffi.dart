@@ -13,7 +13,8 @@ import 'package:ffi/ffi.dart';
 /// - Apple (macOS/iOS): statically linked into the host app via
 ///   `dart_bridge.xcframework` — looked up through [DynamicLibrary.process].
 /// - Android: bundled as `libdart_bridge.so` in jniLibs — opened by name.
-/// - Linux: bundled next to the executable — opened by name.
+/// - Linux: bundled next to the executable — opened with global symbols so
+///   Python extension wheels can resolve the CPython API.
 /// - Windows: bundled next to the .exe as `dart_bridge.dll`, in Debug builds too.
 ///
 /// Mirrors the C surface declared in
@@ -142,19 +143,51 @@ class DartBridge {
   /// Test/override entry point: open a specific library path. Replaces the
   /// cached instance.
   static DartBridge open(String path) =>
-      _instance = DartBridge._(DynamicLibrary.open(path));
+      _instance = DartBridge._(_openLibrary(path));
 
   /// Test/override entry point: resolve from the host process (Apple).
   /// Replaces the cached instance.
   static DartBridge process() =>
       _instance = DartBridge._(DynamicLibrary.process());
 
+  static DynamicLibrary _openLibrary(String path) {
+    if (!Platform.isLinux) return DynamicLibrary.open(path);
+
+    // dart:ffi uses RTLD_LOCAL on Linux. Extension wheels generally leave
+    // their CPython symbols unresolved, expecting the embedding interpreter
+    // to provide them globally. RTLD_GLOBAL also exposes the bridge's
+    // libpython dependencies, including the version-specific CPython library.
+    final process = DynamicLibrary.process();
+    final dlopen = process.lookupFunction<
+        Pointer<Void> Function(Pointer<Utf8>, Int32),
+        Pointer<Void> Function(Pointer<Utf8>, int)>('dlopen');
+    final dlclose = process.lookupFunction<Int32 Function(Pointer<Void>),
+        int Function(Pointer<Void>)>('dlclose');
+    const rtldLazy = 0x1;
+    const rtldGlobal = 0x100;
+    final handle = using((arena) => dlopen(
+        path.toNativeUtf8(allocator: arena), rtldLazy | rtldGlobal));
+    if (handle == nullptr) {
+      final dlerror = process.lookupFunction<Pointer<Utf8> Function(),
+          Pointer<Utf8> Function()>('dlerror');
+      final error = dlerror();
+      throw ArgumentError('Failed to load $path: '
+          '${error == nullptr ? "unknown dlopen error" : error.toDartString()}');
+    }
+    try {
+      return DynamicLibrary.open(path);
+    } finally {
+      // DynamicLibrary.open retains its own reference to the global library.
+      dlclose(handle);
+    }
+  }
+
   static DynamicLibrary _loadDefault() {
     if (Platform.isMacOS || Platform.isIOS) {
       return DynamicLibrary.process();
     }
     if (Platform.isAndroid || Platform.isLinux) {
-      return DynamicLibrary.open('libdart_bridge.so');
+      return _openLibrary('libdart_bridge.so');
     }
     if (Platform.isWindows) {
       return DynamicLibrary.open('dart_bridge.dll');
