@@ -522,9 +522,11 @@ jobs:
           # Per-file: `flutter test integration_test` (whole dir) reuses one
           # VM session and the second file fails to start the app. See
           # bridge_example_macos for the discovery.
-          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
-          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
-          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          # Keep startup tracebacks: verbose CMake install output can push them
+          # out of a tail filter before the readiness timeout is reported.
+          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
+          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
+          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
 
       - name: Diagnostics on failure
         if: failure()
