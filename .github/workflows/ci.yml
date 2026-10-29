@@ -82,6 +82,7 @@ jobs:
         build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      BRIDGE_EXAMPLE_TEST_PYDANTIC: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -124,7 +125,7 @@ jobs:
           if [ "${{ matrix.build_system }}" = "cocoapods" ]; then
             export SERIOUS_PYTHON_DARWIN_SPM=false
           fi
-          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }}
+          dart run serious_python:main package app/src --platform Darwin --python-version ${{ matrix.python_version }} --requirements "pydantic>=2,<3"
           if [ "${{ matrix.build_system }}" = "spm" ]; then
             export SP_NATIVE_SET="$(cat build/.serious_python_spm_key)"
           fi
@@ -370,6 +371,7 @@ jobs:
         python_version: ['3.12', '3.13', '3.14']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      BRIDGE_EXAMPLE_TEST_PYDANTIC: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -397,7 +399,7 @@ jobs:
         working-directory: "src/serious_python/example/bridge_example"
         shell: bash
         run: |
-          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }}
+          dart run serious_python:main package app/src --platform Windows --python-version ${{ matrix.python_version }} --requirements "pydantic>=2,<3"
           # bash + pipefail so the test step actually fails when flutter fails
           # (default PowerShell shell on windows runners eats the failure when
           # piping into tail).
@@ -446,6 +448,7 @@ jobs:
             title: ARM64
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
+      BRIDGE_EXAMPLE_TEST_PYDANTIC: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -498,7 +501,8 @@ jobs:
           flutter pub get
           dart run serious_python:main package app/src \
             --platform Linux \
-            --python-version ${{ matrix.python_version }}
+            --python-version ${{ matrix.python_version }} \
+            --requirements "pydantic>=2,<3"
           set -o pipefail
 
           # Three back-to-back `xvfb-run` invocations race for display
