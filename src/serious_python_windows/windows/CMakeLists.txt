@@ -124,33 +124,30 @@ if(_py_extract)
   file(WRITE "${_py_marker}" "${_py_build_id}")
 endif()
 
-# ---- dart_bridge prebuilt DLLs --------------------------------------------
-# Release CRT (.dll) is what Release Flutter builds consume; Debug CRT
-# (_d.dll) is what `fvm flutter run` / Debug builds consume. Both ship in
-# every release of flet-dev/dart-bridge; we bundle both and let Flutter's
-# CONFIG-aware copy machinery pick the right one at app launch time.
+# ---- dart_bridge prebuilt DLL ---------------------------------------------
+# Every build configuration, Debug included, bundles the release
+# `dart_bridge.dll` and the release CPython it links (python3.dll ->
+# python3XY.dll). A Debug CPython would only import extension modules named
+# `*_d.pyd`, which PyPI wheels don't ship, so no compiled package
+# (pydantic-core, numpy, ...) could be imported in Debug builds such as
+# `flutter test` and `flutter run`. Nothing in the plugin links Python, so a
+# Debug runner loads the release DLLs as they are.
 #
-# Cached under the upstream arch-qualified filenames so multiple flet-dev/
-# dart-bridge versions can coexist in $FLET_CACHE_DIR. Copied to stable
-# unqualified names in the build tree because Flutter's bundled_libraries
+# Cached under the upstream arch-qualified filename so multiple flet-dev/
+# dart-bridge versions can coexist in $FLET_CACHE_DIR. Copied to a stable
+# unqualified name in the build tree because Flutter's bundled_libraries
 # machinery preserves filenames as-is, and the Dart side opens the DLL by
-# `dart_bridge[_d].dll` (no arch suffix).
+# `dart_bridge.dll` (no arch suffix).
 set(DART_BRIDGE_RELEASE_CACHED "${DB_CACHE}/dart_bridge-windows-x86_64.dll")
-set(DART_BRIDGE_DEBUG_CACHED   "${DB_CACHE}/dart_bridge_d-windows-x86_64.dll")
 
 _sp_download(
   "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge-windows-x86_64.dll"
   "${DART_BRIDGE_RELEASE_CACHED}")
-_sp_download(
-  "https://github.com/flet-dev/dart-bridge/releases/download/v${DART_BRIDGE_VERSION}/dart_bridge_d-windows-x86_64.dll"
-  "${DART_BRIDGE_DEBUG_CACHED}")
 
 set(DART_BRIDGE_DIR "${CMAKE_BINARY_DIR}/dart_bridge")
 set(DART_BRIDGE_RELEASE_DLL "${DART_BRIDGE_DIR}/dart_bridge.dll")
-set(DART_BRIDGE_DEBUG_DLL   "${DART_BRIDGE_DIR}/dart_bridge_d.dll")
 file(MAKE_DIRECTORY "${DART_BRIDGE_DIR}")
 configure_file("${DART_BRIDGE_RELEASE_CACHED}" "${DART_BRIDGE_RELEASE_DLL}" COPYONLY)
-configure_file("${DART_BRIDGE_DEBUG_CACHED}"   "${DART_BRIDGE_DEBUG_DLL}"   COPYONLY)
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
@@ -217,9 +214,9 @@ if(EXISTS "${SERIOUS_PYTHON_WINDIR}/Sysnative")
 endif()
 
 set(serious_python_windows_bundled_libraries
-  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}$<$<CONFIG:Debug>:_d>.dll"
-  "${PYTHON_PACKAGE}/python3$<$<CONFIG:Debug>:_d>.dll"
-  "$<IF:$<CONFIG:Debug>,${DART_BRIDGE_DEBUG_DLL},${DART_BRIDGE_RELEASE_DLL}>"
+  "${PYTHON_PACKAGE}/python${PYTHON_VERSION_NODOT}.dll"
+  "${PYTHON_PACKAGE}/python3.dll"
+  "${DART_BRIDGE_RELEASE_DLL}"
   "${_sp_crt_dir}/msvcp140.dll"
   "${_sp_crt_dir}/vcruntime140.dll"
   "${_sp_crt_dir}/vcruntime140_1.dll"
@@ -245,12 +242,9 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
     "${SP_RUNNER_OUT}/DLLs/tk86t.dll"
   COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*.ico\;*.cat
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
-  # Debug-only modules (*_d.pyd, *_d.dll, *_d.pdb) ship in Debug builds only:
-  # Release and Profile builds load the release ones. (The 3.0.0 move from
-  # cmd.exe DEL to rm_globs.cmake dropped this, so Release apps carried
-  # every module twice.) "__none__" matches nothing in Debug builds.
-  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs
-    -DGLOBS=$<IF:$<CONFIG:Debug>,__none__,*_d.*>
+  # Debug CPython's modules (*_d.pyd, *_d.dll, *_d.pdb): every build loads
+  # the release CPython, so nothing imports them.
+  COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*_d.*
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
 )
 

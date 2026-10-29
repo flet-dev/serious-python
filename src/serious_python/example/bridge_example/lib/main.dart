@@ -38,6 +38,9 @@ class BridgeExampleHandle {
   /// event arrives.
   final ValueNotifier<String?> pythonVersion = ValueNotifier<String?>(null);
 
+  /// Startup traceback sent over the bridge when a dependency check fails.
+  String? startupError;
+
   /// Send a JSON control op (Dart → Python) on the control channel.
   void sendControl(Map<String, dynamic> op) {
     final bytes = Uint8List.fromList(utf8.encode(jsonEncode(op)));
@@ -72,15 +75,6 @@ void main() {
   BridgeExampleHandle._instance =
       BridgeExampleHandle._(control, echo);
 
-  // Fire-and-forget: Python's main.py blocks forever waiting for messages.
-  // Awaiting SeriousPython.run() would deadlock the UI.
-  unawaited(SeriousPython.run(
-    environmentVariables: {
-      _controlPortEnv: '${control.port}',
-      _echoPortEnv: '${echo.port}',
-    },
-  ));
-
   runApp(const BridgeExampleApp());
 }
 
@@ -100,6 +94,15 @@ class _BridgeExampleAppState extends State<BridgeExampleApp> {
     super.initState();
     final handle = BridgeExampleHandle.instance;
     _controlSub = handle.controlBridge.messages.listen(_onControl);
+
+    // Subscribe before starting Python so even an immediate startup failure
+    // reaches the test harness. main.py blocks forever, so don't await it.
+    unawaited(SeriousPython.run(
+      environmentVariables: {
+        _controlPortEnv: '${handle.controlBridge.port}',
+        _echoPortEnv: '${handle.echoBridge.port}',
+      },
+    ));
 
     // Request the Python version once Python has had a moment to register
     // its handler. sendControl() retries internally if the handler isn't
@@ -123,6 +126,8 @@ class _BridgeExampleAppState extends State<BridgeExampleApp> {
       handle.counter.value = msg['value'] as int;
     } else if (event == 'version') {
       handle.pythonVersion.value = msg['value'] as String;
+    } else if (event == 'startup_error') {
+      handle.startupError = msg['message'] as String;
     }
     // 'mem' events are consumed by the memory test directly via its own
     // listener — no widget-visible state for them.
