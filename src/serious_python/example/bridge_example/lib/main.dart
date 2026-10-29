@@ -38,6 +38,9 @@ class BridgeExampleHandle {
   /// event arrives.
   final ValueNotifier<String?> pythonVersion = ValueNotifier<String?>(null);
 
+  /// Startup traceback sent over the bridge when a dependency check fails.
+  String? startupError;
+
   /// Send a JSON control op (Dart → Python) on the control channel.
   void sendControl(Map<String, dynamic> op) {
     final bytes = Uint8List.fromList(utf8.encode(jsonEncode(op)));
@@ -123,6 +126,8 @@ class _BridgeExampleAppState extends State<BridgeExampleApp> {
       handle.counter.value = msg['value'] as int;
     } else if (event == 'version') {
       handle.pythonVersion.value = msg['value'] as String;
+    } else if (event == 'startup_error') {
+      handle.startupError = msg['message'] as String;
     }
     // 'mem' events are consumed by the memory test directly via its own
     // listener — no widget-visible state for them.

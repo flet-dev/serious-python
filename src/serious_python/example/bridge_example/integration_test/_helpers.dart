@@ -23,6 +23,9 @@ Future<app.BridgeExampleHandle> bootAndAwaitReady(WidgetTester tester) async {
   // readiness signal for the control channel.
   final deadline = DateTime.now().add(const Duration(seconds: 30));
   while (handle.pythonVersion.value == null) {
+    if (handle.startupError != null) {
+      throw StateError('Python startup failed:\n${handle.startupError}');
+    }
     if (DateTime.now().isAfter(deadline)) {
       throw TimeoutException(
           'Python control handler never responded with version event');

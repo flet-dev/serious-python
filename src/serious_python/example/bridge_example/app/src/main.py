@@ -27,17 +27,6 @@ import tracemalloc
 
 import dart_bridge
 
-# Desktop CI packages Pydantic v2 to exercise its native pydantic-core wheel.
-# Validate before registering handlers so a failure prevents test readiness.
-if os.environ.get("BRIDGE_EXAMPLE_TEST_PYDANTIC") == "1":
-    from pydantic import BaseModel
-
-    class DependencyProbe(BaseModel):
-        value: int
-
-    assert DependencyProbe.model_validate({"value": "42"}).value == 42
-    print("[bridge_example] Pydantic native extension validation passed", flush=True)
-
 CONTROL_PORT_ENV = "BRIDGE_EXAMPLE_CONTROL_PORT"
 ECHO_PORT_ENV = "BRIDGE_EXAMPLE_ECHO_PORT"
 
@@ -94,6 +83,25 @@ def _rss_bytes() -> int:
 
 def _emit(event: dict) -> None:
     dart_bridge.send_bytes(control_port, json.dumps(event).encode("utf-8"))
+
+
+# Desktop CI packages Pydantic v2 to exercise its native pydantic-core wheel.
+# Validate before registering handlers so a failure prevents test readiness.
+if os.environ.get("BRIDGE_EXAMPLE_TEST_PYDANTIC") == "1":
+    try:
+        from pydantic import BaseModel
+
+        class DependencyProbe(BaseModel):
+            value: int
+
+        assert DependencyProbe.model_validate({"value": "42"}).value == 42
+        print("[bridge_example] Pydantic native extension validation passed", flush=True)
+    except Exception:
+        import traceback
+
+        # Native stderr is not forwarded by every integration-test runner.
+        _emit({"event": "startup_error", "message": traceback.format_exc()})
+        raise
 
 
 def on_control(payload: bytes) -> None:
