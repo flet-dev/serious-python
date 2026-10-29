@@ -2,6 +2,7 @@ import 'dart:ffi';
 import 'dart:io' show Platform;
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 /// FFI bindings for the `dart_bridge` C library published by
 /// [flet-dev/dart-bridge](https://github.com/flet-dev/dart-bridge).
@@ -190,7 +191,14 @@ class DartBridge {
       return _openLibrary('libdart_bridge.so');
     }
     if (Platform.isWindows) {
-      return DynamicLibrary.open('dart_bridge.dll');
+      try {
+        return DynamicLibrary.open('dart_bridge.dll');
+      } on ArgumentError {
+        // Older serious_python_windows 6.x versions only bundle the debug
+        // DLL in Debug builds, and allow newer platform-interface versions.
+        if (!kDebugMode) rethrow;
+        return DynamicLibrary.open('dart_bridge_d.dll');
+      }
     }
     throw UnsupportedError(
         'serious_python: dart_bridge has no binary for this platform');

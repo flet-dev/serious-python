@@ -522,11 +522,9 @@ jobs:
           # Per-file: `flutter test integration_test` (whole dir) reuses one
           # VM session and the second file fails to start the app. See
           # bridge_example_macos for the discovery.
-          # Keep startup tracebacks: verbose CMake install output can push them
-          # out of a tail filter before the readiness timeout is reported.
-          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
-          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
-          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v
+          flutter test integration_test/interactivity_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/throughput_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
+          flutter test integration_test/memory_test.dart -d linux --dart-define=EXPECTED_PYTHON_VERSION=${{ matrix.python_version }} -v 2>&1 | tail -300
 
       - name: Diagnostics on failure
         if: failure()
@@ -548,10 +546,6 @@ jobs:
           echo
           echo "=== Python stdlib dir ==="
           ls -d $DBG_DIR/python3.* 2>/dev/null | head -5
-          echo "=== Bundled Python dependency probe ==="
-          LD_LIBRARY_PATH="$PWD/$DBG_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
-            dart --packages=.dart_tool/package_config.json \
-            "$SCRIPTS/probe_linux_python.dart" "$DBG_DIR"
   publish:
     name: Publish to pub.dev
     needs:

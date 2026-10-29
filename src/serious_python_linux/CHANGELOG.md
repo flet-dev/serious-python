@@ -1,3 +1,7 @@
+## 6.1.2
+
+* Fix native Python extension imports, including `pydantic-core`, which failed with unresolved CPython symbols such as `PyExc_RecursionError` ([#261](https://github.com/flet-dev/serious-python/pull/261)).
+
 ## 6.1.1
 
 * Align with the serious_python **6.1.1** release ([#260](https://github.com/flet-dev/serious-python/pull/260)).
