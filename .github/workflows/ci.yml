@@ -548,6 +548,10 @@ jobs:
           echo
           echo "=== Python stdlib dir ==="
           ls -d $DBG_DIR/python3.* 2>/dev/null | head -5
+          echo "=== Bundled Python dependency probe ==="
+          LD_LIBRARY_PATH="$PWD/$DBG_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+            dart --packages=.dart_tool/package_config.json \
+            "$SCRIPTS/probe_linux_python.dart" "$DBG_DIR"
   publish:
     name: Publish to pub.dev
     needs:

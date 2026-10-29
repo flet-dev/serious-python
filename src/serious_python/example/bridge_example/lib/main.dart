@@ -75,15 +75,6 @@ void main() {
   BridgeExampleHandle._instance =
       BridgeExampleHandle._(control, echo);
 
-  // Fire-and-forget: Python's main.py blocks forever waiting for messages.
-  // Awaiting SeriousPython.run() would deadlock the UI.
-  unawaited(SeriousPython.run(
-    environmentVariables: {
-      _controlPortEnv: '${control.port}',
-      _echoPortEnv: '${echo.port}',
-    },
-  ));
-
   runApp(const BridgeExampleApp());
 }
 
@@ -103,6 +94,15 @@ class _BridgeExampleAppState extends State<BridgeExampleApp> {
     super.initState();
     final handle = BridgeExampleHandle.instance;
     _controlSub = handle.controlBridge.messages.listen(_onControl);
+
+    // Subscribe before starting Python so even an immediate startup failure
+    // reaches the test harness. main.py blocks forever, so don't await it.
+    unawaited(SeriousPython.run(
+      environmentVariables: {
+        _controlPortEnv: '${handle.controlBridge.port}',
+        _echoPortEnv: '${handle.echoBridge.port}',
+      },
+    ));
 
     // Request the Python version once Python has had a moment to register
     // its handler. sendControl() retries internally if the handler isn't
