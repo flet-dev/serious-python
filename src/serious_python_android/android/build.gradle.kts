@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.flet.serious_python_android"
-version = "6.1.2"
+version = "6.1.3"
 
 rootProject.allprojects {
     repositories {

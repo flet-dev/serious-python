@@ -1,3 +1,7 @@
+## 6.1.3
+
+* Fix the `package` command hiding why a step failed when the error went to stdout, such as the `SyntaxError` from compiling an app file, which made `flet build` fail with no explanation unless run with `-vv` ([#262](https://github.com/flet-dev/serious-python/pull/262), [flet-dev/flet#7029](https://github.com/flet-dev/flet/issues/7029)).
+
 ## 6.1.2
 
 * Windows Debug builds (`flutter test`, `flutter run`) use the release CPython, so compiled packages such as `pydantic-core` or `numpy` import there ([#261](https://github.com/flet-dev/serious-python/pull/261), [flet-dev/flet#7020](https://github.com/flet-dev/flet/discussions/7020)).

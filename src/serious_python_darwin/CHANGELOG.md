@@ -1,3 +1,7 @@
+## 6.1.3
+
+* Align with the serious_python **6.1.3** release ([#262](https://github.com/flet-dev/serious-python/pull/262)).
+
 ## 6.1.2
 
 * Align with the serious_python **6.1.2** release ([#261](https://github.com/flet-dev/serious-python/pull/261)).

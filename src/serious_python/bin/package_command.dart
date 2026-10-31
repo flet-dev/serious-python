@@ -669,12 +669,22 @@ class PackageCommand extends Command {
       {Map<String, String>? environment}) async {
     final proc = await Process.start(execPath, args, environment: environment);
 
-    await for (final line in proc.stdout.transform(utf8.decoder)) {
-      verbose(line.trim());
+    // Without --verbose, stdout is kept so it can be shown if a command that
+    // reports its errors there (e.g., compileall) fails.
+    final stdoutBuffer = StringBuffer();
+    await for (final chunk in proc.stdout.transform(utf8.decoder)) {
+      if (_verbose) {
+        verbose(chunk.trim());
+      } else {
+        stdoutBuffer.write(chunk);
+      }
     }
 
     if (await proc.exitCode != 0) {
+      stderr.write(stdoutBuffer.toString());
       stderr.write(await proc.stderr.transform(utf8.decoder).join());
+      // exit() doesn't wait for pending writes to stderr.
+      await stderr.flush();
       exit(1);
     }
     return proc.exitCode;
