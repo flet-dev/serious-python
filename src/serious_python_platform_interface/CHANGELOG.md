@@ -1,3 +1,7 @@
+## 6.1.3
+
+* Align with the serious_python **6.1.3** release.
+
 ## 6.1.2
 
 * On Windows, open `dart_bridge.dll` in Debug builds too, instead of `dart_bridge_d.dll` ([#261](https://github.com/flet-dev/serious-python/pull/261), [flet-dev/flet#7020](https://github.com/flet-dev/flet/discussions/7020)).
