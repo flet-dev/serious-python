@@ -666,29 +666,37 @@ class PackageCommand extends Command {
     return emptyDir;
   }
 
+  /// Runs a command and returns its exit status. If the command fails, exits
+  /// with status 1 instead; `exit()` doesn't wait for pending writes, so stderr
+  /// is flushed first.
+  ///
+  /// Both pipes are read while the command runs: once a pipe nobody reads is
+  /// full, the command blocks writing to it and never exits. On Windows a pipe
+  /// holds about 1 KB, which a few pip warnings are enough to fill.
+  ///
+  /// Stdin is closed, so a command that asks for input, such as pip prompting
+  /// for index credentials, fails instead of waiting forever.
+  ///
+  /// Without --verbose, the output of both pipes is kept, in the order it
+  /// arrives, so it can be shown if the command fails. Some commands (e.g.,
+  /// compileall) report their errors on stdout. Bytes that aren't UTF-8 are
+  /// replaced, since Windows tools often write in the console's code page.
+  ///
+  /// A process the command started (a compiler's helper server, say) can keep
+  /// the pipes open after the command exits, so the rest of the output is only
+  /// waited for briefly.
   Future<int> runExec(String execPath, List<String> args,
       {Map<String, String>? environment}) async {
     final proc = await Process.start(execPath, args, environment: environment);
 
-    // Nothing is ever written to the command's stdin. Closing it makes a
-    // command that asks for input, such as pip prompting for index
-    // credentials, fail instead of waiting forever.
     await proc.stdin.close();
 
-    // Both pipes are read while the command runs: once a pipe nobody reads is
-    // full, the command blocks writing to it and never exits. On Windows a
-    // pipe holds about 1 KB, which a few pip warnings are enough to fill.
-    //
-    // Without --verbose, the output of both is kept, in the order it arrives,
-    // so it can be shown if the command fails. Some commands (e.g.,
-    // compileall) report their errors on stdout.
     final output = StringBuffer();
     final subscriptions = <StreamSubscription<String>>[];
     final drained = <Future<void>>[];
     void drain(Stream<List<int>> stream, void Function(String) onVerbose) {
       final done = Completer<void>();
       subscriptions.add(stream
-          // Windows tools often write in the console's code page, not UTF-8.
           .transform(const Utf8Decoder(allowMalformed: true))
           .listen(
         (chunk) {
@@ -710,9 +718,6 @@ class PackageCommand extends Command {
 
     final status = await proc.exitCode;
 
-    // A process the command started (a compiler's helper server, say) can
-    // keep the pipes open after the command exits, so the rest of the output
-    // is only waited for briefly.
     await Future.wait(drained).timeout(const Duration(seconds: 5),
         onTimeout: () async {
       for (final subscription in subscriptions) {
@@ -722,11 +727,9 @@ class PackageCommand extends Command {
     });
 
     if (status != 0) {
-      // With --verbose it was already shown as it arrived.
       if (!_verbose) {
         stderr.write(output.toString());
       }
-      // exit() doesn't wait for pending writes to stderr.
       await stderr.flush();
       exit(1);
     }
