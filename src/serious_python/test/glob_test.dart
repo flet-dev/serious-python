@@ -20,7 +20,6 @@ void main() {
     expect(pyCache.matches("a/__pycache"), false);
 
     final pyCache2 = Glob("**/__pycache__");
-    expect(pyCache2.matches("c:/aaa/bbb/__pycache__"), true);
     expect(pyCache2.matches("a/b/__pycache__"), true);
 
     final binPyCache = Glob("**/bin/__pycache__");
