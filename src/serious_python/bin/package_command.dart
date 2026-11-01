@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -669,25 +670,67 @@ class PackageCommand extends Command {
       {Map<String, String>? environment}) async {
     final proc = await Process.start(execPath, args, environment: environment);
 
-    // Without --verbose, stdout is kept so it can be shown if a command that
-    // reports its errors there (e.g., compileall) fails.
-    final stdoutBuffer = StringBuffer();
-    await for (final chunk in proc.stdout.transform(utf8.decoder)) {
-      if (_verbose) {
-        verbose(chunk.trim());
-      } else {
-        stdoutBuffer.write(chunk);
-      }
+    // Nothing is ever written to the command's stdin. Closing it makes a
+    // command that asks for input, such as pip prompting for index
+    // credentials, fail instead of waiting forever.
+    await proc.stdin.close();
+
+    // Both pipes are read while the command runs: once a pipe nobody reads is
+    // full, the command blocks writing to it and never exits. On Windows a
+    // pipe holds about 1 KB, which a few pip warnings are enough to fill.
+    //
+    // Without --verbose, the output of both is kept, in the order it arrives,
+    // so it can be shown if the command fails. Some commands (e.g.,
+    // compileall) report their errors on stdout.
+    final output = StringBuffer();
+    final subscriptions = <StreamSubscription<String>>[];
+    final drained = <Future<void>>[];
+    void drain(Stream<List<int>> stream, void Function(String) onVerbose) {
+      final done = Completer<void>();
+      subscriptions.add(stream
+          // Windows tools often write in the console's code page, not UTF-8.
+          .transform(const Utf8Decoder(allowMalformed: true))
+          .listen(
+        (chunk) {
+          if (_verbose) {
+            onVerbose(chunk);
+          } else {
+            output.write(chunk);
+          }
+        },
+        onDone: done.complete,
+        onError: (_) => done.complete(),
+        cancelOnError: true,
+      ));
+      drained.add(done.future);
     }
 
-    if (await proc.exitCode != 0) {
-      stderr.write(stdoutBuffer.toString());
-      stderr.write(await proc.stderr.transform(utf8.decoder).join());
+    drain(proc.stdout, (chunk) => verbose(chunk.trim()));
+    drain(proc.stderr, stderr.write);
+
+    final status = await proc.exitCode;
+
+    // A process the command started (a compiler's helper server, say) can
+    // keep the pipes open after the command exits, so the rest of the output
+    // is only waited for briefly.
+    await Future.wait(drained).timeout(const Duration(seconds: 5),
+        onTimeout: () async {
+      for (final subscription in subscriptions) {
+        await subscription.cancel();
+      }
+      return const [];
+    });
+
+    if (status != 0) {
+      // With --verbose it was already shown as it arrived.
+      if (!_verbose) {
+        stderr.write(output.toString());
+      }
       // exit() doesn't wait for pending writes to stderr.
       await stderr.flush();
       exit(1);
     }
-    return proc.exitCode;
+    return status;
   }
 
   static bool _isFalsy(String? v) =>
