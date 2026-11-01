@@ -1,6 +1,7 @@
 ## 6.1.3
 
 * Fix the `package` command hiding why a step failed when the error went to stdout, such as the `SyntaxError` from compiling an app file, which made `flet build` fail with no explanation unless run with `-vv` ([#262](https://github.com/flet-dev/serious-python/pull/262), [flet-dev/flet#7029](https://github.com/flet-dev/flet/issues/7029)).
+* Fix `flet build` hanging at "Packaging Python app..." on Windows when pip or another command it runs writes more than about 1 KB of warnings or errors or waits for input, and failing when a command prints text that isn't UTF-8 ([flet-dev/flet#5507](https://github.com/flet-dev/flet/issues/5507), [flet-dev/flet#5013](https://github.com/flet-dev/flet/issues/5013)).
 
 ## 6.1.2
 
