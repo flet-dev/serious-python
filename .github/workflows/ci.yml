@@ -30,6 +30,13 @@ env:
   # older flet whose transitive deps (e.g. msgpack) have wheels for the
   # target python_version / platform, leaving the two halves mismatched.
   FLET_VERSION: "0.85.3"
+  # GitHub Actions runs that supply runtimes the pinned releases don't publish
+  # yet (see .github/scripts/seed_unreleased_runtimes.sh): the python-build and
+  # dart-bridge `support-py3.15` runs that built Python 3.15.2 and its Android
+  # dart_bridge binaries. Clear both once python-build and dart-bridge releases
+  # carry 3.15; the seeding step is a no-op for released files.
+  PYTHON_BUILD_RUN_ID: "42319861949"
+  DART_BRIDGE_RUN_ID: "42321036158"
 
 permissions:
   contents: read
@@ -54,10 +61,21 @@ jobs:
 
       - name: Regenerate version tables and check for drift
         working-directory: src/serious_python
+        env:
+          # Unreleased minors: compare against python-build's `support-py3.15`
+          # branch manifest (on top of the pinned release date) instead of the
+          # release's. Clear once a python-build release lists 3.15.
+          PYTHON_BUILD_MANIFEST_URL: "https://raw.githubusercontent.com/flet-dev/python-build/support-py3.15/manifest.json"
         run: |
           set -euo pipefail
           flutter pub get >/dev/null
-          dart run serious_python:gen_version_tables
+          if [ -n "$PYTHON_BUILD_MANIFEST_URL" ]; then
+            curl -fsSL -o "$RUNNER_TEMP/manifest.json" "$PYTHON_BUILD_MANIFEST_URL"
+            date=$(sed -n 's/^const pythonReleaseDate = "\([0-9]*\)";$/\1/p' lib/src/python_versions.dart)
+            dart run serious_python:gen_version_tables --manifest "$RUNNER_TEMP/manifest.json" --release-date "$date"
+          else
+            dart run serious_python:gen_version_tables
+          fi
           if ! git diff --quiet; then
             echo "::error::Generated Python version tables are out of date."
             echo "The committed lib/src/python_versions.dart and the four"
@@ -105,7 +123,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
@@ -132,6 +150,12 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased runtimes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/seed_unreleased_runtimes.sh Darwin
 
       - name: Configure ${{ matrix.build_system }}
         run: |
@@ -202,7 +226,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         build_system: ['cocoapods', 'spm']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
@@ -228,6 +252,12 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased runtimes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/seed_unreleased_runtimes.sh iOS
 
       - name: Setup iOS Simulator
         id: simulator
@@ -287,7 +317,7 @@ jobs:
       matrix:
         # x86_64 matches the emulator architecture; only build/install for
         # that ABI to keep CI fast.
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
     steps:
@@ -312,6 +342,12 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased runtimes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/seed_unreleased_runtimes.sh Android
 
       - name: Enable KVM
         run: |
@@ -395,7 +431,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
     env:
       SERIOUS_PYTHON_VERSION: ${{ matrix.python_version }}
       BRIDGE_EXAMPLE_TEST_PYDANTIC: "1"
@@ -421,6 +457,12 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Avoid release-time cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased runtimes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/seed_unreleased_runtimes.sh Windows
 
       - name: Package + run integration test
         working-directory: "src/serious_python/example/bridge_example"
@@ -464,7 +506,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python_version: ['3.12', '3.13', '3.14']
+        python_version: ['3.12', '3.13', '3.14', '3.15']
         arch: [amd64, arm64]
         include:
           - arch: amd64
@@ -505,6 +547,12 @@ jobs:
             flet-cache-${{ runner.os }}-${{ runner.arch }}-
           # Read-only on tag/release builds to avoid cache poisoning.
           lookup-only: ${{ startsWith(github.ref, 'refs/tags/') }}
+
+      - name: Seed unreleased runtimes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash .github/scripts/seed_unreleased_runtimes.sh Linux
 
       - name: Install Linux desktop build deps
         run: |

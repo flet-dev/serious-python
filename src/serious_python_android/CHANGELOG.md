@@ -1,3 +1,8 @@
+## 6.2.0
+
+* Python 3.15 runtimes (`arm64-v8a`, `armeabi-v7a`, `x86_64`), pre-release.
+* `SERIOUS_PYTHON_ANDROID_PYTHON_DIST=<dir>` makes the build take `python-android-dart-<full>-<abi>.tar.gz` from `<dir>` instead of downloading it from the python-build release. It mirrors `SERIOUS_PYTHON_DART_BRIDGE_DIST`. Unlike `SERIOUS_PYTHON_BUILD_DIST`, the archives still go through the normal stdlib/site-packages staging. The cached download can't be used for this because the build re-checks the release URL even when the file is cached.
+
 ## 6.1.3
 
 * Align with the serious_python **6.1.3** release ([#262](https://github.com/flet-dev/serious-python/pull/262)).

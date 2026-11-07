@@ -240,6 +240,10 @@ add_custom_command(TARGET CopyPythonDLLs POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E rm -f --
     "${SP_RUNNER_OUT}/DLLs/tcl86t.dll"
     "${SP_RUNNER_OUT}/DLLs/tk86t.dll"
+    # Tcl/Tk 9 (CPython 3.15+).
+    "${SP_RUNNER_OUT}/DLLs/tcl90.dll"
+    "${SP_RUNNER_OUT}/DLLs/tcl9tk90.dll"
+    "${SP_RUNNER_OUT}/DLLs/libtommath.dll"
   COMMAND ${CMAKE_COMMAND} -DDIR=${SP_RUNNER_OUT}/DLLs -DGLOBS=*.ico\;*.cat
     -P "${CMAKE_CURRENT_SOURCE_DIR}/rm_globs.cmake"
   # Debug CPython's modules (*_d.pyd, *_d.dll, *_d.pdb): every build loads

@@ -1,3 +1,8 @@
+## 6.2.0
+
+* Python 3.15 runtime, pre-release.
+* Tcl/Tk 9 DLLs (`tcl90.dll`, `tcl9tk90.dll`, `libtommath.dll`, bundled from CPython 3.15) are dropped from the app like the 8.6 ones.
+
 ## 6.1.3
 
 * Align with the serious_python **6.1.3** release ([#262](https://github.com/flet-dev/serious-python/pull/262)).

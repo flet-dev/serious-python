@@ -21,7 +21,7 @@ buildscript {
 }
 
 group = "com.flet.serious_python_android"
-version = "6.1.3"
+version = "6.2.0"
 
 rootProject.allprojects {
     repositories {
@@ -237,7 +237,17 @@ for (abi in abis) {
         delete("src/main/jniLibs/$abi")
     }
 
-    val distFile = File(pythonCacheDir, "python-android-dart-$pythonFullVersion-$abi.tar.gz")
+    // SERIOUS_PYTHON_ANDROID_PYTHON_DIST: local-dev override pointing at a dir of
+    // python-android-dart-<full>-<abi>.tar.gz runtime archives (e.g. from an
+    // unreleased python-build CI run), bypassing the python-build release
+    // download like SERIOUS_PYTHON_DART_BRIDGE_DIST does for dart_bridge. Unlike
+    // SERIOUS_PYTHON_BUILD_DIST, the archives still go through the normal
+    // untar/split staging below.
+    val pythonDist = System.getenv("SERIOUS_PYTHON_ANDROID_PYTHON_DIST")
+    val distFile = File(
+        if (pythonDist != null) File(pythonDist) else pythonCacheDir,
+        "python-android-dart-$pythonFullVersion-$abi.tar.gz"
+    )
     tasks.register<Download>("downloadDistArchive_$abi") {
         src("https://github.com/flet-dev/python-build/releases/download/$pythonBuildDate/python-android-dart-$pythonFullVersion-$abi.tar.gz")
         dest(distFile)
@@ -249,7 +259,8 @@ for (abi in abis) {
     tasks.register<Copy>("untarFile_$abi") {
         from(tarTree(distFile))
         into("src/main/jniLibs/$abi")
-        dependsOn("jniCleanUp_$abi", "downloadDistArchive_$abi")
+        dependsOn("jniCleanUp_$abi")
+        if (pythonDist == null) dependsOn("downloadDistArchive_$abi")
     }
 
     tasks.register<Copy>("copyOpt_$abi") {

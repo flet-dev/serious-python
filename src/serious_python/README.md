@@ -27,6 +27,7 @@ is specified.
 | 3.12  | 3.12.16         | 0.27.8        | `pyodide-2024.0-wasm32`           |
 | 3.13  | 3.13.18         | 0.29.5        | `pyemscripten-2025.0-wasm32`      |
 | 3.14  | 3.14.10         | 314.0.7       | `pyemscripten-2026.0-wasm32`      |
+| 3.15  | 3.15.2 (pre-release) | 315.0.0a2 | `pyemscripten-2026.5-wasm32`      |
 
 The default is the latest stable row (currently **3.14**) when neither
 `--python-version` nor `SERIOUS_PYTHON_VERSION` is set. When running through
@@ -49,7 +50,9 @@ in each platform package (read by the native build configs). To bump versions
 see [CONTRIBUTING.md](CONTRIBUTING.md); never hand-edit the generated files.
 Pre-release CPython lines are marked `prerelease: true`, so they're opt-in via
 explicit `--python-version` (or `requires-python = "==3.15.*"`) without becoming
-the auto-resolved default.
+the auto-resolved default. 3.15 is such a line: CPython 3.15 itself is final,
+but its Pyodide is still an alpha and the mobile wheel index
+(`pypi.flet.dev`) has no cp315 builds yet.
 
 ## Usage
 
@@ -134,7 +137,7 @@ dart run serious_python:main package --asset assets/myapp.zip app/src -p Emscrip
 
 Pick which CPython line to bundle with the **`SERIOUS_PYTHON_VERSION`
 environment variable** (supported short versions today are **3.12**, **3.13**,
-**3.14**; the default is the latest stable):
+**3.14**, and **3.15** as a pre-release; the default is the latest stable):
 
 ```
 export SERIOUS_PYTHON_VERSION=3.13
@@ -161,6 +164,26 @@ and Pyodide releases.
 > requires a clean build (delete the app's `build/` directory, or run
 > `flutter clean`) so stale compiled bytecode from the previous version isn't
 > reused.
+
+#### Testing unreleased runtimes
+
+The native builds download the Python runtime from the pinned python-build
+release and dart_bridge from the pinned dart-bridge release. To build against
+files that aren't released yet (e.g. a python-build or dart-bridge CI run):
+
+* **Darwin, iOS, Linux, Windows** skip the download when the file is already in
+  the cache: place it at
+  `~/.flet/cache/python-build/v<full>-<python_build_release_date>/<asset>` (or
+  `dart-bridge/v<dart_bridge_version>/<asset>`; `FLET_CACHE_DIR` moves
+  `~/.flet/cache`).
+* **Android** always re-checks the release URL, so point it at local files
+  instead: `SERIOUS_PYTHON_ANDROID_PYTHON_DIST=<dir>` for
+  `python-android-dart-<full>-<abi>.tar.gz` and
+  `SERIOUS_PYTHON_DART_BRIDGE_DIST=<dir>` for
+  `libdart_bridge-android-<abi>-py<X.Y>.so`.
+
+`.github/scripts/seed_unreleased_runtimes.sh` does this from GitHub Actions run
+artifacts. CI uses it to test a Python minor before its runtimes are released.
 
 #### Installing requirements
 

@@ -1,3 +1,8 @@
+## 6.2.0
+
+* **Python 3.15 (3.15.2) as a pre-release line.** Select it with `--python-version 3.15` / `SERIOUS_PYTHON_VERSION=3.15`. It is never the default: 3.14 stays the default until Pyodide 3.15 is final and `pypi.flet.dev` has cp315 mobile wheels. Web builds use Pyodide `315.0.0a2` (wheel tag `pyemscripten-2026.5-wasm32`). The 3.15 runtimes and Android `dart_bridge` binaries come from python-build and dart-bridge releases that are not cut yet. Until then, build 3.15 against their CI artifacts (see "Testing unreleased runtimes" in the README).
+* New `SERIOUS_PYTHON_ANDROID_PYTHON_DIST` env var points Android builds at a directory of runtime archives instead of the python-build release. See serious_python_android 6.2.0.
+
 ## 6.1.3
 
 * Fix the `package` command hiding why a step failed when the error went to stdout, such as the `SyntaxError` from compiling an app file, which made `flet build` fail with no explanation unless run with `-vv` ([#262](https://github.com/flet-dev/serious-python/pull/262), [flet-dev/flet#7029](https://github.com/flet-dev/flet/issues/7029)).
