@@ -253,6 +253,13 @@ for (abi in abis) {
         dest(distFile)
         onlyIfModified(true)
         useETag("all")
+        // One ETag file per task. The plugin's default (build/download-task/
+        // etags.json) is shared by every Download task in this project, but its
+        // lock belongs to each task instance, so the per-ABI runtime and
+        // dart_bridge downloads running in parallel corrupt the shared file
+        // ("Unable to determine the current character ... '^@'"), and the
+        // corrupt file then fails every later build until build/ is cleaned.
+        cachedETagsFile(layout.buildDirectory.file("download-task/etags-dist-$abi.json"))
         tempAndMove(true)
         doFirst { distFile.parentFile.mkdirs() }
     }
@@ -417,6 +424,8 @@ for (abi in abis) {
         dest(bridgeFile)
         onlyIfModified(true)
         useETag("all")
+        // Own ETag file: see downloadDistArchive_$abi.
+        cachedETagsFile(layout.buildDirectory.file("download-task/etags-dart-bridge-$abi.json"))
         tempAndMove(true)
         doFirst { bridgeFile.parentFile.mkdirs() }
     }
