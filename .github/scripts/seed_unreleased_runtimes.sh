@@ -83,10 +83,10 @@ export_env() {
 }
 
 case "$platform" in
-    Darwin)
+    Darwin | iOS)
+        # Both: the CocoaPods prepare_command prepares the iOS and the macOS
+        # runtime whichever platform is being built.
         seed_python "darwin-unsigned-$full" "python-macos-dart-$full.tar.gz" "$pb_cache"
-        ;;
-    iOS)
         seed_python "darwin-unsigned-$full" "python-ios-dart-$full.tar.gz" "$pb_cache"
         ;;
     Linux)

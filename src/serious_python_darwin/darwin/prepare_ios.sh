@@ -25,7 +25,7 @@ python_ios_dist_file="python-ios-dart-$python_full_version.tar.gz"
 python_ios_dist_path="$pb_cache/$python_ios_dist_file"
 if [ ! -f "$python_ios_dist_path" ]; then
     python_ios_dist_url="https://github.com/flet-dev/python-build/releases/download/$python_build_date/$python_ios_dist_file"
-    curl -fL -o "$python_ios_dist_path.tmp" "$python_ios_dist_url"
+    curl -fL -o "$python_ios_dist_path.tmp" "$python_ios_dist_url" || { rm -f "$python_ios_dist_path.tmp"; echo "serious_python: failed to download $python_ios_dist_url" >&2; exit 1; }
     mv "$python_ios_dist_path.tmp" "$python_ios_dist_path"
 fi
 
@@ -39,8 +39,8 @@ marker="$dist/.python_build_id"
 if [ ! -d "$dist" ] || [ "$(cat "$marker" 2>/dev/null)" != "$pb_id" ]; then
     rm -rf "$dist"
     mkdir -p "$dist"
-    tar -xzf "$python_ios_dist_path" -C "$dist"
-    mv "$dist/python-stdlib" "$dist/stdlib"
+    tar -xzf "$python_ios_dist_path" -C "$dist" || exit 1
+    mv "$dist/python-stdlib" "$dist/stdlib" || exit 1
     echo "$pb_id" > "$marker"
 fi
 
@@ -51,7 +51,7 @@ dart_bridge_file="dart_bridge-apple.xcframework.zip"
 dart_bridge_path="$db_cache/$dart_bridge_file"
 if [ ! -f "$dart_bridge_path" ]; then
     dart_bridge_url="https://github.com/flet-dev/dart-bridge/releases/download/v$dart_bridge_version/$dart_bridge_file"
-    curl -fL -o "$dart_bridge_path.tmp" "$dart_bridge_url"
+    curl -fL -o "$dart_bridge_path.tmp" "$dart_bridge_url" || { rm -f "$dart_bridge_path.tmp"; echo "serious_python: failed to download $dart_bridge_url" >&2; exit 1; }
     mv "$dart_bridge_path.tmp" "$dart_bridge_path"
 fi
 
@@ -60,7 +60,7 @@ db_marker="$dist/xcframeworks/.dart_bridge_version"
 if [ ! -d "$dist/xcframeworks/dart_bridge.xcframework" ] || [ "$(cat "$db_marker" 2>/dev/null)" != "$dart_bridge_version" ]; then
     rm -rf "$dist/xcframeworks/dart_bridge.xcframework"
     mkdir -p "$dist/xcframeworks"
-    unzip -q "$dart_bridge_path" -d "$dist/xcframeworks/"
+    unzip -q "$dart_bridge_path" -d "$dist/xcframeworks/" || exit 1
     echo "$dart_bridge_version" > "$db_marker"
 fi
 

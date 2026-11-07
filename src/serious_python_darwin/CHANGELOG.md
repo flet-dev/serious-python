@@ -1,6 +1,7 @@
 ## 6.2.0
 
 * Python 3.15 runtimes for iOS and macOS, pre-release.
+* Fix a failed download or extraction of the iOS or macOS runtime (CocoaPods builds) leaving an empty `dist_ios`/`dist_macos` marked as ready, so later builds skipped preparing it and shipped no Python.
 
 ## 6.1.3
 
