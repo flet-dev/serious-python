@@ -2,6 +2,7 @@
 
 * Python 3.15 runtimes (`arm64-v8a`, `armeabi-v7a`, `x86_64`), pre-release.
 * `SERIOUS_PYTHON_ANDROID_PYTHON_DIST=<dir>` makes the build take `python-android-dart-<full>-<abi>.tar.gz` from `<dir>` instead of downloading it from the python-build release. It mirrors `SERIOUS_PYTHON_DART_BRIDGE_DIST`. Unlike `SERIOUS_PYTHON_BUILD_DIST`, the archives still go through the normal stdlib/site-packages staging. The cached download can't be used for this because the build re-checks the release URL even when the file is cached.
+* Fix Android builds failing in `downloadDistArchive_<abi>` with "The current character read is '^@'" when the parallel runtime and dart_bridge downloads corrupted their shared ETag file.
 
 ## 6.1.3
 
